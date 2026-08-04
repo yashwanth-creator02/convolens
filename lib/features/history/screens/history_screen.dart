@@ -1,10 +1,10 @@
-import 'package:drift/drift.dart';
+import 'package:convolens/features/history/repository/calls_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../core/native/call_log_channel.dart';
 import '../utils/group_calls_by_day.dart';
+import '../widget/call_card.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -22,6 +22,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _requestFetchAndStore();
   }
 
+  late final CallsRepository _repository = CallsRepository(_db);
+
   Future<void> _requestFetchAndStore() async {
     final status = await Permission.phone.request();
     debugPrint('Permission status: $status');
@@ -31,24 +33,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return;
     }
 
-    final calls = await CallLogChannel.fetchCallLogs();
-    debugPrint('Fetched ${calls.length} calls from device');
+    await _repository.syncFromDevice();
 
-    final companions = calls.map((call) {
-      return CallsCompanion.insert(
-        number: Value(call['number'] as String?),
-        name: Value(call['name'] as String?),
-        type: call['type'] as int,
-        duration: call['duration'] as int,
-        timestamp: call['timestamp'] as int,
-      );
-    }).toList();
-
-    await _db.batch((batch) {
-      batch.insertAll(_db.calls, companions, mode: InsertMode.insertOrIgnore);
-    });
-
-    debugPrint('Insert complete.');
+    final allCalls = await _db.select(_db.calls).get();
+    debugPrint('Total rows in DB: ${allCalls.length}');
+    debugPrint(
+      'Newest timestamp in DB: ${allCalls.isEmpty ? 'none' : allCalls.map((c) => c.timestamp).reduce((a, b) => a > b ? a : b)}',
+    );
+    debugPrint('Sync complete.');
   }
 
   @override
@@ -98,10 +90,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               }
 
               final call = item as Call;
-              return ListTile(
-                title: Text(call.name ?? call.number ?? 'Unknown'),
-                subtitle: Text('type:${call.type} • ${call.duration}s'),
-              );
+              return CallCard(call: call);
             },
           );
         },

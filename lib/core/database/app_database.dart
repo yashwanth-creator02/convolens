@@ -17,7 +17,16 @@ class AppDatabase extends _$AppDatabase {
   int get schemaVersion => 1;
 
   Stream<List<Call>> watchAllCalls() {
-    return select(calls).watch();
+    return (select(calls)..orderBy([
+          (t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc),
+        ]))
+        .watch();
+  }
+
+  Future<int?> getLatestTimestamp() async {
+    final query = selectOnly(calls)..addColumns([calls.timestamp.max()]);
+    final row = await query.getSingleOrNull();
+    return row?.read(calls.timestamp.max());
   }
 }
 
