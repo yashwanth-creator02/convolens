@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/logger/logger.dart';
+import '../../../core/toast/toast_service.dart';
 import '../utils/group_calls_by_day.dart';
 import '../widget/call_card.dart';
 import '../../settings/screens/settings_screen.dart';
@@ -23,6 +24,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   StreamSubscription<Setting>? _settingsSubscription;
 
   bool _isFirstLaunchLoading = false;
+  bool _permissionDenied = false;
+  bool _permissionPermanentlyDenied = false;
 
   @override
   void initState() {
@@ -48,30 +51,61 @@ class _HistoryScreenState extends State<HistoryScreen> {
       });
     }
 
-    final status = await Permission.phone.request();
-    Logger.debug('Permission status: $status', tag: 'Permission');
+    try {
+      final status = await Permission.phone.request();
+      Logger.debug('Permission status: $status', tag: 'Permission');
 
-    if (!status.isGranted) {
-      Logger.warning(
-        'Permission not granted, skipping fetch.',
-        tag: 'Permission',
-      );
-      if (!alreadyHasCalls) {
+      if (status.isPermanentlyDenied) {
+        Logger.warning('Permission permanently denied.', tag: 'Permission');
+        if (mounted) {
+          setState(() {
+            _permissionDenied = true;
+            _permissionPermanentlyDenied = true;
+          });
+        }
+        return;
+      }
+
+      if (!status.isGranted) {
+        Logger.warning(
+          'Permission not granted, skipping fetch.',
+          tag: 'Permission',
+        );
+        if (mounted) {
+          setState(() {
+            _permissionDenied = true;
+          });
+        }
+        return;
+      }
+
+      if (mounted && _permissionDenied) {
+        setState(() {
+          _permissionDenied = false;
+          _permissionPermanentlyDenied = false;
+        });
+      }
+
+      final archiveMode = await _db.getArchiveMode();
+      await _repository.syncFromDevice(archiveMode: archiveMode);
+      Logger.debug('Sync complete.', tag: 'Sync');
+    } catch (e, stackTrace) {
+      Logger.error('Sync failed: $e', tag: 'Sync');
+      debugPrint('$stackTrace');
+      if (mounted) {
+        ToastService.error(
+          context,
+          alreadyHasCalls
+              ? 'Sync failed. Showing your last saved data.'
+              : 'Failed to import call history. Pull down to retry.',
+        );
+      }
+    } finally {
+      if (!alreadyHasCalls && mounted) {
         setState(() {
           _isFirstLaunchLoading = false;
         });
       }
-      return;
-    }
-
-    final archiveMode = await _db.getArchiveMode();
-    await _repository.syncFromDevice(archiveMode: archiveMode);
-    Logger.debug('Sync complete.', tag: 'Sync');
-
-    if (!alreadyHasCalls) {
-      setState(() {
-        _isFirstLaunchLoading = false;
-      });
     }
   }
 
@@ -87,6 +121,40 @@ class _HistoryScreenState extends State<HistoryScreen> {
               SizedBox(height: 16),
               Text('Importing your call history…'),
             ],
+          ),
+        ),
+      );
+    }
+
+    if (_permissionDenied) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('History')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.phone_disabled, size: 48, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Text(
+                  'Convolens needs call log permission to show your history.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _permissionPermanentlyDenied
+                      ? openAppSettings
+                      : _requestFetchAndStore,
+                  child: Text(
+                    _permissionPermanentlyDenied
+                        ? 'Open App Settings'
+                        : 'Grant Permission',
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
