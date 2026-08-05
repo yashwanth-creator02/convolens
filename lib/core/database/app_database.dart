@@ -56,6 +56,13 @@ class AppDatabase extends _$AppDatabase {
   Future<void> updateSetting(SettingsCompanion updated) {
     return (update(settings)..where((s) => s.id.equals(0))).write(updated);
   }
+
+  Future<bool> getArchiveMode() async {
+    final row = await (select(
+      settings,
+    )..where((s) => s.id.equals(0))).getSingle();
+    return row.archiveMode;
+  }
 }
 
 LazyDatabase _openConnection() {

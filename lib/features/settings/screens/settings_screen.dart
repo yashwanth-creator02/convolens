@@ -2,6 +2,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../history/repository/calls_repository.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
+import 'developer_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final AppDatabase db;
@@ -37,10 +40,32 @@ class SettingsScreen extends StatelessWidget {
                 title: const Text('Archive Mode'),
                 subtitle: const Text('Keep calls even if removed from device'),
                 value: settings.archiveMode,
-                onChanged: (value) {
-                  db.updateSetting(
-                    SettingsCompanion(archiveMode: Value(value)),
+                onChanged: (value) async {
+                  if (value == true) {
+                    db.updateSetting(
+                      const SettingsCompanion(archiveMode: Value(true)),
+                    );
+                    return;
+                  }
+
+                  final confirmed = await showConfirmDialog(
+                    context: context,
+                    title: 'Turn off Archive Mode?',
+                    message:
+                        'Calls that are removed from your phone\'s call log '
+                        'will also be permanently deleted from Convolens the '
+                        'next time it syncs. This cannot be undone.',
+                    confirmLabel: 'Turn Off',
+                    isDestructive: true,
                   );
+
+                  if (!confirmed) return;
+
+                  await db.updateSetting(
+                    const SettingsCompanion(archiveMode: Value(false)),
+                  );
+
+                  await CallsRepository(db).syncFromDevice(archiveMode: false);
                 },
               ),
               const _SectionHeader('Display'),
@@ -102,6 +127,20 @@ class SettingsScreen extends StatelessWidget {
                   db.updateSetting(SettingsCompanion(devMode: Value(value)));
                 },
               ),
+              if (settings.devMode)
+                ListTile(
+                  leading: const Icon(Icons.build_outlined),
+                  title: const Text('Developer Tools'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DeveloperScreen(db: db),
+                      ),
+                    );
+                  },
+                ),
             ],
           );
         },

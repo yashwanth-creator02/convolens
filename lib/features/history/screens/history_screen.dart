@@ -34,7 +34,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return;
     }
 
-    await _repository.syncFromDevice();
+    final archiveMode = await _db.getArchiveMode();
+    await _repository.syncFromDevice(archiveMode: archiveMode);
 
     final allCalls = await _db.select(_db.calls).get();
     debugPrint('Total rows in DB: ${allCalls.length}');
