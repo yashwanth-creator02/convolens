@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../core/database/app_database.dart';
 import '../utils/group_calls_by_day.dart';
 import '../widget/call_card.dart';
+import '../../settings/screens/settings_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -46,7 +47,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
+      appBar: AppBar(
+        title: const Text('History'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SettingsScreen(db: _db),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: StreamBuilder<List<Call>>(
         stream: _db.watchAllCalls(),
         builder: (context, snapshot) {
