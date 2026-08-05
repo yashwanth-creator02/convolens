@@ -17,42 +17,68 @@ class CallCard extends StatelessWidget {
         ? call.name!
         : (call.number ?? 'Unknown');
 
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CallDetailScreen(call: call, db: db),
+    return StreamBuilder<Setting>(
+      stream: db.watchSettings(),
+      builder: (context, snapshot) {
+        final settings = snapshot.data;
+
+        final showContactName = settings?.showContactName ?? true;
+        final showPhoneNumber = settings?.showPhoneNumber ?? true;
+        final showCallType = settings?.showCallType ?? true;
+        final showDuration = settings?.showDuration ?? true;
+        final showTime = settings?.showTime ?? true;
+
+        final detailParts = <String>[
+          if (showCallType) callTypeLabel(call.type),
+          if (showDuration) '${call.duration}s',
+          if (showTime) formatCallTime(call.timestamp),
+        ];
+
+        return InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CallDetailScreen(call: call, db: db),
+              ),
+            );
+          },
+          child: Card(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (showContactName)
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  if (showPhoneNumber &&
+                      call.name != null &&
+                      call.name!.isNotEmpty &&
+                      call.number != null)
+                    Text(
+                      call.number!,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  if (detailParts.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      detailParts.join(' • '),
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         );
       },
-      child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                displayName,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              if (call.name != null &&
-                  call.name!.isNotEmpty &&
-                  call.number != null)
-                Text(call.number!, style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 4),
-              Text(
-                '${callTypeLabel(call.type)} • ${call.duration}s • ${formatCallTime(call.timestamp)}',
-                style: const TextStyle(fontSize: 13),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
