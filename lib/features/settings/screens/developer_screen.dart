@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/toast/toast_service.dart';
 
 class DeveloperScreen extends StatelessWidget {
   final AppDatabase db;
@@ -34,9 +35,7 @@ class DeveloperScreen extends StatelessWidget {
                   );
 
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Test call added.')),
-                );
+                ToastService.success(context, 'test call added. ');
               }
             },
           ),

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:convolens/features/history/repository/calls_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/logger/logger.dart';
 import '../utils/group_calls_by_day.dart';
 import '../widget/call_card.dart';
 import '../../settings/screens/settings_screen.dart';
@@ -16,18 +19,27 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final AppDatabase _db = AppDatabase();
+  late final CallsRepository _repository = CallsRepository(_db);
+  StreamSubscription<Setting>? _settingsSubscription;
 
   @override
   void initState() {
     super.initState();
+    _settingsSubscription = _db.watchSettings().listen((settings) {
+      Logger.devModeEnabled = settings.devMode;
+    });
     _requestFetchAndStore();
   }
 
-  late final CallsRepository _repository = CallsRepository(_db);
+  @override
+  void dispose() {
+    _settingsSubscription?.cancel();
+    super.dispose();
+  }
 
   Future<void> _requestFetchAndStore() async {
     final status = await Permission.phone.request();
-    debugPrint('Permission status: $status');
+    Logger.debug('Permission status: $status', tag: 'Permission');
 
     if (!status.isGranted) {
       debugPrint('Permission not granted, skipping fetch.');
@@ -42,7 +54,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     debugPrint(
       'Newest timestamp in DB: ${allCalls.isEmpty ? 'none' : allCalls.map((c) => c.timestamp).reduce((a, b) => a > b ? a : b)}',
     );
-    debugPrint('Sync complete.');
+    Logger.debug('Sync complete.', tag: 'Sync');
   }
 
   @override
