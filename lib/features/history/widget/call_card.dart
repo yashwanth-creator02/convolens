@@ -7,8 +7,9 @@ import '../utils/format_call_time.dart';
 
 class CallCard extends StatelessWidget {
   final Call call;
+  final AppDatabase db;
 
-  const CallCard({super.key, required this.call});
+  const CallCard({super.key, required this.call, required this.db});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +21,9 @@ class CallCard extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => CallDetailScreen(call: call)),
+          MaterialPageRoute(
+            builder: (context) => CallDetailScreen(call: call, db: db),
+          ),
         );
       },
       child: Card(

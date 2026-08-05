@@ -106,7 +106,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               }
 
               final call = item as Call;
-              return CallCard(call: call);
+              return CallCard(call: call, db: _db);
             },
           );
         },
