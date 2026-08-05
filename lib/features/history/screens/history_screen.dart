@@ -22,6 +22,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   late final CallsRepository _repository = CallsRepository(_db);
   StreamSubscription<Setting>? _settingsSubscription;
 
+  bool _isFirstLaunchLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,27 +40,58 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _requestFetchAndStore() async {
+    final alreadyHasCalls = await _db.hasAnyCalls();
+
+    if (!alreadyHasCalls) {
+      setState(() {
+        _isFirstLaunchLoading = true;
+      });
+    }
+
     final status = await Permission.phone.request();
     Logger.debug('Permission status: $status', tag: 'Permission');
 
     if (!status.isGranted) {
-      debugPrint('Permission not granted, skipping fetch.');
+      Logger.warning(
+        'Permission not granted, skipping fetch.',
+        tag: 'Permission',
+      );
+      if (!alreadyHasCalls) {
+        setState(() {
+          _isFirstLaunchLoading = false;
+        });
+      }
       return;
     }
 
     final archiveMode = await _db.getArchiveMode();
     await _repository.syncFromDevice(archiveMode: archiveMode);
-
-    final allCalls = await _db.select(_db.calls).get();
-    debugPrint('Total rows in DB: ${allCalls.length}');
-    debugPrint(
-      'Newest timestamp in DB: ${allCalls.isEmpty ? 'none' : allCalls.map((c) => c.timestamp).reduce((a, b) => a > b ? a : b)}',
-    );
     Logger.debug('Sync complete.', tag: 'Sync');
+
+    if (!alreadyHasCalls) {
+      setState(() {
+        _isFirstLaunchLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isFirstLaunchLoading) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Importing your call history…'),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('History'),

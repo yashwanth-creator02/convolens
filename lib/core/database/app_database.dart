@@ -63,6 +63,14 @@ class AppDatabase extends _$AppDatabase {
     )..where((s) => s.id.equals(0))).getSingle();
     return row.archiveMode;
   }
+
+  Future<bool> hasAnyCalls() async {
+    final row = await (selectOnly(
+      calls,
+    )..addColumns([calls.id.count()])).getSingle();
+    final count = row.read(calls.id.count()) ?? 0;
+    return count > 0;
+  }
 }
 
 LazyDatabase _openConnection() {
