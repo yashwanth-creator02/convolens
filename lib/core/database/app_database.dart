@@ -7,15 +7,16 @@ import 'package:path_provider/path_provider.dart';
 
 import 'tables/calls_table.dart';
 import 'tables/settings_table.dart';
+import 'tables/call_details_table.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Calls, Settings])
+@DriftDatabase(tables: [Calls, Settings, CallDetails])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -27,8 +28,12 @@ class AppDatabase extends _$AppDatabase {
         if (from < 2) {
           await m.createTable(settings);
         }
+        if (from < 3) {
+          await m.createTable(callDetails);
+        }
       },
-      beforeOpen: (m) async {
+      beforeOpen: (details) async {
+        await customStatement('PRAGMA foreign_keys = ON');
         await into(
           settings,
         ).insertOnConflictUpdate(const SettingsCompanion(id: Value(0)));
@@ -70,6 +75,28 @@ class AppDatabase extends _$AppDatabase {
     )..addColumns([calls.id.count()])).getSingle();
     final count = row.read(calls.id.count()) ?? 0;
     return count > 0;
+  }
+
+  Stream<CallDetail?> watchDetailsForCall(int callId) {
+    return (select(
+      callDetails,
+    )..where((d) => d.callId.equals(callId))).watchSingleOrNull();
+  }
+
+  Future<void> saveNote(int callId, String note) async {
+    final existing = await (select(
+      callDetails,
+    )..where((t) => t.callId.equals(callId))).getSingleOrNull();
+
+    if (existing == null) {
+      await into(
+        callDetails,
+      ).insert(CallDetailsCompanion.insert(callId: callId, note: Value(note)));
+    } else {
+      await (update(callDetails)..where((t) => t.callId.equals(callId))).write(
+        CallDetailsCompanion(note: Value(note)),
+      );
+    }
   }
 }
 

@@ -1093,16 +1093,283 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }
 }
 
+class $CallDetailsTable extends CallDetails
+    with TableInfo<$CallDetailsTable, CallDetail> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CallDetailsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _callIdMeta = const VerificationMeta('callId');
+  @override
+  late final GeneratedColumn<int> callId = GeneratedColumn<int>(
+    'call_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES calls (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, callId, note];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'call_details';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CallDetail> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('call_id')) {
+      context.handle(
+        _callIdMeta,
+        callId.isAcceptableOrUnknown(data['call_id']!, _callIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_callIdMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {callId},
+  ];
+  @override
+  CallDetail map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CallDetail(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      callId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}call_id'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+    );
+  }
+
+  @override
+  $CallDetailsTable createAlias(String alias) {
+    return $CallDetailsTable(attachedDatabase, alias);
+  }
+}
+
+class CallDetail extends DataClass implements Insertable<CallDetail> {
+  final int id;
+  final int callId;
+  final String? note;
+  const CallDetail({required this.id, required this.callId, this.note});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['call_id'] = Variable<int>(callId);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    return map;
+  }
+
+  CallDetailsCompanion toCompanion(bool nullToAbsent) {
+    return CallDetailsCompanion(
+      id: Value(id),
+      callId: Value(callId),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+    );
+  }
+
+  factory CallDetail.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CallDetail(
+      id: serializer.fromJson<int>(json['id']),
+      callId: serializer.fromJson<int>(json['callId']),
+      note: serializer.fromJson<String?>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'callId': serializer.toJson<int>(callId),
+      'note': serializer.toJson<String?>(note),
+    };
+  }
+
+  CallDetail copyWith({
+    int? id,
+    int? callId,
+    Value<String?> note = const Value.absent(),
+  }) => CallDetail(
+    id: id ?? this.id,
+    callId: callId ?? this.callId,
+    note: note.present ? note.value : this.note,
+  );
+  CallDetail copyWithCompanion(CallDetailsCompanion data) {
+    return CallDetail(
+      id: data.id.present ? data.id.value : this.id,
+      callId: data.callId.present ? data.callId.value : this.callId,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CallDetail(')
+          ..write('id: $id, ')
+          ..write('callId: $callId, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, callId, note);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CallDetail &&
+          other.id == this.id &&
+          other.callId == this.callId &&
+          other.note == this.note);
+}
+
+class CallDetailsCompanion extends UpdateCompanion<CallDetail> {
+  final Value<int> id;
+  final Value<int> callId;
+  final Value<String?> note;
+  const CallDetailsCompanion({
+    this.id = const Value.absent(),
+    this.callId = const Value.absent(),
+    this.note = const Value.absent(),
+  });
+  CallDetailsCompanion.insert({
+    this.id = const Value.absent(),
+    required int callId,
+    this.note = const Value.absent(),
+  }) : callId = Value(callId);
+  static Insertable<CallDetail> custom({
+    Expression<int>? id,
+    Expression<int>? callId,
+    Expression<String>? note,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (callId != null) 'call_id': callId,
+      if (note != null) 'note': note,
+    });
+  }
+
+  CallDetailsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? callId,
+    Value<String?>? note,
+  }) {
+    return CallDetailsCompanion(
+      id: id ?? this.id,
+      callId: callId ?? this.callId,
+      note: note ?? this.note,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (callId.present) {
+      map['call_id'] = Variable<int>(callId.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CallDetailsCompanion(')
+          ..write('id: $id, ')
+          ..write('callId: $callId, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $CallsTable calls = $CallsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $CallDetailsTable callDetails = $CallDetailsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [calls, settings];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    calls,
+    settings,
+    callDetails,
+  ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'calls',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('call_details', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$CallsTableCreateCompanionBuilder =
@@ -1125,6 +1392,29 @@ typedef $$CallsTableUpdateCompanionBuilder =
       Value<int> timestamp,
       Value<bool> removedFromDevice,
     });
+
+final class $$CallsTableReferences
+    extends BaseReferences<_$AppDatabase, $CallsTable, Call> {
+  $$CallsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$CallDetailsTable, List<CallDetail>>
+  _callDetailsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.callDetails,
+    aliasName: 'calls__id__call_details__call_id',
+  );
+
+  $$CallDetailsTableProcessedTableManager get callDetailsRefs {
+    final manager = $$CallDetailsTableTableManager(
+      $_db,
+      $_db.callDetails,
+    ).filter((f) => f.callId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_callDetailsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$CallsTableFilterComposer extends Composer<_$AppDatabase, $CallsTable> {
   $$CallsTableFilterComposer({
@@ -1168,6 +1458,31 @@ class $$CallsTableFilterComposer extends Composer<_$AppDatabase, $CallsTable> {
     column: $table.removedFromDevice,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> callDetailsRefs(
+    Expression<bool> Function($$CallDetailsTableFilterComposer f) f,
+  ) {
+    final $$CallDetailsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.callDetails,
+      getReferencedColumn: (t) => t.callId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallDetailsTableFilterComposer(
+            $db: $db,
+            $table: $db.callDetails,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CallsTableOrderingComposer
@@ -1246,6 +1561,31 @@ class $$CallsTableAnnotationComposer
     column: $table.removedFromDevice,
     builder: (column) => column,
   );
+
+  Expression<T> callDetailsRefs<T extends Object>(
+    Expression<T> Function($$CallDetailsTableAnnotationComposer a) f,
+  ) {
+    final $$CallDetailsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.callDetails,
+      getReferencedColumn: (t) => t.callId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallDetailsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.callDetails,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CallsTableTableManager
@@ -1259,9 +1599,9 @@ class $$CallsTableTableManager
           $$CallsTableAnnotationComposer,
           $$CallsTableCreateCompanionBuilder,
           $$CallsTableUpdateCompanionBuilder,
-          (Call, BaseReferences<_$AppDatabase, $CallsTable, Call>),
+          (Call, $$CallsTableReferences),
           Call,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool callDetailsRefs})
         > {
   $$CallsTableTableManager(_$AppDatabase db, $CallsTable table)
     : super(
@@ -1311,9 +1651,33 @@ class $$CallsTableTableManager
                 removedFromDevice: removedFromDevice,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) =>
+                    (e.readTable(table), $$CallsTableReferences(db, table, e)),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({callDetailsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (callDetailsRefs) db.callDetails],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (callDetailsRefs)
+                    await $_getPrefetchedData<Call, $CallsTable, CallDetail>(
+                      currentTable: table,
+                      referencedTable: $$CallsTableReferences
+                          ._callDetailsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$CallsTableReferences(db, table, p0).callDetailsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.callId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -1328,9 +1692,9 @@ typedef $$CallsTableProcessedTableManager =
       $$CallsTableAnnotationComposer,
       $$CallsTableCreateCompanionBuilder,
       $$CallsTableUpdateCompanionBuilder,
-      (Call, BaseReferences<_$AppDatabase, $CallsTable, Call>),
+      (Call, $$CallsTableReferences),
       Call,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool callDetailsRefs})
     >;
 typedef $$SettingsTableCreateCompanionBuilder =
     SettingsCompanion Function({
@@ -1627,6 +1991,275 @@ typedef $$SettingsTableProcessedTableManager =
       Setting,
       PrefetchHooks Function()
     >;
+typedef $$CallDetailsTableCreateCompanionBuilder =
+    CallDetailsCompanion Function({
+      Value<int> id,
+      required int callId,
+      Value<String?> note,
+    });
+typedef $$CallDetailsTableUpdateCompanionBuilder =
+    CallDetailsCompanion Function({
+      Value<int> id,
+      Value<int> callId,
+      Value<String?> note,
+    });
+
+final class $$CallDetailsTableReferences
+    extends BaseReferences<_$AppDatabase, $CallDetailsTable, CallDetail> {
+  $$CallDetailsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $CallsTable _callIdTable(_$AppDatabase db) =>
+      db.calls.createAlias('call_details__call_id__calls__id');
+
+  $$CallsTableProcessedTableManager get callId {
+    final $_column = $_itemColumn<int>('call_id')!;
+
+    final manager = $$CallsTableTableManager(
+      $_db,
+      $_db.calls,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_callIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CallDetailsTableFilterComposer
+    extends Composer<_$AppDatabase, $CallDetailsTable> {
+  $$CallDetailsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CallsTableFilterComposer get callId {
+    final $$CallsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.callId,
+      referencedTable: $db.calls,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallsTableFilterComposer(
+            $db: $db,
+            $table: $db.calls,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CallDetailsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CallDetailsTable> {
+  $$CallDetailsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CallsTableOrderingComposer get callId {
+    final $$CallsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.callId,
+      referencedTable: $db.calls,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallsTableOrderingComposer(
+            $db: $db,
+            $table: $db.calls,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CallDetailsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CallDetailsTable> {
+  $$CallDetailsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  $$CallsTableAnnotationComposer get callId {
+    final $$CallsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.callId,
+      referencedTable: $db.calls,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.calls,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CallDetailsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CallDetailsTable,
+          CallDetail,
+          $$CallDetailsTableFilterComposer,
+          $$CallDetailsTableOrderingComposer,
+          $$CallDetailsTableAnnotationComposer,
+          $$CallDetailsTableCreateCompanionBuilder,
+          $$CallDetailsTableUpdateCompanionBuilder,
+          (CallDetail, $$CallDetailsTableReferences),
+          CallDetail,
+          PrefetchHooks Function({bool callId})
+        > {
+  $$CallDetailsTableTableManager(_$AppDatabase db, $CallDetailsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CallDetailsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CallDetailsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CallDetailsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> callId = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => CallDetailsCompanion(id: id, callId: callId, note: note),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int callId,
+                Value<String?> note = const Value.absent(),
+              }) => CallDetailsCompanion.insert(
+                id: id,
+                callId: callId,
+                note: note,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CallDetailsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({callId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (callId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.callId,
+                                referencedTable: $$CallDetailsTableReferences
+                                    ._callIdTable(db),
+                                referencedColumn: $$CallDetailsTableReferences
+                                    ._callIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CallDetailsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CallDetailsTable,
+      CallDetail,
+      $$CallDetailsTableFilterComposer,
+      $$CallDetailsTableOrderingComposer,
+      $$CallDetailsTableAnnotationComposer,
+      $$CallDetailsTableCreateCompanionBuilder,
+      $$CallDetailsTableUpdateCompanionBuilder,
+      (CallDetail, $$CallDetailsTableReferences),
+      CallDetail,
+      PrefetchHooks Function({bool callId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1635,4 +2268,6 @@ class $AppDatabaseManager {
       $$CallsTableTableManager(_db, _db.calls);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$CallDetailsTableTableManager get callDetails =>
+      $$CallDetailsTableTableManager(_db, _db.callDetails);
 }

@@ -45,7 +45,7 @@ class CallCard extends StatelessWidget {
           },
           child: Card(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

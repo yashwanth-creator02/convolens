@@ -18,7 +18,8 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends State<HistoryScreen>
+    with WidgetsBindingObserver {
   final AppDatabase _db = AppDatabase();
   late final CallsRepository _repository = CallsRepository(_db);
   StreamSubscription<Setting>? _settingsSubscription;
@@ -30,6 +31,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _settingsSubscription = _db.watchSettings().listen((settings) {
       Logger.devModeEnabled = settings.devMode;
     });
@@ -38,8 +40,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _settingsSubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _permissionDenied) {
+      Logger.debug(
+        'App resumed while permission denied — retrying.',
+        tag: 'Permission',
+      );
+      _requestFetchAndStore();
+    }
   }
 
   Future<void> _requestFetchAndStore() async {
