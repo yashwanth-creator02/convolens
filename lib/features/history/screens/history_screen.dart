@@ -9,10 +9,11 @@ import '../../../core/logger/logger.dart';
 import '../../../core/toast/toast_service.dart';
 import '../utils/group_calls_by_day.dart';
 import '../widget/call_card.dart';
-import '../../settings/screens/settings_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final AppDatabase db;
+
+  const HistoryScreen({super.key, required this.db});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -20,10 +21,8 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen>
     with WidgetsBindingObserver {
-  final AppDatabase _db = AppDatabase();
-  late final CallsRepository _repository = CallsRepository(_db);
+  late final CallsRepository _repository = CallsRepository(widget.db);
   StreamSubscription<Setting>? _settingsSubscription;
-
   bool _isFirstLaunchLoading = false;
   bool _permissionDenied = false;
   bool _permissionPermanentlyDenied = false;
@@ -32,7 +31,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _settingsSubscription = _db.watchSettings().listen((settings) {
+    _settingsSubscription = widget.db.watchSettings().listen((settings) {
       Logger.devModeEnabled = settings.devMode;
     });
     _requestFetchAndStore();
@@ -57,7 +56,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   Future<void> _requestFetchAndStore() async {
-    final alreadyHasCalls = await _db.hasAnyCalls();
+    final alreadyHasCalls = await widget.db.hasAnyCalls();
 
     if (!alreadyHasCalls) {
       setState(() {
@@ -100,7 +99,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         });
       }
 
-      final archiveMode = await _db.getArchiveMode();
+      final archiveMode = await widget.db.getArchiveMode();
       await _repository.syncFromDevice(archiveMode: archiveMode);
       Logger.debug('Sync complete.', tag: 'Sync');
     } catch (e, stackTrace) {
@@ -126,119 +125,96 @@ class _HistoryScreenState extends State<HistoryScreen>
   @override
   Widget build(BuildContext context) {
     if (_isFirstLaunchLoading) {
-      return const Scaffold(
-        body: Center(
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Importing your call history…'),
+          ],
+        ),
+      );
+    }
+
+    if (_permissionDenied) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('Importing your call history…'),
+              const Icon(Icons.phone_disabled, size: 48, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'Convolens needs call log permission to show your history.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _permissionPermanentlyDenied
+                    ? openAppSettings
+                    : _requestFetchAndStore,
+                child: Text(
+                  _permissionPermanentlyDenied
+                      ? 'Open App Settings'
+                      : 'Grant Permission',
+                ),
+              ),
             ],
           ),
         ),
       );
     }
 
-    if (_permissionDenied) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('History')),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.phone_disabled, size: 48, color: Colors.grey),
-                const SizedBox(height: 16),
-                const Text(
-                  'Convolens needs call log permission to show your history.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _permissionPermanentlyDenied
-                      ? openAppSettings
-                      : _requestFetchAndStore,
-                  child: Text(
-                    _permissionPermanentlyDenied
-                        ? 'Open App Settings'
-                        : 'Grant Permission',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
+    return StreamBuilder<List<Call>>(
+      stream: widget.db.watchAllCalls(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('History'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SettingsScreen(db: _db),
+        final calls = snapshot.data!;
+
+        if (calls.isEmpty) {
+          return const Center(child: Text('No calls yet.'));
+        }
+
+        final grouped = groupCallsByDay(calls);
+
+        final List<Object> flatItems = [];
+        grouped.forEach((label, callsInGroup) {
+          flatItems.add(label);
+          flatItems.addAll(callsInGroup);
+        });
+
+        return ListView.builder(
+          itemCount: flatItems.length,
+          itemBuilder: (context, index) {
+            final item = flatItems[index];
+
+            if (item is String) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Text(
+                  item,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               );
-            },
-          ),
-        ],
-      ),
-      body: StreamBuilder<List<Call>>(
-        stream: _db.watchAllCalls(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+            }
 
-          final calls = snapshot.data!;
-
-          if (calls.isEmpty) {
-            return const Center(child: Text('No calls yet.'));
-          }
-
-          final grouped = groupCallsByDay(calls);
-
-          final List<Object> flatItems = [];
-          grouped.forEach((label, callsInGroup) {
-            flatItems.add(label);
-            flatItems.addAll(callsInGroup);
-          });
-
-          return ListView.builder(
-            itemCount: flatItems.length,
-            itemBuilder: (context, index) {
-              final item = flatItems[index];
-
-              if (item is String) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: Text(
-                    item,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                );
-              }
-
-              final call = item as Call;
-              return CallCard(call: call, db: _db);
-            },
-          );
-        },
-      ),
+            final call = item as Call;
+            return CallCard(call: call, db: widget.db);
+          },
+        );
+      },
     );
   }
 }

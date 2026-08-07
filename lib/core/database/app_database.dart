@@ -8,15 +8,17 @@ import 'package:path_provider/path_provider.dart';
 import 'tables/calls_table.dart';
 import 'tables/settings_table.dart';
 import 'tables/call_details_table.dart';
+import 'tables/tags_table.dart';
+import 'tables/call_tags_table.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Calls, Settings, CallDetails])
+@DriftDatabase(tables: [Calls, Settings, CallDetails, Tags, CallTags])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -31,12 +33,35 @@ class AppDatabase extends _$AppDatabase {
         if (from < 3) {
           await m.createTable(callDetails);
         }
+        if (from < 4) {
+          await m.createTable(tags);
+          await m.createTable(callTags);
+        }
       },
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');
         await into(
           settings,
         ).insertOnConflictUpdate(const SettingsCompanion(id: Value(0)));
+
+        final tagCount = await (selectOnly(tags)..addColumns([tags.id.count()]))
+            .getSingle()
+            .then((row) => row.read(tags.id.count()) ?? 0);
+
+        if (tagCount == 0) {
+          const defaultTags = [
+            'Work',
+            'Family',
+            'Friend',
+            'Client',
+            'Personal',
+          ];
+          for (final name in defaultTags) {
+            await into(
+              tags,
+            ).insertOnConflictUpdate(TagsCompanion.insert(name: name));
+          }
+        }
       },
     );
   }
@@ -97,6 +122,43 @@ class AppDatabase extends _$AppDatabase {
         CallDetailsCompanion(note: Value(note)),
       );
     }
+  }
+
+  Stream<List<Tag>> watchTagsForCall(int callId) {
+    final query = select(tags).join([
+      innerJoin(callTags, callTags.tagId.equalsExp(tags.id)),
+    ])..where(callTags.callId.equals(callId));
+
+    return query.watch().map(
+      (rows) => rows.map((row) => row.readTable(tags)).toList(),
+    );
+  }
+
+  Future<void> addTagToCall(int callId, String tagName) async {
+    final normalizedName = tagName.trim();
+    if (normalizedName.isEmpty) return;
+
+    final existingTag = await (select(
+      tags,
+    )..where((t) => t.name.equals(normalizedName))).getSingleOrNull();
+
+    final tagId =
+        existingTag?.id ??
+        await into(tags).insert(TagsCompanion.insert(name: normalizedName));
+
+    await into(callTags).insertOnConflictUpdate(
+      CallTagsCompanion.insert(callId: callId, tagId: tagId),
+    );
+  }
+
+  Future<void> removeTagFromCall(int callId, int tagId) async {
+    await (delete(
+      callTags,
+    )..where((t) => t.callId.equals(callId) & t.tagId.equals(tagId))).go();
+  }
+
+  Future<List<Tag>> getAllTags() {
+    return select(tags).get();
   }
 }
 
