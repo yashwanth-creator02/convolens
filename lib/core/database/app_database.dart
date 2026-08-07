@@ -18,7 +18,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -36,6 +36,12 @@ class AppDatabase extends _$AppDatabase {
         if (from < 4) {
           await m.createTable(tags);
           await m.createTable(callTags);
+        }
+        if (from < 5) {
+          await m.addColumn(callDetails, callDetails.reminderAt);
+        }
+        if (from < 6) {
+          await m.addColumn(callDetails, callDetails.reminderLabel);
         }
       },
       beforeOpen: (details) async {
@@ -168,6 +174,48 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<Tag>> getAllTags() {
     return select(tags).get();
+  }
+
+  Stream<CallDetail?> watchReminderForCall(int callId) {
+    return (select(
+      callDetails,
+    )..where((d) => d.callId.equals(callId))).watchSingleOrNull();
+  }
+
+  Future<void> saveReminder(
+    int callId,
+    DateTime reminderTime,
+    String? label,
+  ) async {
+    final existing = await (select(
+      callDetails,
+    )..where((d) => d.callId.equals(callId))).getSingleOrNull();
+
+    if (existing == null) {
+      await into(callDetails).insert(
+        CallDetailsCompanion.insert(
+          callId: callId,
+          reminderAt: Value(reminderTime.millisecondsSinceEpoch),
+          reminderLabel: Value(label),
+        ),
+      );
+    } else {
+      await (update(callDetails)..where((d) => d.callId.equals(callId))).write(
+        CallDetailsCompanion(
+          reminderAt: Value(reminderTime.millisecondsSinceEpoch),
+          reminderLabel: Value(label),
+        ),
+      );
+    }
+  }
+
+  Future<void> clearReminder(int callId) async {
+    await (update(callDetails)..where((d) => d.callId.equals(callId))).write(
+      const CallDetailsCompanion(
+        reminderAt: Value(null),
+        reminderLabel: Value(null),
+      ),
+    );
   }
 }
 

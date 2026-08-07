@@ -6,6 +6,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.convolens/calllog"
+    private val DEVICE_CHANNEL = "com.example.convolens/device"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -19,6 +20,17 @@ class MainActivity : FlutterActivity() {
                 val reader = CallLogReader(this)
                 val calls = reader.readCallLogs(sinceTimestamp)
                 result.success(calls)
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            DEVICE_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            if (call.method == "getTimezone") {
+                result.success(java.util.TimeZone.getDefault().id)
             } else {
                 result.notImplemented()
             }

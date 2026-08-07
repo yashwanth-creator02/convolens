@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
 import '../../../shared/widgets/text_input_dialog.dart';
 import '../utils/call_type_label.dart';
@@ -49,6 +50,90 @@ class CallDetailScreen extends StatelessWidget {
     if (result == null || result.isEmpty) return;
 
     await db.addTagToCall(call.id, result);
+  }
+
+  Future<void> _setReminder(BuildContext context) async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (pickedDate == null || !context.mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (pickedTime == null || !context.mounted) return;
+
+    final reminderTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    if (reminderTime.isBefore(DateTime.now())) {
+      if (context.mounted) {
+        ToastService.error(context, 'Please pick a time in the future.');
+      }
+      return;
+    }
+
+    if (!context.mounted) return;
+    final label = await showTextInputDialog(
+      context: context,
+      title: 'Reminder Note',
+      hintText: 'e.g. Call back about project',
+      confirmLabel: 'Set Reminder',
+    );
+    if (label == null) return;
+
+    final notificationsGranted =
+        await NotificationService.areNotificationsGranted();
+    if (!notificationsGranted) {
+      final granted = await NotificationService.requestNotificationPermission();
+      if (!granted) {
+        if (context.mounted) {
+          ToastService.error(
+            context,
+            'Notification permission is required to set reminders.',
+          );
+        }
+        return;
+      }
+    }
+
+    final displayName = call.name?.isNotEmpty == true
+        ? call.name!
+        : (call.number ?? 'Unknown');
+
+    await NotificationService.scheduleReminder(
+      callId: call.id,
+      scheduledTime: reminderTime,
+      title: label.isNotEmpty ? label : 'Call reminder: $displayName',
+      body: 'Follow up on your call with $displayName',
+    );
+
+    await db.saveReminder(
+      call.id,
+      reminderTime,
+      label.isNotEmpty ? label : null,
+    );
+
+    if (context.mounted) {
+      ToastService.success(context, 'Reminder set.');
+    }
+  }
+
+  Future<void> _clearReminder(BuildContext context) async {
+    await NotificationService.cancelReminder(call.id);
+    await db.clearReminder(call.id);
+    if (context.mounted) {
+      ToastService.success(context, 'Reminder removed.');
+    }
   }
 
   @override
@@ -180,6 +265,89 @@ class CallDetailScreen extends StatelessWidget {
                                 ),
                               )
                               .toList(),
+                        );
+                      },
+                    ),
+
+                    const Divider(height: 32),
+                    StreamBuilder<CallDetail?>(
+                      stream: db.watchReminderForCall(call.id),
+                      builder: (context, reminderSnapshot) {
+                        final reminder = reminderSnapshot.data;
+                        final hasReminder = reminder?.reminderAt != null;
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Reminder',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                if (!hasReminder)
+                                  TextButton.icon(
+                                    onPressed: () => _setReminder(context),
+                                    icon: const Icon(Icons.alarm_add, size: 18),
+                                    label: const Text('Set'),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            if (hasReminder)
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.alarm,
+                                      size: 18,
+                                      color: Colors.orange,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (reminder?.reminderLabel != null &&
+                                              reminder!
+                                                  .reminderLabel!
+                                                  .isNotEmpty)
+                                            Text(
+                                              reminder.reminderLabel!,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          Text(
+                                            DateTime.fromMillisecondsSinceEpoch(
+                                              reminder!.reminderAt!,
+                                            ).toString(),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.close, size: 18),
+                                      onPressed: () => _clearReminder(context),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         );
                       },
                     ),

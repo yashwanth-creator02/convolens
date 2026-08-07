@@ -10,6 +10,10 @@ class CallDetails extends Table {
 
   TextColumn get note => text().nullable()();
 
+  IntColumn get reminderAt => integer().nullable()();
+
+  TextColumn get reminderLabel => text().nullable()();
+
   @override
   List<Set<Column>> get uniqueKeys => [
     {callId},

@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
 import 'database_browser_screen.dart';
 
@@ -52,6 +53,11 @@ class DeveloperScreen extends StatelessWidget {
                 ),
               );
             },
+          ),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: const Text('Show Test Notification'),
+            onTap: () => NotificationService.showTestNotification(),
           ),
         ],
       ),

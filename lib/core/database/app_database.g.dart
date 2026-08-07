@@ -1133,8 +1133,36 @@ class $CallDetailsTable extends CallDetails
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _reminderAtMeta = const VerificationMeta(
+    'reminderAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, callId, note];
+  late final GeneratedColumn<int> reminderAt = GeneratedColumn<int>(
+    'reminder_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reminderLabelMeta = const VerificationMeta(
+    'reminderLabel',
+  );
+  @override
+  late final GeneratedColumn<String> reminderLabel = GeneratedColumn<String>(
+    'reminder_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    callId,
+    note,
+    reminderAt,
+    reminderLabel,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1164,6 +1192,21 @@ class $CallDetailsTable extends CallDetails
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('reminder_at')) {
+      context.handle(
+        _reminderAtMeta,
+        reminderAt.isAcceptableOrUnknown(data['reminder_at']!, _reminderAtMeta),
+      );
+    }
+    if (data.containsKey('reminder_label')) {
+      context.handle(
+        _reminderLabelMeta,
+        reminderLabel.isAcceptableOrUnknown(
+          data['reminder_label']!,
+          _reminderLabelMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1189,6 +1232,14 @@ class $CallDetailsTable extends CallDetails
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       ),
+      reminderAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_at'],
+      ),
+      reminderLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reminder_label'],
+      ),
     );
   }
 
@@ -1202,7 +1253,15 @@ class CallDetail extends DataClass implements Insertable<CallDetail> {
   final int id;
   final int callId;
   final String? note;
-  const CallDetail({required this.id, required this.callId, this.note});
+  final int? reminderAt;
+  final String? reminderLabel;
+  const CallDetail({
+    required this.id,
+    required this.callId,
+    this.note,
+    this.reminderAt,
+    this.reminderLabel,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1210,6 +1269,12 @@ class CallDetail extends DataClass implements Insertable<CallDetail> {
     map['call_id'] = Variable<int>(callId);
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || reminderAt != null) {
+      map['reminder_at'] = Variable<int>(reminderAt);
+    }
+    if (!nullToAbsent || reminderLabel != null) {
+      map['reminder_label'] = Variable<String>(reminderLabel);
     }
     return map;
   }
@@ -1219,6 +1284,12 @@ class CallDetail extends DataClass implements Insertable<CallDetail> {
       id: Value(id),
       callId: Value(callId),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      reminderAt: reminderAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reminderAt),
+      reminderLabel: reminderLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reminderLabel),
     );
   }
 
@@ -1231,6 +1302,8 @@ class CallDetail extends DataClass implements Insertable<CallDetail> {
       id: serializer.fromJson<int>(json['id']),
       callId: serializer.fromJson<int>(json['callId']),
       note: serializer.fromJson<String?>(json['note']),
+      reminderAt: serializer.fromJson<int?>(json['reminderAt']),
+      reminderLabel: serializer.fromJson<String?>(json['reminderLabel']),
     );
   }
   @override
@@ -1240,6 +1313,8 @@ class CallDetail extends DataClass implements Insertable<CallDetail> {
       'id': serializer.toJson<int>(id),
       'callId': serializer.toJson<int>(callId),
       'note': serializer.toJson<String?>(note),
+      'reminderAt': serializer.toJson<int?>(reminderAt),
+      'reminderLabel': serializer.toJson<String?>(reminderLabel),
     };
   }
 
@@ -1247,16 +1322,28 @@ class CallDetail extends DataClass implements Insertable<CallDetail> {
     int? id,
     int? callId,
     Value<String?> note = const Value.absent(),
+    Value<int?> reminderAt = const Value.absent(),
+    Value<String?> reminderLabel = const Value.absent(),
   }) => CallDetail(
     id: id ?? this.id,
     callId: callId ?? this.callId,
     note: note.present ? note.value : this.note,
+    reminderAt: reminderAt.present ? reminderAt.value : this.reminderAt,
+    reminderLabel: reminderLabel.present
+        ? reminderLabel.value
+        : this.reminderLabel,
   );
   CallDetail copyWithCompanion(CallDetailsCompanion data) {
     return CallDetail(
       id: data.id.present ? data.id.value : this.id,
       callId: data.callId.present ? data.callId.value : this.callId,
       note: data.note.present ? data.note.value : this.note,
+      reminderAt: data.reminderAt.present
+          ? data.reminderAt.value
+          : this.reminderAt,
+      reminderLabel: data.reminderLabel.present
+          ? data.reminderLabel.value
+          : this.reminderLabel,
     );
   }
 
@@ -1265,45 +1352,59 @@ class CallDetail extends DataClass implements Insertable<CallDetail> {
     return (StringBuffer('CallDetail(')
           ..write('id: $id, ')
           ..write('callId: $callId, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('reminderAt: $reminderAt, ')
+          ..write('reminderLabel: $reminderLabel')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, callId, note);
+  int get hashCode => Object.hash(id, callId, note, reminderAt, reminderLabel);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CallDetail &&
           other.id == this.id &&
           other.callId == this.callId &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.reminderAt == this.reminderAt &&
+          other.reminderLabel == this.reminderLabel);
 }
 
 class CallDetailsCompanion extends UpdateCompanion<CallDetail> {
   final Value<int> id;
   final Value<int> callId;
   final Value<String?> note;
+  final Value<int?> reminderAt;
+  final Value<String?> reminderLabel;
   const CallDetailsCompanion({
     this.id = const Value.absent(),
     this.callId = const Value.absent(),
     this.note = const Value.absent(),
+    this.reminderAt = const Value.absent(),
+    this.reminderLabel = const Value.absent(),
   });
   CallDetailsCompanion.insert({
     this.id = const Value.absent(),
     required int callId,
     this.note = const Value.absent(),
+    this.reminderAt = const Value.absent(),
+    this.reminderLabel = const Value.absent(),
   }) : callId = Value(callId);
   static Insertable<CallDetail> custom({
     Expression<int>? id,
     Expression<int>? callId,
     Expression<String>? note,
+    Expression<int>? reminderAt,
+    Expression<String>? reminderLabel,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (callId != null) 'call_id': callId,
       if (note != null) 'note': note,
+      if (reminderAt != null) 'reminder_at': reminderAt,
+      if (reminderLabel != null) 'reminder_label': reminderLabel,
     });
   }
 
@@ -1311,11 +1412,15 @@ class CallDetailsCompanion extends UpdateCompanion<CallDetail> {
     Value<int>? id,
     Value<int>? callId,
     Value<String?>? note,
+    Value<int?>? reminderAt,
+    Value<String?>? reminderLabel,
   }) {
     return CallDetailsCompanion(
       id: id ?? this.id,
       callId: callId ?? this.callId,
       note: note ?? this.note,
+      reminderAt: reminderAt ?? this.reminderAt,
+      reminderLabel: reminderLabel ?? this.reminderLabel,
     );
   }
 
@@ -1331,6 +1436,12 @@ class CallDetailsCompanion extends UpdateCompanion<CallDetail> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (reminderAt.present) {
+      map['reminder_at'] = Variable<int>(reminderAt.value);
+    }
+    if (reminderLabel.present) {
+      map['reminder_label'] = Variable<String>(reminderLabel.value);
+    }
     return map;
   }
 
@@ -1339,7 +1450,9 @@ class CallDetailsCompanion extends UpdateCompanion<CallDetail> {
     return (StringBuffer('CallDetailsCompanion(')
           ..write('id: $id, ')
           ..write('callId: $callId, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('reminderAt: $reminderAt, ')
+          ..write('reminderLabel: $reminderLabel')
           ..write(')'))
         .toString();
   }
@@ -2515,12 +2628,16 @@ typedef $$CallDetailsTableCreateCompanionBuilder =
       Value<int> id,
       required int callId,
       Value<String?> note,
+      Value<int?> reminderAt,
+      Value<String?> reminderLabel,
     });
 typedef $$CallDetailsTableUpdateCompanionBuilder =
     CallDetailsCompanion Function({
       Value<int> id,
       Value<int> callId,
       Value<String?> note,
+      Value<int?> reminderAt,
+      Value<String?> reminderLabel,
     });
 
 final class $$CallDetailsTableReferences
@@ -2561,6 +2678,16 @@ class $$CallDetailsTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
     column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reminderAt => $composableBuilder(
+    column: $table.reminderAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reminderLabel => $composableBuilder(
+    column: $table.reminderLabel,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2607,6 +2734,16 @@ class $$CallDetailsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get reminderAt => $composableBuilder(
+    column: $table.reminderAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reminderLabel => $composableBuilder(
+    column: $table.reminderLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CallsTableOrderingComposer get callId {
     final $$CallsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2645,6 +2782,16 @@ class $$CallDetailsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get reminderAt => $composableBuilder(
+    column: $table.reminderAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reminderLabel => $composableBuilder(
+    column: $table.reminderLabel,
+    builder: (column) => column,
+  );
 
   $$CallsTableAnnotationComposer get callId {
     final $$CallsTableAnnotationComposer composer = $composerBuilder(
@@ -2701,16 +2848,28 @@ class $$CallDetailsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<int> callId = const Value.absent(),
                 Value<String?> note = const Value.absent(),
-              }) => CallDetailsCompanion(id: id, callId: callId, note: note),
+                Value<int?> reminderAt = const Value.absent(),
+                Value<String?> reminderLabel = const Value.absent(),
+              }) => CallDetailsCompanion(
+                id: id,
+                callId: callId,
+                note: note,
+                reminderAt: reminderAt,
+                reminderLabel: reminderLabel,
+              ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required int callId,
                 Value<String?> note = const Value.absent(),
+                Value<int?> reminderAt = const Value.absent(),
+                Value<String?> reminderLabel = const Value.absent(),
               }) => CallDetailsCompanion.insert(
                 id: id,
                 callId: callId,
                 note: note,
+                reminderAt: reminderAt,
+                reminderLabel: reminderLabel,
               ),
           withReferenceMapper: (p0) => p0
               .map(

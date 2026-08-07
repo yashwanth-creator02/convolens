@@ -5,6 +5,7 @@ import '../../../core/database/app_database.dart';
 import '../../history/repository/calls_repository.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import 'developer_screen.dart';
+import 'permissions_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final AppDatabase db;
@@ -26,6 +27,20 @@ class SettingsScreen extends StatelessWidget {
 
           return ListView(
             children: [
+              ListTile(
+                leading: const Icon(Icons.security),
+                title: const Text('App Permissions'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PermissionsScreen(),
+                    ),
+                  );
+                },
+              ),
+
               const _SectionHeader('Sync'),
               SwitchListTile(
                 title: const Text('Enable Sync'),
@@ -42,9 +57,10 @@ class SettingsScreen extends StatelessWidget {
                 value: settings.archiveMode,
                 onChanged: (value) async {
                   if (value == true) {
-                    db.updateSetting(
+                    await db.updateSetting(
                       const SettingsCompanion(archiveMode: Value(true)),
                     );
+                    await CallsRepository(db).syncFromDevice(archiveMode: true);
                     return;
                   }
 

@@ -1,0 +1,135 @@
+import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+import '../../../core/notifications/notification_service.dart';
+
+class PermissionsScreen extends StatefulWidget {
+  const PermissionsScreen({super.key});
+
+  @override
+  State<PermissionsScreen> createState() => _PermissionsScreenState();
+}
+
+class _PermissionsScreenState extends State<PermissionsScreen>
+    with WidgetsBindingObserver {
+  bool _callLogGranted = false;
+  bool _notificationsGranted = false;
+  bool _exactAlarmGranted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshStatuses();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshStatuses();
+    }
+  }
+
+  Future<void> _refreshStatuses() async {
+    final callLogStatus = await Permission.phone.status;
+    final notificationsGranted =
+        await NotificationService.areNotificationsGranted();
+    final exactAlarmGranted =
+        await NotificationService.canScheduleExactAlarms();
+
+    setState(() {
+      _callLogGranted = callLogStatus.isGranted;
+      _notificationsGranted = notificationsGranted;
+      _exactAlarmGranted = exactAlarmGranted;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('App Permissions'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_applications),
+            tooltip: 'Open System Settings',
+            onPressed: () async {
+              await openAppSettings();
+            },
+          ),
+        ],
+      ),
+      body: ListView(
+        children: [
+          _PermissionTile(
+            title: 'Call Log',
+            subtitle: 'Required to import and archive your call history',
+            granted: _callLogGranted,
+            onTap: () async {
+              final status = await Permission.phone.status;
+              if (status.isPermanentlyDenied) {
+                await openAppSettings();
+              } else {
+                await Permission.phone.request();
+              }
+              _refreshStatuses();
+            },
+          ),
+          _PermissionTile(
+            title: 'Notifications',
+            subtitle: 'Required to show call reminders',
+            granted: _notificationsGranted,
+            onTap: () async {
+              final granted =
+                  await NotificationService.requestNotificationPermission();
+              if (!granted) {
+                await openAppSettings();
+              }
+              _refreshStatuses();
+            },
+          ),
+          _PermissionTile(
+            title: 'Exact Alarms',
+            subtitle: 'Required for reminders to fire at the exact time set',
+            granted: _exactAlarmGranted,
+            onTap: () async {
+              await NotificationService.requestExactAlarmPermission();
+              _refreshStatuses();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PermissionTile extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool granted;
+  final VoidCallback onTap;
+
+  const _PermissionTile({
+    required this.title,
+    required this.subtitle,
+    required this.granted,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: granted
+          ? const Icon(Icons.check_circle, color: Colors.green)
+          : TextButton(onPressed: onTap, child: const Text('Grant')),
+    );
+  }
+}

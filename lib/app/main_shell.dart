@@ -4,6 +4,7 @@ import '../core/database/app_database.dart';
 import '../features/history/screens/history_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../shared/widgets/coming_soon_view.dart';
+import '../core/notifications/notification_service.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -17,6 +18,12 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
 
   static const _titles = ['History', 'Analytics', 'Profile'];
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationService.init();
+  }
 
   late final List<Widget> _screens = [
     HistoryScreen(db: db),
