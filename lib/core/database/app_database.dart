@@ -10,15 +10,18 @@ import 'tables/settings_table.dart';
 import 'tables/call_details_table.dart';
 import 'tables/tags_table.dart';
 import 'tables/call_tags_table.dart';
+import 'tables/call_attachments_table.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [Calls, Settings, CallDetails, Tags, CallTags])
+@DriftDatabase(
+  tables: [Calls, Settings, CallDetails, Tags, CallTags, CallAttachments],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -42,6 +45,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 6) {
           await m.addColumn(callDetails, callDetails.reminderLabel);
+        }
+        if (from < 7) {
+          await m.createTable(callAttachments);
         }
       },
       beforeOpen: (details) async {
@@ -216,6 +222,33 @@ class AppDatabase extends _$AppDatabase {
         reminderLabel: Value(null),
       ),
     );
+  }
+
+  Stream<List<CallAttachment>> watchAttachmentsForCall(int callId) {
+    return (select(
+      callAttachments,
+    )..where((a) => a.callId.equals(callId))).watch();
+  }
+
+  Future<void> addAttachment({
+    required int callId,
+    required String filePath,
+    required String originalFileName,
+    required String fileType,
+  }) async {
+    await into(callAttachments).insert(
+      CallAttachmentsCompanion.insert(
+        callId: callId,
+        filePath: filePath,
+        originalFileName: originalFileName,
+        fileType: fileType,
+        addedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  Future<void> deleteAttachment(int id) async {
+    await (delete(callAttachments)..where((a) => a.id.equals(id))).go();
   }
 }
 

@@ -1,9 +1,15 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/text_input_dialog.dart';
+import '../repository/attachment_storage.dart';
 import '../utils/call_type_label.dart';
 import '../utils/format_call_time.dart';
 
@@ -133,6 +139,75 @@ class CallDetailScreen extends StatelessWidget {
     await db.clearReminder(call.id);
     if (context.mounted) {
       ToastService.success(context, 'Reminder removed.');
+    }
+  }
+
+  Future<void> _addAttachment(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+    );
+
+    if (result == null || result.files.single.path == null) return;
+
+    final pickedFile = result.files.single;
+    final sourcePath = pickedFile.path!;
+    final extension = pickedFile.extension?.toLowerCase() ?? '';
+    final fileType = extension == 'pdf' ? 'pdf' : 'image';
+
+    if (!context.mounted) return;
+
+    final copiedPath = await AttachmentStorage.copyToAppStorage(
+      sourcePath,
+      call.id,
+    );
+
+    await db.addAttachment(
+      callId: call.id,
+      filePath: copiedPath,
+      originalFileName: pickedFile.name,
+      fileType: fileType,
+    );
+
+    if (context.mounted) {
+      ToastService.success(context, 'Attachment added.');
+    }
+  }
+
+  Future<void> _deleteAttachment(
+    BuildContext context,
+    CallAttachment attachment,
+  ) async {
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: 'Remove Attachment?',
+      message: 'This will permanently delete "${attachment.originalFileName}".',
+      confirmLabel: 'Remove',
+      isDestructive: true,
+    );
+    if (!confirmed) return;
+
+    await AttachmentStorage.deleteFile(attachment.filePath);
+    await db.deleteAttachment(attachment.id);
+
+    if (context.mounted) {
+      ToastService.success(context, 'Attachment removed.');
+    }
+  }
+
+  void _viewAttachment(BuildContext context, CallAttachment attachment) {
+    if (attachment.fileType == 'image') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => _ImagePreviewScreen(
+            filePath: attachment.filePath,
+            title: attachment.originalFileName,
+          ),
+        ),
+      );
+    } else {
+      OpenFilex.open(attachment.filePath);
     }
   }
 
@@ -352,6 +427,62 @@ class CallDetailScreen extends StatelessWidget {
                       },
                     ),
 
+                    const Divider(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Attachments',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => _addAttachment(context),
+                          icon: const Icon(Icons.attach_file, size: 18),
+                          label: const Text('Add'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    StreamBuilder<List<CallAttachment>>(
+                      stream: db.watchAttachmentsForCall(call.id),
+                      builder: (context, attachmentSnapshot) {
+                        final attachments = attachmentSnapshot.data ?? [];
+
+                        if (attachments.isEmpty) {
+                          return const Text(
+                            'No attachments yet.',
+                            style: TextStyle(color: Colors.grey),
+                          );
+                        }
+
+                        return Column(
+                          children: attachments.map((attachment) {
+                            return ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              onTap: () => _viewAttachment(context, attachment),
+                              leading: Icon(
+                                attachment.fileType == 'pdf'
+                                    ? Icons.picture_as_pdf
+                                    : Icons.image,
+                                color: attachment.fileType == 'pdf'
+                                    ? Colors.red
+                                    : Colors.blue,
+                              ),
+                              title: Text(attachment.originalFileName),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    _deleteAttachment(context, attachment),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+
                     if (devMode) ...[
                       const Divider(height: 32),
                       const Text(
@@ -507,6 +638,22 @@ class _AddTagDialogState extends State<_AddTagDialog> {
           child: Text(buttonLabel),
         ),
       ],
+    );
+  }
+}
+
+class _ImagePreviewScreen extends StatelessWidget {
+  final String filePath;
+  final String title;
+
+  const _ImagePreviewScreen({required this.filePath, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      backgroundColor: Colors.black,
+      body: Center(child: InteractiveViewer(child: Image.file(File(filePath)))),
     );
   }
 }

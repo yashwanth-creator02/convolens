@@ -1859,6 +1859,412 @@ class CallTagsCompanion extends UpdateCompanion<CallTag> {
   }
 }
 
+class $CallAttachmentsTable extends CallAttachments
+    with TableInfo<$CallAttachmentsTable, CallAttachment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CallAttachmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _callIdMeta = const VerificationMeta('callId');
+  @override
+  late final GeneratedColumn<int> callId = GeneratedColumn<int>(
+    'call_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES calls (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originalFileNameMeta = const VerificationMeta(
+    'originalFileName',
+  );
+  @override
+  late final GeneratedColumn<String> originalFileName = GeneratedColumn<String>(
+    'original_file_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileTypeMeta = const VerificationMeta(
+    'fileType',
+  );
+  @override
+  late final GeneratedColumn<String> fileType = GeneratedColumn<String>(
+    'file_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<int> addedAt = GeneratedColumn<int>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    callId,
+    filePath,
+    originalFileName,
+    fileType,
+    addedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'call_attachments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CallAttachment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('call_id')) {
+      context.handle(
+        _callIdMeta,
+        callId.isAcceptableOrUnknown(data['call_id']!, _callIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_callIdMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('original_file_name')) {
+      context.handle(
+        _originalFileNameMeta,
+        originalFileName.isAcceptableOrUnknown(
+          data['original_file_name']!,
+          _originalFileNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originalFileNameMeta);
+    }
+    if (data.containsKey('file_type')) {
+      context.handle(
+        _fileTypeMeta,
+        fileType.isAcceptableOrUnknown(data['file_type']!, _fileTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileTypeMeta);
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_addedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CallAttachment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CallAttachment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      callId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}call_id'],
+      )!,
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      originalFileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_file_name'],
+      )!,
+      fileType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_type'],
+      )!,
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}added_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CallAttachmentsTable createAlias(String alias) {
+    return $CallAttachmentsTable(attachedDatabase, alias);
+  }
+}
+
+class CallAttachment extends DataClass implements Insertable<CallAttachment> {
+  final int id;
+  final int callId;
+  final String filePath;
+  final String originalFileName;
+  final String fileType;
+  final int addedAt;
+  const CallAttachment({
+    required this.id,
+    required this.callId,
+    required this.filePath,
+    required this.originalFileName,
+    required this.fileType,
+    required this.addedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['call_id'] = Variable<int>(callId);
+    map['file_path'] = Variable<String>(filePath);
+    map['original_file_name'] = Variable<String>(originalFileName);
+    map['file_type'] = Variable<String>(fileType);
+    map['added_at'] = Variable<int>(addedAt);
+    return map;
+  }
+
+  CallAttachmentsCompanion toCompanion(bool nullToAbsent) {
+    return CallAttachmentsCompanion(
+      id: Value(id),
+      callId: Value(callId),
+      filePath: Value(filePath),
+      originalFileName: Value(originalFileName),
+      fileType: Value(fileType),
+      addedAt: Value(addedAt),
+    );
+  }
+
+  factory CallAttachment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CallAttachment(
+      id: serializer.fromJson<int>(json['id']),
+      callId: serializer.fromJson<int>(json['callId']),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      originalFileName: serializer.fromJson<String>(json['originalFileName']),
+      fileType: serializer.fromJson<String>(json['fileType']),
+      addedAt: serializer.fromJson<int>(json['addedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'callId': serializer.toJson<int>(callId),
+      'filePath': serializer.toJson<String>(filePath),
+      'originalFileName': serializer.toJson<String>(originalFileName),
+      'fileType': serializer.toJson<String>(fileType),
+      'addedAt': serializer.toJson<int>(addedAt),
+    };
+  }
+
+  CallAttachment copyWith({
+    int? id,
+    int? callId,
+    String? filePath,
+    String? originalFileName,
+    String? fileType,
+    int? addedAt,
+  }) => CallAttachment(
+    id: id ?? this.id,
+    callId: callId ?? this.callId,
+    filePath: filePath ?? this.filePath,
+    originalFileName: originalFileName ?? this.originalFileName,
+    fileType: fileType ?? this.fileType,
+    addedAt: addedAt ?? this.addedAt,
+  );
+  CallAttachment copyWithCompanion(CallAttachmentsCompanion data) {
+    return CallAttachment(
+      id: data.id.present ? data.id.value : this.id,
+      callId: data.callId.present ? data.callId.value : this.callId,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      originalFileName: data.originalFileName.present
+          ? data.originalFileName.value
+          : this.originalFileName,
+      fileType: data.fileType.present ? data.fileType.value : this.fileType,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CallAttachment(')
+          ..write('id: $id, ')
+          ..write('callId: $callId, ')
+          ..write('filePath: $filePath, ')
+          ..write('originalFileName: $originalFileName, ')
+          ..write('fileType: $fileType, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, callId, filePath, originalFileName, fileType, addedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CallAttachment &&
+          other.id == this.id &&
+          other.callId == this.callId &&
+          other.filePath == this.filePath &&
+          other.originalFileName == this.originalFileName &&
+          other.fileType == this.fileType &&
+          other.addedAt == this.addedAt);
+}
+
+class CallAttachmentsCompanion extends UpdateCompanion<CallAttachment> {
+  final Value<int> id;
+  final Value<int> callId;
+  final Value<String> filePath;
+  final Value<String> originalFileName;
+  final Value<String> fileType;
+  final Value<int> addedAt;
+  const CallAttachmentsCompanion({
+    this.id = const Value.absent(),
+    this.callId = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.originalFileName = const Value.absent(),
+    this.fileType = const Value.absent(),
+    this.addedAt = const Value.absent(),
+  });
+  CallAttachmentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int callId,
+    required String filePath,
+    required String originalFileName,
+    required String fileType,
+    required int addedAt,
+  }) : callId = Value(callId),
+       filePath = Value(filePath),
+       originalFileName = Value(originalFileName),
+       fileType = Value(fileType),
+       addedAt = Value(addedAt);
+  static Insertable<CallAttachment> custom({
+    Expression<int>? id,
+    Expression<int>? callId,
+    Expression<String>? filePath,
+    Expression<String>? originalFileName,
+    Expression<String>? fileType,
+    Expression<int>? addedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (callId != null) 'call_id': callId,
+      if (filePath != null) 'file_path': filePath,
+      if (originalFileName != null) 'original_file_name': originalFileName,
+      if (fileType != null) 'file_type': fileType,
+      if (addedAt != null) 'added_at': addedAt,
+    });
+  }
+
+  CallAttachmentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? callId,
+    Value<String>? filePath,
+    Value<String>? originalFileName,
+    Value<String>? fileType,
+    Value<int>? addedAt,
+  }) {
+    return CallAttachmentsCompanion(
+      id: id ?? this.id,
+      callId: callId ?? this.callId,
+      filePath: filePath ?? this.filePath,
+      originalFileName: originalFileName ?? this.originalFileName,
+      fileType: fileType ?? this.fileType,
+      addedAt: addedAt ?? this.addedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (callId.present) {
+      map['call_id'] = Variable<int>(callId.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (originalFileName.present) {
+      map['original_file_name'] = Variable<String>(originalFileName.value);
+    }
+    if (fileType.present) {
+      map['file_type'] = Variable<String>(fileType.value);
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<int>(addedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CallAttachmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('callId: $callId, ')
+          ..write('filePath: $filePath, ')
+          ..write('originalFileName: $originalFileName, ')
+          ..write('fileType: $fileType, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1867,6 +2273,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CallDetailsTable callDetails = $CallDetailsTable(this);
   late final $TagsTable tags = $TagsTable(this);
   late final $CallTagsTable callTags = $CallTagsTable(this);
+  late final $CallAttachmentsTable callAttachments = $CallAttachmentsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1877,6 +2286,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     callDetails,
     tags,
     callTags,
+    callAttachments,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -1900,6 +2310,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('call_tags', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'calls',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('call_attachments', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -1961,6 +2378,26 @@ final class $$CallsTableReferences
     ).filter((f) => f.callId.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_callTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$CallAttachmentsTable, List<CallAttachment>>
+  _callAttachmentsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.callAttachments,
+    aliasName: 'calls__id__call_attachments__call_id',
+  );
+
+  $$CallAttachmentsTableProcessedTableManager get callAttachmentsRefs {
+    final manager = $$CallAttachmentsTableTableManager(
+      $_db,
+      $_db.callAttachments,
+    ).filter((f) => f.callId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _callAttachmentsRefsTable($_db),
+    );
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -2051,6 +2488,31 @@ class $$CallsTableFilterComposer extends Composer<_$AppDatabase, $CallsTable> {
           }) => $$CallTagsTableFilterComposer(
             $db: $db,
             $table: $db.callTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> callAttachmentsRefs(
+    Expression<bool> Function($$CallAttachmentsTableFilterComposer f) f,
+  ) {
+    final $$CallAttachmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.callAttachments,
+      getReferencedColumn: (t) => t.callId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallAttachmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.callAttachments,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2187,6 +2649,31 @@ class $$CallsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> callAttachmentsRefs<T extends Object>(
+    Expression<T> Function($$CallAttachmentsTableAnnotationComposer a) f,
+  ) {
+    final $$CallAttachmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.callAttachments,
+      getReferencedColumn: (t) => t.callId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallAttachmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.callAttachments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$CallsTableTableManager
@@ -2202,7 +2689,11 @@ class $$CallsTableTableManager
           $$CallsTableUpdateCompanionBuilder,
           (Call, $$CallsTableReferences),
           Call,
-          PrefetchHooks Function({bool callDetailsRefs, bool callTagsRefs})
+          PrefetchHooks Function({
+            bool callDetailsRefs,
+            bool callTagsRefs,
+            bool callAttachmentsRefs,
+          })
         > {
   $$CallsTableTableManager(_$AppDatabase db, $CallsTable table)
     : super(
@@ -2258,12 +2749,17 @@ class $$CallsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({callDetailsRefs = false, callTagsRefs = false}) {
+              ({
+                callDetailsRefs = false,
+                callTagsRefs = false,
+                callAttachmentsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (callDetailsRefs) db.callDetails,
                     if (callTagsRefs) db.callTags,
+                    if (callAttachmentsRefs) db.callAttachments,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -2306,6 +2802,27 @@ class $$CallsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (callAttachmentsRefs)
+                        await $_getPrefetchedData<
+                          Call,
+                          $CallsTable,
+                          CallAttachment
+                        >(
+                          currentTable: table,
+                          referencedTable: $$CallsTableReferences
+                              ._callAttachmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$CallsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).callAttachmentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.callId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -2326,7 +2843,11 @@ typedef $$CallsTableProcessedTableManager =
       $$CallsTableUpdateCompanionBuilder,
       (Call, $$CallsTableReferences),
       Call,
-      PrefetchHooks Function({bool callDetailsRefs, bool callTagsRefs})
+      PrefetchHooks Function({
+        bool callDetailsRefs,
+        bool callTagsRefs,
+        bool callAttachmentsRefs,
+      })
     >;
 typedef $$SettingsTableCreateCompanionBuilder =
     SettingsCompanion Function({
@@ -3495,6 +4016,347 @@ typedef $$CallTagsTableProcessedTableManager =
       CallTag,
       PrefetchHooks Function({bool callId, bool tagId})
     >;
+typedef $$CallAttachmentsTableCreateCompanionBuilder =
+    CallAttachmentsCompanion Function({
+      Value<int> id,
+      required int callId,
+      required String filePath,
+      required String originalFileName,
+      required String fileType,
+      required int addedAt,
+    });
+typedef $$CallAttachmentsTableUpdateCompanionBuilder =
+    CallAttachmentsCompanion Function({
+      Value<int> id,
+      Value<int> callId,
+      Value<String> filePath,
+      Value<String> originalFileName,
+      Value<String> fileType,
+      Value<int> addedAt,
+    });
+
+final class $$CallAttachmentsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $CallAttachmentsTable, CallAttachment> {
+  $$CallAttachmentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $CallsTable _callIdTable(_$AppDatabase db) =>
+      db.calls.createAlias('call_attachments__call_id__calls__id');
+
+  $$CallsTableProcessedTableManager get callId {
+    final $_column = $_itemColumn<int>('call_id')!;
+
+    final manager = $$CallsTableTableManager(
+      $_db,
+      $_db.calls,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_callIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$CallAttachmentsTableFilterComposer
+    extends Composer<_$AppDatabase, $CallAttachmentsTable> {
+  $$CallAttachmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originalFileName => $composableBuilder(
+    column: $table.originalFileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileType => $composableBuilder(
+    column: $table.fileType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$CallsTableFilterComposer get callId {
+    final $$CallsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.callId,
+      referencedTable: $db.calls,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallsTableFilterComposer(
+            $db: $db,
+            $table: $db.calls,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CallAttachmentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CallAttachmentsTable> {
+  $$CallAttachmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originalFileName => $composableBuilder(
+    column: $table.originalFileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileType => $composableBuilder(
+    column: $table.fileType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$CallsTableOrderingComposer get callId {
+    final $$CallsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.callId,
+      referencedTable: $db.calls,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallsTableOrderingComposer(
+            $db: $db,
+            $table: $db.calls,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CallAttachmentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CallAttachmentsTable> {
+  $$CallAttachmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<String> get originalFileName => $composableBuilder(
+    column: $table.originalFileName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fileType =>
+      $composableBuilder(column: $table.fileType, builder: (column) => column);
+
+  GeneratedColumn<int> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+
+  $$CallsTableAnnotationComposer get callId {
+    final $$CallsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.callId,
+      referencedTable: $db.calls,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$CallsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.calls,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CallAttachmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CallAttachmentsTable,
+          CallAttachment,
+          $$CallAttachmentsTableFilterComposer,
+          $$CallAttachmentsTableOrderingComposer,
+          $$CallAttachmentsTableAnnotationComposer,
+          $$CallAttachmentsTableCreateCompanionBuilder,
+          $$CallAttachmentsTableUpdateCompanionBuilder,
+          (CallAttachment, $$CallAttachmentsTableReferences),
+          CallAttachment,
+          PrefetchHooks Function({bool callId})
+        > {
+  $$CallAttachmentsTableTableManager(
+    _$AppDatabase db,
+    $CallAttachmentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CallAttachmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CallAttachmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CallAttachmentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> callId = const Value.absent(),
+                Value<String> filePath = const Value.absent(),
+                Value<String> originalFileName = const Value.absent(),
+                Value<String> fileType = const Value.absent(),
+                Value<int> addedAt = const Value.absent(),
+              }) => CallAttachmentsCompanion(
+                id: id,
+                callId: callId,
+                filePath: filePath,
+                originalFileName: originalFileName,
+                fileType: fileType,
+                addedAt: addedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int callId,
+                required String filePath,
+                required String originalFileName,
+                required String fileType,
+                required int addedAt,
+              }) => CallAttachmentsCompanion.insert(
+                id: id,
+                callId: callId,
+                filePath: filePath,
+                originalFileName: originalFileName,
+                fileType: fileType,
+                addedAt: addedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$CallAttachmentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({callId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (callId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.callId,
+                                referencedTable:
+                                    $$CallAttachmentsTableReferences
+                                        ._callIdTable(db),
+                                referencedColumn:
+                                    $$CallAttachmentsTableReferences
+                                        ._callIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CallAttachmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CallAttachmentsTable,
+      CallAttachment,
+      $$CallAttachmentsTableFilterComposer,
+      $$CallAttachmentsTableOrderingComposer,
+      $$CallAttachmentsTableAnnotationComposer,
+      $$CallAttachmentsTableCreateCompanionBuilder,
+      $$CallAttachmentsTableUpdateCompanionBuilder,
+      (CallAttachment, $$CallAttachmentsTableReferences),
+      CallAttachment,
+      PrefetchHooks Function({bool callId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3508,4 +4370,6 @@ class $AppDatabaseManager {
   $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$CallTagsTableTableManager get callTags =>
       $$CallTagsTableTableManager(_db, _db.callTags);
+  $$CallAttachmentsTableTableManager get callAttachments =>
+      $$CallAttachmentsTableTableManager(_db, _db.callAttachments);
 }
