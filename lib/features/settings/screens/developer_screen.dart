@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/toast/toast_service.dart';
+import 'database_browser_screen.dart';
 
 class DeveloperScreen extends StatelessWidget {
   final AppDatabase db;
@@ -37,6 +38,19 @@ class DeveloperScreen extends StatelessWidget {
               if (context.mounted) {
                 ToastService.success(context, 'test call added. ');
               }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.storage_outlined),
+            title: const Text('Database Browser'),
+            subtitle: const Text('View raw rows from any table'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DatabaseBrowserScreen(db: db),
+                ),
+              );
             },
           ),
         ],

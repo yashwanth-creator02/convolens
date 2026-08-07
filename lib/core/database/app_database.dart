@@ -66,6 +66,15 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getRawRows<
+    T extends Table,
+    D extends DataClass
+  >(TableInfo<T, D> table) async {
+    final query = table.select();
+    final rows = await query.get();
+    return rows.map((row) => row.toJson()).toList();
+  }
+
   Stream<List<Call>> watchAllCalls() {
     return (select(calls)..orderBy([
           (t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc),
