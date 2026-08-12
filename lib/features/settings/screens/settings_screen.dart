@@ -6,6 +6,7 @@ import '../../history/repository/calls_repository.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import 'developer_screen.dart';
 import 'permissions_screen.dart';
+import 'call_card_settings_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final AppDatabase db;
@@ -85,54 +86,18 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               const _SectionHeader('Display'),
-              SwitchListTile(
-                title: const Text('Show Contact Name'),
-                value: settings.showContactName,
-                onChanged: (value) {
-                  db.updateSetting(
-                    SettingsCompanion(showContactName: Value(value)),
+              ListTile(
+                leading: const Icon(Icons.credit_card),
+                title: const Text('Call Card Display'),
+                subtitle: const Text('Choose what appears on each call card'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CallCardSettingsScreen(db: db),
+                    ),
                   );
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Show Phone Number'),
-                value: settings.showPhoneNumber,
-                onChanged: (value) {
-                  db.updateSetting(
-                    SettingsCompanion(showPhoneNumber: Value(value)),
-                  );
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Show Call Type'),
-                value: settings.showCallType,
-                onChanged: (value) {
-                  db.updateSetting(
-                    SettingsCompanion(showCallType: Value(value)),
-                  );
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Show Duration'),
-                value: settings.showDuration,
-                onChanged: (value) {
-                  db.updateSetting(
-                    SettingsCompanion(showDuration: Value(value)),
-                  );
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Show Date'),
-                value: settings.showDate,
-                onChanged: (value) {
-                  db.updateSetting(SettingsCompanion(showDate: Value(value)));
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Show Time'),
-                value: settings.showTime,
-                onChanged: (value) {
-                  db.updateSetting(SettingsCompanion(showTime: Value(value)));
                 },
               ),
               const _SectionHeader('Developer'),

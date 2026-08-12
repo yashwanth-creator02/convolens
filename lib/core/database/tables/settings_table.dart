@@ -23,6 +23,17 @@ class Settings extends Table {
 
   BoolColumn get showTime => boolean().withDefault(const Constant(true))();
 
+  BoolColumn get showNotePreview =>
+      boolean().withDefault(const Constant(true))();
+
+  BoolColumn get showTags => boolean().withDefault(const Constant(true))();
+
+  BoolColumn get showReminderIndicator =>
+      boolean().withDefault(const Constant(true))();
+
+  BoolColumn get showAttachmentCount =>
+      boolean().withDefault(const Constant(true))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

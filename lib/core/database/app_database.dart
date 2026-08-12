@@ -21,7 +21,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -48,6 +48,12 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 7) {
           await m.createTable(callAttachments);
+        }
+        if (from < 8) {
+          await m.addColumn(settings, settings.showNotePreview);
+          await m.addColumn(settings, settings.showTags);
+          await m.addColumn(settings, settings.showReminderIndicator);
+          await m.addColumn(settings, settings.showAttachmentCount);
         }
       },
       beforeOpen: (details) async {
@@ -249,6 +255,15 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteAttachment(int id) async {
     await (delete(callAttachments)..where((a) => a.id.equals(id))).go();
+  }
+
+  Stream<int> watchAttachmentCountForCall(int callId) {
+    final query = selectOnly(callAttachments)
+      ..addColumns([callAttachments.id.count()])
+      ..where(callAttachments.callId.equals(callId));
+    return query.watchSingle().map(
+      (row) => row.read(callAttachments.id.count()) ?? 0,
+    );
   }
 }
 

@@ -609,6 +609,65 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _showNotePreviewMeta = const VerificationMeta(
+    'showNotePreview',
+  );
+  @override
+  late final GeneratedColumn<bool> showNotePreview = GeneratedColumn<bool>(
+    'show_note_preview',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_note_preview" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _showTagsMeta = const VerificationMeta(
+    'showTags',
+  );
+  @override
+  late final GeneratedColumn<bool> showTags = GeneratedColumn<bool>(
+    'show_tags',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_tags" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _showReminderIndicatorMeta =
+      const VerificationMeta('showReminderIndicator');
+  @override
+  late final GeneratedColumn<bool> showReminderIndicator =
+      GeneratedColumn<bool>(
+        'show_reminder_indicator',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("show_reminder_indicator" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _showAttachmentCountMeta =
+      const VerificationMeta('showAttachmentCount');
+  @override
+  late final GeneratedColumn<bool> showAttachmentCount = GeneratedColumn<bool>(
+    'show_attachment_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_attachment_count" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -621,6 +680,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     showDuration,
     showDate,
     showTime,
+    showNotePreview,
+    showTags,
+    showReminderIndicator,
+    showAttachmentCount,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -709,6 +772,39 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         showTime.isAcceptableOrUnknown(data['show_time']!, _showTimeMeta),
       );
     }
+    if (data.containsKey('show_note_preview')) {
+      context.handle(
+        _showNotePreviewMeta,
+        showNotePreview.isAcceptableOrUnknown(
+          data['show_note_preview']!,
+          _showNotePreviewMeta,
+        ),
+      );
+    }
+    if (data.containsKey('show_tags')) {
+      context.handle(
+        _showTagsMeta,
+        showTags.isAcceptableOrUnknown(data['show_tags']!, _showTagsMeta),
+      );
+    }
+    if (data.containsKey('show_reminder_indicator')) {
+      context.handle(
+        _showReminderIndicatorMeta,
+        showReminderIndicator.isAcceptableOrUnknown(
+          data['show_reminder_indicator']!,
+          _showReminderIndicatorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('show_attachment_count')) {
+      context.handle(
+        _showAttachmentCountMeta,
+        showAttachmentCount.isAcceptableOrUnknown(
+          data['show_attachment_count']!,
+          _showAttachmentCountMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -758,6 +854,22 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.bool,
         data['${effectivePrefix}show_time'],
       )!,
+      showNotePreview: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_note_preview'],
+      )!,
+      showTags: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_tags'],
+      )!,
+      showReminderIndicator: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_reminder_indicator'],
+      )!,
+      showAttachmentCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_attachment_count'],
+      )!,
     );
   }
 
@@ -778,6 +890,10 @@ class Setting extends DataClass implements Insertable<Setting> {
   final bool showDuration;
   final bool showDate;
   final bool showTime;
+  final bool showNotePreview;
+  final bool showTags;
+  final bool showReminderIndicator;
+  final bool showAttachmentCount;
   const Setting({
     required this.id,
     required this.syncEnabled,
@@ -789,6 +905,10 @@ class Setting extends DataClass implements Insertable<Setting> {
     required this.showDuration,
     required this.showDate,
     required this.showTime,
+    required this.showNotePreview,
+    required this.showTags,
+    required this.showReminderIndicator,
+    required this.showAttachmentCount,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -803,6 +923,10 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['show_duration'] = Variable<bool>(showDuration);
     map['show_date'] = Variable<bool>(showDate);
     map['show_time'] = Variable<bool>(showTime);
+    map['show_note_preview'] = Variable<bool>(showNotePreview);
+    map['show_tags'] = Variable<bool>(showTags);
+    map['show_reminder_indicator'] = Variable<bool>(showReminderIndicator);
+    map['show_attachment_count'] = Variable<bool>(showAttachmentCount);
     return map;
   }
 
@@ -818,6 +942,10 @@ class Setting extends DataClass implements Insertable<Setting> {
       showDuration: Value(showDuration),
       showDate: Value(showDate),
       showTime: Value(showTime),
+      showNotePreview: Value(showNotePreview),
+      showTags: Value(showTags),
+      showReminderIndicator: Value(showReminderIndicator),
+      showAttachmentCount: Value(showAttachmentCount),
     );
   }
 
@@ -837,6 +965,14 @@ class Setting extends DataClass implements Insertable<Setting> {
       showDuration: serializer.fromJson<bool>(json['showDuration']),
       showDate: serializer.fromJson<bool>(json['showDate']),
       showTime: serializer.fromJson<bool>(json['showTime']),
+      showNotePreview: serializer.fromJson<bool>(json['showNotePreview']),
+      showTags: serializer.fromJson<bool>(json['showTags']),
+      showReminderIndicator: serializer.fromJson<bool>(
+        json['showReminderIndicator'],
+      ),
+      showAttachmentCount: serializer.fromJson<bool>(
+        json['showAttachmentCount'],
+      ),
     );
   }
   @override
@@ -853,6 +989,10 @@ class Setting extends DataClass implements Insertable<Setting> {
       'showDuration': serializer.toJson<bool>(showDuration),
       'showDate': serializer.toJson<bool>(showDate),
       'showTime': serializer.toJson<bool>(showTime),
+      'showNotePreview': serializer.toJson<bool>(showNotePreview),
+      'showTags': serializer.toJson<bool>(showTags),
+      'showReminderIndicator': serializer.toJson<bool>(showReminderIndicator),
+      'showAttachmentCount': serializer.toJson<bool>(showAttachmentCount),
     };
   }
 
@@ -867,6 +1007,10 @@ class Setting extends DataClass implements Insertable<Setting> {
     bool? showDuration,
     bool? showDate,
     bool? showTime,
+    bool? showNotePreview,
+    bool? showTags,
+    bool? showReminderIndicator,
+    bool? showAttachmentCount,
   }) => Setting(
     id: id ?? this.id,
     syncEnabled: syncEnabled ?? this.syncEnabled,
@@ -878,6 +1022,10 @@ class Setting extends DataClass implements Insertable<Setting> {
     showDuration: showDuration ?? this.showDuration,
     showDate: showDate ?? this.showDate,
     showTime: showTime ?? this.showTime,
+    showNotePreview: showNotePreview ?? this.showNotePreview,
+    showTags: showTags ?? this.showTags,
+    showReminderIndicator: showReminderIndicator ?? this.showReminderIndicator,
+    showAttachmentCount: showAttachmentCount ?? this.showAttachmentCount,
   );
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
@@ -903,6 +1051,16 @@ class Setting extends DataClass implements Insertable<Setting> {
           : this.showDuration,
       showDate: data.showDate.present ? data.showDate.value : this.showDate,
       showTime: data.showTime.present ? data.showTime.value : this.showTime,
+      showNotePreview: data.showNotePreview.present
+          ? data.showNotePreview.value
+          : this.showNotePreview,
+      showTags: data.showTags.present ? data.showTags.value : this.showTags,
+      showReminderIndicator: data.showReminderIndicator.present
+          ? data.showReminderIndicator.value
+          : this.showReminderIndicator,
+      showAttachmentCount: data.showAttachmentCount.present
+          ? data.showAttachmentCount.value
+          : this.showAttachmentCount,
     );
   }
 
@@ -918,7 +1076,11 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('showCallType: $showCallType, ')
           ..write('showDuration: $showDuration, ')
           ..write('showDate: $showDate, ')
-          ..write('showTime: $showTime')
+          ..write('showTime: $showTime, ')
+          ..write('showNotePreview: $showNotePreview, ')
+          ..write('showTags: $showTags, ')
+          ..write('showReminderIndicator: $showReminderIndicator, ')
+          ..write('showAttachmentCount: $showAttachmentCount')
           ..write(')'))
         .toString();
   }
@@ -935,6 +1097,10 @@ class Setting extends DataClass implements Insertable<Setting> {
     showDuration,
     showDate,
     showTime,
+    showNotePreview,
+    showTags,
+    showReminderIndicator,
+    showAttachmentCount,
   );
   @override
   bool operator ==(Object other) =>
@@ -949,7 +1115,11 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.showCallType == this.showCallType &&
           other.showDuration == this.showDuration &&
           other.showDate == this.showDate &&
-          other.showTime == this.showTime);
+          other.showTime == this.showTime &&
+          other.showNotePreview == this.showNotePreview &&
+          other.showTags == this.showTags &&
+          other.showReminderIndicator == this.showReminderIndicator &&
+          other.showAttachmentCount == this.showAttachmentCount);
 }
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
@@ -963,6 +1133,10 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<bool> showDuration;
   final Value<bool> showDate;
   final Value<bool> showTime;
+  final Value<bool> showNotePreview;
+  final Value<bool> showTags;
+  final Value<bool> showReminderIndicator;
+  final Value<bool> showAttachmentCount;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.syncEnabled = const Value.absent(),
@@ -974,6 +1148,10 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.showDuration = const Value.absent(),
     this.showDate = const Value.absent(),
     this.showTime = const Value.absent(),
+    this.showNotePreview = const Value.absent(),
+    this.showTags = const Value.absent(),
+    this.showReminderIndicator = const Value.absent(),
+    this.showAttachmentCount = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -986,6 +1164,10 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.showDuration = const Value.absent(),
     this.showDate = const Value.absent(),
     this.showTime = const Value.absent(),
+    this.showNotePreview = const Value.absent(),
+    this.showTags = const Value.absent(),
+    this.showReminderIndicator = const Value.absent(),
+    this.showAttachmentCount = const Value.absent(),
   });
   static Insertable<Setting> custom({
     Expression<int>? id,
@@ -998,6 +1180,10 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<bool>? showDuration,
     Expression<bool>? showDate,
     Expression<bool>? showTime,
+    Expression<bool>? showNotePreview,
+    Expression<bool>? showTags,
+    Expression<bool>? showReminderIndicator,
+    Expression<bool>? showAttachmentCount,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1010,6 +1196,12 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (showDuration != null) 'show_duration': showDuration,
       if (showDate != null) 'show_date': showDate,
       if (showTime != null) 'show_time': showTime,
+      if (showNotePreview != null) 'show_note_preview': showNotePreview,
+      if (showTags != null) 'show_tags': showTags,
+      if (showReminderIndicator != null)
+        'show_reminder_indicator': showReminderIndicator,
+      if (showAttachmentCount != null)
+        'show_attachment_count': showAttachmentCount,
     });
   }
 
@@ -1024,6 +1216,10 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Value<bool>? showDuration,
     Value<bool>? showDate,
     Value<bool>? showTime,
+    Value<bool>? showNotePreview,
+    Value<bool>? showTags,
+    Value<bool>? showReminderIndicator,
+    Value<bool>? showAttachmentCount,
   }) {
     return SettingsCompanion(
       id: id ?? this.id,
@@ -1036,6 +1232,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       showDuration: showDuration ?? this.showDuration,
       showDate: showDate ?? this.showDate,
       showTime: showTime ?? this.showTime,
+      showNotePreview: showNotePreview ?? this.showNotePreview,
+      showTags: showTags ?? this.showTags,
+      showReminderIndicator:
+          showReminderIndicator ?? this.showReminderIndicator,
+      showAttachmentCount: showAttachmentCount ?? this.showAttachmentCount,
     );
   }
 
@@ -1072,6 +1273,20 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (showTime.present) {
       map['show_time'] = Variable<bool>(showTime.value);
     }
+    if (showNotePreview.present) {
+      map['show_note_preview'] = Variable<bool>(showNotePreview.value);
+    }
+    if (showTags.present) {
+      map['show_tags'] = Variable<bool>(showTags.value);
+    }
+    if (showReminderIndicator.present) {
+      map['show_reminder_indicator'] = Variable<bool>(
+        showReminderIndicator.value,
+      );
+    }
+    if (showAttachmentCount.present) {
+      map['show_attachment_count'] = Variable<bool>(showAttachmentCount.value);
+    }
     return map;
   }
 
@@ -1087,7 +1302,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('showCallType: $showCallType, ')
           ..write('showDuration: $showDuration, ')
           ..write('showDate: $showDate, ')
-          ..write('showTime: $showTime')
+          ..write('showTime: $showTime, ')
+          ..write('showNotePreview: $showNotePreview, ')
+          ..write('showTags: $showTags, ')
+          ..write('showReminderIndicator: $showReminderIndicator, ')
+          ..write('showAttachmentCount: $showAttachmentCount')
           ..write(')'))
         .toString();
   }
@@ -2861,6 +3080,10 @@ typedef $$SettingsTableCreateCompanionBuilder =
       Value<bool> showDuration,
       Value<bool> showDate,
       Value<bool> showTime,
+      Value<bool> showNotePreview,
+      Value<bool> showTags,
+      Value<bool> showReminderIndicator,
+      Value<bool> showAttachmentCount,
     });
 typedef $$SettingsTableUpdateCompanionBuilder =
     SettingsCompanion Function({
@@ -2874,6 +3097,10 @@ typedef $$SettingsTableUpdateCompanionBuilder =
       Value<bool> showDuration,
       Value<bool> showDate,
       Value<bool> showTime,
+      Value<bool> showNotePreview,
+      Value<bool> showTags,
+      Value<bool> showReminderIndicator,
+      Value<bool> showAttachmentCount,
     });
 
 class $$SettingsTableFilterComposer
@@ -2932,6 +3159,26 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<bool> get showTime => $composableBuilder(
     column: $table.showTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showNotePreview => $composableBuilder(
+    column: $table.showNotePreview,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showTags => $composableBuilder(
+    column: $table.showTags,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showReminderIndicator => $composableBuilder(
+    column: $table.showReminderIndicator,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showAttachmentCount => $composableBuilder(
+    column: $table.showAttachmentCount,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2994,6 +3241,26 @@ class $$SettingsTableOrderingComposer
     column: $table.showTime,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get showNotePreview => $composableBuilder(
+    column: $table.showNotePreview,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showTags => $composableBuilder(
+    column: $table.showTags,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showReminderIndicator => $composableBuilder(
+    column: $table.showReminderIndicator,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showAttachmentCount => $composableBuilder(
+    column: $table.showAttachmentCount,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsTableAnnotationComposer
@@ -3046,6 +3313,24 @@ class $$SettingsTableAnnotationComposer
 
   GeneratedColumn<bool> get showTime =>
       $composableBuilder(column: $table.showTime, builder: (column) => column);
+
+  GeneratedColumn<bool> get showNotePreview => $composableBuilder(
+    column: $table.showNotePreview,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get showTags =>
+      $composableBuilder(column: $table.showTags, builder: (column) => column);
+
+  GeneratedColumn<bool> get showReminderIndicator => $composableBuilder(
+    column: $table.showReminderIndicator,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get showAttachmentCount => $composableBuilder(
+    column: $table.showAttachmentCount,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsTableTableManager
@@ -3086,6 +3371,10 @@ class $$SettingsTableTableManager
                 Value<bool> showDuration = const Value.absent(),
                 Value<bool> showDate = const Value.absent(),
                 Value<bool> showTime = const Value.absent(),
+                Value<bool> showNotePreview = const Value.absent(),
+                Value<bool> showTags = const Value.absent(),
+                Value<bool> showReminderIndicator = const Value.absent(),
+                Value<bool> showAttachmentCount = const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
                 syncEnabled: syncEnabled,
@@ -3097,6 +3386,10 @@ class $$SettingsTableTableManager
                 showDuration: showDuration,
                 showDate: showDate,
                 showTime: showTime,
+                showNotePreview: showNotePreview,
+                showTags: showTags,
+                showReminderIndicator: showReminderIndicator,
+                showAttachmentCount: showAttachmentCount,
               ),
           createCompanionCallback:
               ({
@@ -3110,6 +3403,10 @@ class $$SettingsTableTableManager
                 Value<bool> showDuration = const Value.absent(),
                 Value<bool> showDate = const Value.absent(),
                 Value<bool> showTime = const Value.absent(),
+                Value<bool> showNotePreview = const Value.absent(),
+                Value<bool> showTags = const Value.absent(),
+                Value<bool> showReminderIndicator = const Value.absent(),
+                Value<bool> showAttachmentCount = const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
                 syncEnabled: syncEnabled,
@@ -3121,6 +3418,10 @@ class $$SettingsTableTableManager
                 showDuration: showDuration,
                 showDate: showDate,
                 showTime: showTime,
+                showNotePreview: showNotePreview,
+                showTags: showTags,
+                showReminderIndicator: showReminderIndicator,
+                showAttachmentCount: showAttachmentCount,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
