@@ -265,6 +265,66 @@ class AppDatabase extends _$AppDatabase {
       (row) => row.read(callAttachments.id.count()) ?? 0,
     );
   }
+
+  Stream<List<Call>> searchCalls({
+    required String contactQuery,
+    required String noteQuery,
+    required String tagQuery,
+    required bool hasAttachment,
+    required bool hasReminder,
+  }) {
+    final selectQuery = select(calls).join([
+      leftOuterJoin(callDetails, callDetails.callId.equalsExp(calls.id)),
+    ]);
+
+    if (contactQuery.isNotEmpty) {
+      final likeQuery = '%$contactQuery%';
+      selectQuery.where(
+        calls.name.like(likeQuery) | calls.number.like(likeQuery),
+      );
+    }
+
+    if (noteQuery.isNotEmpty) {
+      selectQuery.where(callDetails.note.like('%$noteQuery%'));
+    }
+
+    if (hasReminder) {
+      selectQuery.where(callDetails.reminderAt.isNotNull());
+    }
+
+    if (hasAttachment) {
+      selectQuery.where(
+        existsQuery(
+          selectOnly(callAttachments)
+            ..addColumns([callAttachments.id])
+            ..where(callAttachments.callId.equalsExp(calls.id)),
+        ),
+      );
+    }
+
+    if (tagQuery.isNotEmpty) {
+      selectQuery.where(
+        existsQuery(
+          selectOnly(
+              callTags,
+            ).join([innerJoin(tags, tags.id.equalsExp(callTags.tagId))])
+            ..addColumns([callTags.callId])
+            ..where(
+              callTags.callId.equalsExp(calls.id) &
+                  tags.name.like('%$tagQuery%'),
+            ),
+        ),
+      );
+    }
+
+    selectQuery.orderBy([
+      OrderingTerm(expression: calls.timestamp, mode: OrderingMode.desc),
+    ]);
+
+    return selectQuery.watch().map(
+      (rows) => rows.map((row) => row.readTable(calls)).toList(),
+    );
+  }
 }
 
 LazyDatabase _openConnection() {

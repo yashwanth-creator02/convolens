@@ -8,7 +8,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/logger/logger.dart';
 import '../../../core/toast/toast_service.dart';
 import '../utils/group_calls_by_day.dart';
-import '../widget/call_card.dart';
+import '../widgets/call_card.dart';
 
 class HistoryScreen extends StatefulWidget {
   final AppDatabase db;
