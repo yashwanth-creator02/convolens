@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/notifications/notification_service.dart';
@@ -15,11 +16,16 @@ class _PermissionsScreenState extends State<PermissionsScreen>
   bool _callLogGranted = false;
   bool _notificationsGranted = false;
   bool _exactAlarmGranted = false;
+  bool _contactsGranted = false;
+
+  bool _isRefreshing = false;
 
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
+
     _refreshStatuses();
   }
 
@@ -37,17 +43,86 @@ class _PermissionsScreenState extends State<PermissionsScreen>
   }
 
   Future<void> _refreshStatuses() async {
-    final callLogStatus = await Permission.phone.status;
-    final notificationsGranted =
-        await NotificationService.areNotificationsGranted();
-    final exactAlarmGranted =
-        await NotificationService.canScheduleExactAlarms();
+    if (_isRefreshing) {
+      return;
+    }
 
-    setState(() {
-      _callLogGranted = callLogStatus.isGranted;
-      _notificationsGranted = notificationsGranted;
-      _exactAlarmGranted = exactAlarmGranted;
-    });
+    _isRefreshing = true;
+
+    try {
+      final callLogStatus = await Permission.phone.status;
+
+      final notificationsGranted =
+          await NotificationService.areNotificationsGranted();
+
+      final exactAlarmGranted =
+          await NotificationService.canScheduleExactAlarms();
+
+      final contactsStatus = await Permission.contacts.status;
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _callLogGranted = callLogStatus.isGranted;
+        _notificationsGranted = notificationsGranted;
+        _exactAlarmGranted = exactAlarmGranted;
+        _contactsGranted = contactsStatus.isGranted;
+      });
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  Future<void> _requestCallLogPermission() async {
+    final status = await Permission.phone.status;
+
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+    } else {
+      await Permission.phone.request();
+    }
+
+    await _refreshStatuses();
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    final granted = await NotificationService.requestNotificationPermission();
+
+    if (!granted && mounted) {
+      await openAppSettings();
+    }
+
+    await _refreshStatuses();
+  }
+
+  Future<void> _requestExactAlarmPermission() async {
+    await NotificationService.requestExactAlarmPermission();
+
+    await _refreshStatuses();
+  }
+
+  Future<void> _requestContactsPermission() async {
+    final status = await Permission.contacts.status;
+
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+    } else {
+      await Permission.contacts.request();
+    }
+
+    await _refreshStatuses();
+  }
+
+  Future<void> _openSystemSettings() async {
+    await openAppSettings();
+
+    if (!mounted) {
+      return;
+    }
+
+    await _refreshStatuses();
   }
 
   @override
@@ -59,9 +134,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
           IconButton(
             icon: const Icon(Icons.settings_applications),
             tooltip: 'Open System Settings',
-            onPressed: () async {
-              await openAppSettings();
-            },
+            onPressed: _openSystemSettings,
           ),
         ],
       ),
@@ -71,37 +144,25 @@ class _PermissionsScreenState extends State<PermissionsScreen>
             title: 'Call Log',
             subtitle: 'Required to import and archive your call history',
             granted: _callLogGranted,
-            onTap: () async {
-              final status = await Permission.phone.status;
-              if (status.isPermanentlyDenied) {
-                await openAppSettings();
-              } else {
-                await Permission.phone.request();
-              }
-              _refreshStatuses();
-            },
+            onTap: _requestCallLogPermission,
           ),
           _PermissionTile(
             title: 'Notifications',
             subtitle: 'Required to show call reminders',
             granted: _notificationsGranted,
-            onTap: () async {
-              final granted =
-                  await NotificationService.requestNotificationPermission();
-              if (!granted) {
-                await openAppSettings();
-              }
-              _refreshStatuses();
-            },
+            onTap: _requestNotificationPermission,
           ),
           _PermissionTile(
             title: 'Exact Alarms',
             subtitle: 'Required for reminders to fire at the exact time set',
             granted: _exactAlarmGranted,
-            onTap: () async {
-              await NotificationService.requestExactAlarmPermission();
-              _refreshStatuses();
-            },
+            onTap: _requestExactAlarmPermission,
+          ),
+          _PermissionTile(
+            title: 'Contacts',
+            subtitle: 'Required to show all your device contacts',
+            granted: _contactsGranted,
+            onTap: _requestContactsPermission,
           ),
         ],
       ),

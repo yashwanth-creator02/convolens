@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
+import '../features/contacts/screens/contacts_screen.dart';
 import '../features/history/screens/history_screen.dart';
 import '../features/history/screens/search_screen.dart';
 import '../features/history/widgets/number_pad_sheet.dart';
@@ -20,13 +21,27 @@ class _MainShellState extends State<MainShell> {
 
   int _selectedIndex = 0;
 
-  static const _titles = ['History', 'Analytics', 'Profile'];
+  static const List<String> _titles = [
+    'History',
+    'Analytics',
+    'Contacts',
+    'Profile',
+  ];
+
+  // ---------------------------------------------------------------------------
+  // Screens
+  // ---------------------------------------------------------------------------
 
   late final List<Widget> _screens = [
     HistoryScreen(db: db),
     const ComingSoonView(title: 'Analytics'),
+    ContactsScreen(db: db),
     const ComingSoonView(title: 'Profile'),
   ];
+
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
 
   @override
   void initState() {
@@ -40,6 +55,69 @@ class _MainShellState extends State<MainShell> {
     super.dispose();
   }
 
+  // ---------------------------------------------------------------------------
+  // Navigation Actions
+  // ---------------------------------------------------------------------------
+
+  void _onNavigationItemSelected(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _openSearch() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SearchScreen(db: db)),
+    );
+  }
+
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SettingsScreen(db: db)),
+    );
+  }
+
+  Future<void> _openNumberPad() async {
+    final number = await showNumberPadSheet(context);
+
+    if (!mounted || number == null || number.isEmpty) {
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchScreen(db: db, initialContactQuery: number),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // App Bar
+  // ---------------------------------------------------------------------------
+
+  List<Widget> _buildAppBarActions() {
+    return [
+      if (_selectedIndex == 0)
+        IconButton(
+          icon: const Icon(Icons.search),
+          tooltip: 'Search',
+          onPressed: _openSearch,
+        ),
+      IconButton(
+        icon: const Icon(Icons.settings),
+        tooltip: 'Settings',
+        onPressed: _openSettings,
+      ),
+    ];
+  }
+
+  // ---------------------------------------------------------------------------
+  // Floating Action Button
+  // ---------------------------------------------------------------------------
+
   Widget? _buildFloatingActionButton() {
     if (_selectedIndex != 0) {
       return null;
@@ -47,71 +125,50 @@ class _MainShellState extends State<MainShell> {
 
     return FloatingActionButton(
       tooltip: 'Dial number',
-      onPressed: () async {
-        final number = await showNumberPadSheet(context);
-
-        if (!mounted || number == null || number.isEmpty) {
-          return;
-        }
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                SearchScreen(db: db, initialContactQuery: number),
-          ),
-        );
-      },
+      onPressed: _openNumberPad,
       child: const Icon(Icons.dialpad),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Bottom Navigation
+  // ---------------------------------------------------------------------------
+
+  Widget _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: _selectedIndex,
+      onTap: _onNavigationItemSelected,
+
+      selectedItemColor: Theme.of(context).colorScheme.primary,
+      unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
+
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bar_chart),
+          label: 'Analytics',
+        ),
+        BottomNavigationBarItem(icon: Icon(Icons.contacts), label: 'Contacts'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(_titles[_selectedIndex]),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Search',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SearchScreen(db: db)),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: 'Settings',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsScreen(db: db)),
-              );
-            },
-          ),
-        ],
+        actions: _buildAppBarActions(),
       ),
       body: IndexedStack(index: _selectedIndex, children: _screens),
       floatingActionButton: _buildFloatingActionButton(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Analytics',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 }
