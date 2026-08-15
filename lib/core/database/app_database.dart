@@ -5,23 +5,35 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../utils/normalize_number.dart';
 import 'tables/calls_table.dart';
 import 'tables/settings_table.dart';
 import 'tables/call_details_table.dart';
 import 'tables/tags_table.dart';
 import 'tables/call_tags_table.dart';
 import 'tables/call_attachments_table.dart';
+import 'tables/contact_details_table.dart';
+import 'tables/contact_tags_table.dart';
 
 part 'app_database.g.dart';
 
 @DriftDatabase(
-  tables: [Calls, Settings, CallDetails, Tags, CallTags, CallAttachments],
+  tables: [
+    Calls,
+    Settings,
+    CallDetails,
+    Tags,
+    CallTags,
+    CallAttachments,
+    ContactDetails,
+    ContactTags,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -54,6 +66,10 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(settings, settings.showTags);
           await m.addColumn(settings, settings.showReminderIndicator);
           await m.addColumn(settings, settings.showAttachmentCount);
+        }
+        if (from < 9) {
+          await m.createTable(contactDetails);
+          await m.createTable(contactTags);
         }
       },
       beforeOpen: (details) async {
@@ -324,6 +340,104 @@ class AppDatabase extends _$AppDatabase {
     return selectQuery.watch().map(
       (rows) => rows.map((row) => row.readTable(calls)).toList(),
     );
+  }
+
+  Stream<ContactDetail?> watchContactDetails(String normalizedNumber) {
+    return (select(contactDetails)
+          ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+        .watchSingleOrNull();
+  }
+
+  Future<void> saveContactNote(String normalizedNumber, String note) async {
+    final existing =
+        await (select(contactDetails)
+              ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+            .getSingleOrNull();
+
+    if (existing == null) {
+      await into(contactDetails).insert(
+        ContactDetailsCompanion.insert(
+          normalizedNumber: normalizedNumber,
+          generalNote: Value(note),
+        ),
+      );
+    } else {
+      await (update(contactDetails)
+            ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+          .write(ContactDetailsCompanion(generalNote: Value(note)));
+    }
+  }
+
+  Future<void> toggleContactFavorite(
+    String normalizedNumber,
+    bool isFavorite,
+  ) async {
+    final existing =
+        await (select(contactDetails)
+              ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+            .getSingleOrNull();
+
+    if (existing == null) {
+      await into(contactDetails).insert(
+        ContactDetailsCompanion.insert(
+          normalizedNumber: normalizedNumber,
+          isFavorite: Value(isFavorite),
+        ),
+      );
+    } else {
+      await (update(contactDetails)
+            ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+          .write(ContactDetailsCompanion(isFavorite: Value(isFavorite)));
+    }
+  }
+
+  Stream<List<Tag>> watchTagsForContact(String normalizedNumber) {
+    final query = select(tags).join([
+      innerJoin(contactTags, contactTags.tagId.equalsExp(tags.id)),
+    ])..where(contactTags.normalizedNumber.equals(normalizedNumber));
+
+    return query.watch().map(
+      (rows) => rows.map((row) => row.readTable(tags)).toList(),
+    );
+  }
+
+  Future<void> addTagToContact(String normalizedNumber, String tagName) async {
+    final name = tagName.trim();
+    if (name.isEmpty) return;
+
+    final existingTag = await (select(
+      tags,
+    )..where((t) => t.name.equals(name))).getSingleOrNull();
+
+    final tagId =
+        existingTag?.id ??
+        await into(tags).insert(TagsCompanion.insert(name: name));
+
+    await into(contactTags).insertOnConflictUpdate(
+      ContactTagsCompanion.insert(
+        normalizedNumber: normalizedNumber,
+        tagId: tagId,
+      ),
+    );
+  }
+
+  Future<void> removeTagFromContact(String normalizedNumber, int tagId) async {
+    await (delete(contactTags)..where(
+          (t) =>
+              t.normalizedNumber.equals(normalizedNumber) &
+              t.tagId.equals(tagId),
+        ))
+        .go();
+  }
+
+  Stream<List<Call>> watchCallsForNumber(String normalizedNumber) {
+    final query = select(calls)
+      ..where((c) => c.number.like('%$normalizedNumber'))
+      ..orderBy([
+        (c) => OrderingTerm(expression: c.timestamp, mode: OrderingMode.desc),
+      ]);
+
+    return query.watch();
   }
 }
 

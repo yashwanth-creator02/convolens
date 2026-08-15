@@ -2484,6 +2484,516 @@ class CallAttachmentsCompanion extends UpdateCompanion<CallAttachment> {
   }
 }
 
+class $ContactDetailsTable extends ContactDetails
+    with TableInfo<$ContactDetailsTable, ContactDetail> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ContactDetailsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _normalizedNumberMeta = const VerificationMeta(
+    'normalizedNumber',
+  );
+  @override
+  late final GeneratedColumn<String> normalizedNumber = GeneratedColumn<String>(
+    'normalized_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _generalNoteMeta = const VerificationMeta(
+    'generalNote',
+  );
+  @override
+  late final GeneratedColumn<String> generalNote = GeneratedColumn<String>(
+    'general_note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
+    'isFavorite',
+  );
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+    'is_favorite',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_favorite" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    normalizedNumber,
+    generalNote,
+    isFavorite,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'contact_details';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ContactDetail> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('normalized_number')) {
+      context.handle(
+        _normalizedNumberMeta,
+        normalizedNumber.isAcceptableOrUnknown(
+          data['normalized_number']!,
+          _normalizedNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_normalizedNumberMeta);
+    }
+    if (data.containsKey('general_note')) {
+      context.handle(
+        _generalNoteMeta,
+        generalNote.isAcceptableOrUnknown(
+          data['general_note']!,
+          _generalNoteMeta,
+        ),
+      );
+    }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+        _isFavoriteMeta,
+        isFavorite.isAcceptableOrUnknown(data['is_favorite']!, _isFavoriteMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {normalizedNumber};
+  @override
+  ContactDetail map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ContactDetail(
+      normalizedNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_number'],
+      )!,
+      generalNote: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}general_note'],
+      ),
+      isFavorite: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_favorite'],
+      )!,
+    );
+  }
+
+  @override
+  $ContactDetailsTable createAlias(String alias) {
+    return $ContactDetailsTable(attachedDatabase, alias);
+  }
+}
+
+class ContactDetail extends DataClass implements Insertable<ContactDetail> {
+  final String normalizedNumber;
+  final String? generalNote;
+  final bool isFavorite;
+  const ContactDetail({
+    required this.normalizedNumber,
+    this.generalNote,
+    required this.isFavorite,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['normalized_number'] = Variable<String>(normalizedNumber);
+    if (!nullToAbsent || generalNote != null) {
+      map['general_note'] = Variable<String>(generalNote);
+    }
+    map['is_favorite'] = Variable<bool>(isFavorite);
+    return map;
+  }
+
+  ContactDetailsCompanion toCompanion(bool nullToAbsent) {
+    return ContactDetailsCompanion(
+      normalizedNumber: Value(normalizedNumber),
+      generalNote: generalNote == null && nullToAbsent
+          ? const Value.absent()
+          : Value(generalNote),
+      isFavorite: Value(isFavorite),
+    );
+  }
+
+  factory ContactDetail.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ContactDetail(
+      normalizedNumber: serializer.fromJson<String>(json['normalizedNumber']),
+      generalNote: serializer.fromJson<String?>(json['generalNote']),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'normalizedNumber': serializer.toJson<String>(normalizedNumber),
+      'generalNote': serializer.toJson<String?>(generalNote),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
+    };
+  }
+
+  ContactDetail copyWith({
+    String? normalizedNumber,
+    Value<String?> generalNote = const Value.absent(),
+    bool? isFavorite,
+  }) => ContactDetail(
+    normalizedNumber: normalizedNumber ?? this.normalizedNumber,
+    generalNote: generalNote.present ? generalNote.value : this.generalNote,
+    isFavorite: isFavorite ?? this.isFavorite,
+  );
+  ContactDetail copyWithCompanion(ContactDetailsCompanion data) {
+    return ContactDetail(
+      normalizedNumber: data.normalizedNumber.present
+          ? data.normalizedNumber.value
+          : this.normalizedNumber,
+      generalNote: data.generalNote.present
+          ? data.generalNote.value
+          : this.generalNote,
+      isFavorite: data.isFavorite.present
+          ? data.isFavorite.value
+          : this.isFavorite,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContactDetail(')
+          ..write('normalizedNumber: $normalizedNumber, ')
+          ..write('generalNote: $generalNote, ')
+          ..write('isFavorite: $isFavorite')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(normalizedNumber, generalNote, isFavorite);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ContactDetail &&
+          other.normalizedNumber == this.normalizedNumber &&
+          other.generalNote == this.generalNote &&
+          other.isFavorite == this.isFavorite);
+}
+
+class ContactDetailsCompanion extends UpdateCompanion<ContactDetail> {
+  final Value<String> normalizedNumber;
+  final Value<String?> generalNote;
+  final Value<bool> isFavorite;
+  final Value<int> rowid;
+  const ContactDetailsCompanion({
+    this.normalizedNumber = const Value.absent(),
+    this.generalNote = const Value.absent(),
+    this.isFavorite = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ContactDetailsCompanion.insert({
+    required String normalizedNumber,
+    this.generalNote = const Value.absent(),
+    this.isFavorite = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : normalizedNumber = Value(normalizedNumber);
+  static Insertable<ContactDetail> custom({
+    Expression<String>? normalizedNumber,
+    Expression<String>? generalNote,
+    Expression<bool>? isFavorite,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (normalizedNumber != null) 'normalized_number': normalizedNumber,
+      if (generalNote != null) 'general_note': generalNote,
+      if (isFavorite != null) 'is_favorite': isFavorite,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ContactDetailsCompanion copyWith({
+    Value<String>? normalizedNumber,
+    Value<String?>? generalNote,
+    Value<bool>? isFavorite,
+    Value<int>? rowid,
+  }) {
+    return ContactDetailsCompanion(
+      normalizedNumber: normalizedNumber ?? this.normalizedNumber,
+      generalNote: generalNote ?? this.generalNote,
+      isFavorite: isFavorite ?? this.isFavorite,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (normalizedNumber.present) {
+      map['normalized_number'] = Variable<String>(normalizedNumber.value);
+    }
+    if (generalNote.present) {
+      map['general_note'] = Variable<String>(generalNote.value);
+    }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContactDetailsCompanion(')
+          ..write('normalizedNumber: $normalizedNumber, ')
+          ..write('generalNote: $generalNote, ')
+          ..write('isFavorite: $isFavorite, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ContactTagsTable extends ContactTags
+    with TableInfo<$ContactTagsTable, ContactTag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ContactTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _normalizedNumberMeta = const VerificationMeta(
+    'normalizedNumber',
+  );
+  @override
+  late final GeneratedColumn<String> normalizedNumber = GeneratedColumn<String>(
+    'normalized_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
+  @override
+  late final GeneratedColumn<int> tagId = GeneratedColumn<int>(
+    'tag_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tags (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [normalizedNumber, tagId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'contact_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ContactTag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('normalized_number')) {
+      context.handle(
+        _normalizedNumberMeta,
+        normalizedNumber.isAcceptableOrUnknown(
+          data['normalized_number']!,
+          _normalizedNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_normalizedNumberMeta);
+    }
+    if (data.containsKey('tag_id')) {
+      context.handle(
+        _tagIdMeta,
+        tagId.isAcceptableOrUnknown(data['tag_id']!, _tagIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {normalizedNumber, tagId};
+  @override
+  ContactTag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ContactTag(
+      normalizedNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_number'],
+      )!,
+      tagId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}tag_id'],
+      )!,
+    );
+  }
+
+  @override
+  $ContactTagsTable createAlias(String alias) {
+    return $ContactTagsTable(attachedDatabase, alias);
+  }
+}
+
+class ContactTag extends DataClass implements Insertable<ContactTag> {
+  final String normalizedNumber;
+  final int tagId;
+  const ContactTag({required this.normalizedNumber, required this.tagId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['normalized_number'] = Variable<String>(normalizedNumber);
+    map['tag_id'] = Variable<int>(tagId);
+    return map;
+  }
+
+  ContactTagsCompanion toCompanion(bool nullToAbsent) {
+    return ContactTagsCompanion(
+      normalizedNumber: Value(normalizedNumber),
+      tagId: Value(tagId),
+    );
+  }
+
+  factory ContactTag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ContactTag(
+      normalizedNumber: serializer.fromJson<String>(json['normalizedNumber']),
+      tagId: serializer.fromJson<int>(json['tagId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'normalizedNumber': serializer.toJson<String>(normalizedNumber),
+      'tagId': serializer.toJson<int>(tagId),
+    };
+  }
+
+  ContactTag copyWith({String? normalizedNumber, int? tagId}) => ContactTag(
+    normalizedNumber: normalizedNumber ?? this.normalizedNumber,
+    tagId: tagId ?? this.tagId,
+  );
+  ContactTag copyWithCompanion(ContactTagsCompanion data) {
+    return ContactTag(
+      normalizedNumber: data.normalizedNumber.present
+          ? data.normalizedNumber.value
+          : this.normalizedNumber,
+      tagId: data.tagId.present ? data.tagId.value : this.tagId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContactTag(')
+          ..write('normalizedNumber: $normalizedNumber, ')
+          ..write('tagId: $tagId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(normalizedNumber, tagId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ContactTag &&
+          other.normalizedNumber == this.normalizedNumber &&
+          other.tagId == this.tagId);
+}
+
+class ContactTagsCompanion extends UpdateCompanion<ContactTag> {
+  final Value<String> normalizedNumber;
+  final Value<int> tagId;
+  final Value<int> rowid;
+  const ContactTagsCompanion({
+    this.normalizedNumber = const Value.absent(),
+    this.tagId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ContactTagsCompanion.insert({
+    required String normalizedNumber,
+    required int tagId,
+    this.rowid = const Value.absent(),
+  }) : normalizedNumber = Value(normalizedNumber),
+       tagId = Value(tagId);
+  static Insertable<ContactTag> custom({
+    Expression<String>? normalizedNumber,
+    Expression<int>? tagId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (normalizedNumber != null) 'normalized_number': normalizedNumber,
+      if (tagId != null) 'tag_id': tagId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ContactTagsCompanion copyWith({
+    Value<String>? normalizedNumber,
+    Value<int>? tagId,
+    Value<int>? rowid,
+  }) {
+    return ContactTagsCompanion(
+      normalizedNumber: normalizedNumber ?? this.normalizedNumber,
+      tagId: tagId ?? this.tagId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (normalizedNumber.present) {
+      map['normalized_number'] = Variable<String>(normalizedNumber.value);
+    }
+    if (tagId.present) {
+      map['tag_id'] = Variable<int>(tagId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContactTagsCompanion(')
+          ..write('normalizedNumber: $normalizedNumber, ')
+          ..write('tagId: $tagId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2495,6 +3005,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $CallAttachmentsTable callAttachments = $CallAttachmentsTable(
     this,
   );
+  late final $ContactDetailsTable contactDetails = $ContactDetailsTable(this);
+  late final $ContactTagsTable contactTags = $ContactTagsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2506,6 +3018,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     tags,
     callTags,
     callAttachments,
+    contactDetails,
+    contactTags,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2536,6 +3050,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('call_attachments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tags',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('contact_tags', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -3787,6 +4308,24 @@ final class $$TagsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$ContactTagsTable, List<ContactTag>>
+  _contactTagsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.contactTags,
+    aliasName: 'tags__id__contact_tags__tag_id',
+  );
+
+  $$ContactTagsTableProcessedTableManager get contactTagsRefs {
+    final manager = $$ContactTagsTableTableManager(
+      $_db,
+      $_db.contactTags,
+    ).filter((f) => f.tagId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_contactTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
@@ -3823,6 +4362,31 @@ class $$TagsTableFilterComposer extends Composer<_$AppDatabase, $TagsTable> {
           }) => $$CallTagsTableFilterComposer(
             $db: $db,
             $table: $db.callTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> contactTagsRefs(
+    Expression<bool> Function($$ContactTagsTableFilterComposer f) f,
+  ) {
+    final $$ContactTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.contactTags,
+      getReferencedColumn: (t) => t.tagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContactTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.contactTags,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -3891,6 +4455,31 @@ class $$TagsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> contactTagsRefs<T extends Object>(
+    Expression<T> Function($$ContactTagsTableAnnotationComposer a) f,
+  ) {
+    final $$ContactTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.contactTags,
+      getReferencedColumn: (t) => t.tagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ContactTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.contactTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TagsTableTableManager
@@ -3906,7 +4495,7 @@ class $$TagsTableTableManager
           $$TagsTableUpdateCompanionBuilder,
           (Tag, $$TagsTableReferences),
           Tag,
-          PrefetchHooks Function({bool callTagsRefs})
+          PrefetchHooks Function({bool callTagsRefs, bool contactTagsRefs})
         > {
   $$TagsTableTableManager(_$AppDatabase db, $TagsTable table)
     : super(
@@ -3933,29 +4522,50 @@ class $$TagsTableTableManager
                     (e.readTable(table), $$TagsTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({callTagsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (callTagsRefs) db.callTags],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (callTagsRefs)
-                    await $_getPrefetchedData<Tag, $TagsTable, CallTag>(
-                      currentTable: table,
-                      referencedTable: $$TagsTableReferences._callTagsRefsTable(
-                        db,
-                      ),
-                      managerFromTypedResult: (p0) =>
-                          $$TagsTableReferences(db, table, p0).callTagsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.tagId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({callTagsRefs = false, contactTagsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (callTagsRefs) db.callTags,
+                    if (contactTagsRefs) db.contactTags,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (callTagsRefs)
+                        await $_getPrefetchedData<Tag, $TagsTable, CallTag>(
+                          currentTable: table,
+                          referencedTable: $$TagsTableReferences
+                              ._callTagsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TagsTableReferences(db, table, p0).callTagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.tagId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (contactTagsRefs)
+                        await $_getPrefetchedData<Tag, $TagsTable, ContactTag>(
+                          currentTable: table,
+                          referencedTable: $$TagsTableReferences
+                              ._contactTagsRefsTable(db),
+                          managerFromTypedResult: (p0) => $$TagsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).contactTagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.tagId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3972,7 +4582,7 @@ typedef $$TagsTableProcessedTableManager =
       $$TagsTableUpdateCompanionBuilder,
       (Tag, $$TagsTableReferences),
       Tag,
-      PrefetchHooks Function({bool callTagsRefs})
+      PrefetchHooks Function({bool callTagsRefs, bool contactTagsRefs})
     >;
 typedef $$CallTagsTableCreateCompanionBuilder =
     CallTagsCompanion Function({
@@ -4658,6 +5268,438 @@ typedef $$CallAttachmentsTableProcessedTableManager =
       CallAttachment,
       PrefetchHooks Function({bool callId})
     >;
+typedef $$ContactDetailsTableCreateCompanionBuilder =
+    ContactDetailsCompanion Function({
+      required String normalizedNumber,
+      Value<String?> generalNote,
+      Value<bool> isFavorite,
+      Value<int> rowid,
+    });
+typedef $$ContactDetailsTableUpdateCompanionBuilder =
+    ContactDetailsCompanion Function({
+      Value<String> normalizedNumber,
+      Value<String?> generalNote,
+      Value<bool> isFavorite,
+      Value<int> rowid,
+    });
+
+class $$ContactDetailsTableFilterComposer
+    extends Composer<_$AppDatabase, $ContactDetailsTable> {
+  $$ContactDetailsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get generalNote => $composableBuilder(
+    column: $table.generalNote,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ContactDetailsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ContactDetailsTable> {
+  $$ContactDetailsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get generalNote => $composableBuilder(
+    column: $table.generalNote,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ContactDetailsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ContactDetailsTable> {
+  $$ContactDetailsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get generalNote => $composableBuilder(
+    column: $table.generalNote,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
+    builder: (column) => column,
+  );
+}
+
+class $$ContactDetailsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ContactDetailsTable,
+          ContactDetail,
+          $$ContactDetailsTableFilterComposer,
+          $$ContactDetailsTableOrderingComposer,
+          $$ContactDetailsTableAnnotationComposer,
+          $$ContactDetailsTableCreateCompanionBuilder,
+          $$ContactDetailsTableUpdateCompanionBuilder,
+          (
+            ContactDetail,
+            BaseReferences<_$AppDatabase, $ContactDetailsTable, ContactDetail>,
+          ),
+          ContactDetail,
+          PrefetchHooks Function()
+        > {
+  $$ContactDetailsTableTableManager(
+    _$AppDatabase db,
+    $ContactDetailsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ContactDetailsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ContactDetailsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ContactDetailsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> normalizedNumber = const Value.absent(),
+                Value<String?> generalNote = const Value.absent(),
+                Value<bool> isFavorite = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ContactDetailsCompanion(
+                normalizedNumber: normalizedNumber,
+                generalNote: generalNote,
+                isFavorite: isFavorite,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String normalizedNumber,
+                Value<String?> generalNote = const Value.absent(),
+                Value<bool> isFavorite = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ContactDetailsCompanion.insert(
+                normalizedNumber: normalizedNumber,
+                generalNote: generalNote,
+                isFavorite: isFavorite,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ContactDetailsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ContactDetailsTable,
+      ContactDetail,
+      $$ContactDetailsTableFilterComposer,
+      $$ContactDetailsTableOrderingComposer,
+      $$ContactDetailsTableAnnotationComposer,
+      $$ContactDetailsTableCreateCompanionBuilder,
+      $$ContactDetailsTableUpdateCompanionBuilder,
+      (
+        ContactDetail,
+        BaseReferences<_$AppDatabase, $ContactDetailsTable, ContactDetail>,
+      ),
+      ContactDetail,
+      PrefetchHooks Function()
+    >;
+typedef $$ContactTagsTableCreateCompanionBuilder =
+    ContactTagsCompanion Function({
+      required String normalizedNumber,
+      required int tagId,
+      Value<int> rowid,
+    });
+typedef $$ContactTagsTableUpdateCompanionBuilder =
+    ContactTagsCompanion Function({
+      Value<String> normalizedNumber,
+      Value<int> tagId,
+      Value<int> rowid,
+    });
+
+final class $$ContactTagsTableReferences
+    extends BaseReferences<_$AppDatabase, $ContactTagsTable, ContactTag> {
+  $$ContactTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TagsTable _tagIdTable(_$AppDatabase db) =>
+      db.tags.createAlias('contact_tags__tag_id__tags__id');
+
+  $$TagsTableProcessedTableManager get tagId {
+    final $_column = $_itemColumn<int>('tag_id')!;
+
+    final manager = $$TagsTableTableManager(
+      $_db,
+      $_db.tags,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_tagIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ContactTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $ContactTagsTable> {
+  $$ContactTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TagsTableFilterComposer get tagId {
+    final $$TagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableFilterComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ContactTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ContactTagsTable> {
+  $$ContactTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TagsTableOrderingComposer get tagId {
+    final $$TagsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableOrderingComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ContactTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ContactTagsTable> {
+  $$ContactTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => column,
+  );
+
+  $$TagsTableAnnotationComposer get tagId {
+    final $$TagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ContactTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ContactTagsTable,
+          ContactTag,
+          $$ContactTagsTableFilterComposer,
+          $$ContactTagsTableOrderingComposer,
+          $$ContactTagsTableAnnotationComposer,
+          $$ContactTagsTableCreateCompanionBuilder,
+          $$ContactTagsTableUpdateCompanionBuilder,
+          (ContactTag, $$ContactTagsTableReferences),
+          ContactTag,
+          PrefetchHooks Function({bool tagId})
+        > {
+  $$ContactTagsTableTableManager(_$AppDatabase db, $ContactTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ContactTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ContactTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ContactTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> normalizedNumber = const Value.absent(),
+                Value<int> tagId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ContactTagsCompanion(
+                normalizedNumber: normalizedNumber,
+                tagId: tagId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String normalizedNumber,
+                required int tagId,
+                Value<int> rowid = const Value.absent(),
+              }) => ContactTagsCompanion.insert(
+                normalizedNumber: normalizedNumber,
+                tagId: tagId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ContactTagsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({tagId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (tagId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.tagId,
+                                referencedTable: $$ContactTagsTableReferences
+                                    ._tagIdTable(db),
+                                referencedColumn: $$ContactTagsTableReferences
+                                    ._tagIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ContactTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ContactTagsTable,
+      ContactTag,
+      $$ContactTagsTableFilterComposer,
+      $$ContactTagsTableOrderingComposer,
+      $$ContactTagsTableAnnotationComposer,
+      $$ContactTagsTableCreateCompanionBuilder,
+      $$ContactTagsTableUpdateCompanionBuilder,
+      (ContactTag, $$ContactTagsTableReferences),
+      ContactTag,
+      PrefetchHooks Function({bool tagId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4673,4 +5715,8 @@ class $AppDatabaseManager {
       $$CallTagsTableTableManager(_db, _db.callTags);
   $$CallAttachmentsTableTableManager get callAttachments =>
       $$CallAttachmentsTableTableManager(_db, _db.callAttachments);
+  $$ContactDetailsTableTableManager get contactDetails =>
+      $$ContactDetailsTableTableManager(_db, _db.contactDetails);
+  $$ContactTagsTableTableManager get contactTags =>
+      $$ContactTagsTableTableManager(_db, _db.contactTags);
 }

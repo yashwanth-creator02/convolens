@@ -2,7 +2,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/contact_summary.dart';
-import '../utils/normalize_number.dart';
+import '../../../core/utils/normalize_number.dart';
 
 class ContactsRepository {
   final AppDatabase db;

@@ -7,8 +7,11 @@ import 'package:open_filex/open_filex.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../core/utils/normalize_number.dart';
+import '../../../shared/widgets/add_tag_dialog.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/text_input_dialog.dart';
+import '../../contacts/screens/contact_detail_screen.dart';
 import '../repository/attachment_storage.dart';
 import '../utils/call_type_label.dart';
 import '../utils/format_call_time.dart';
@@ -50,7 +53,7 @@ class CallDetailScreen extends StatelessWidget {
 
     final result = await showDialog<String>(
       context: context,
-      builder: (context) => _AddTagDialog(existingTags: existingTags),
+      builder: (context) => AddTagDialog(existingTags: existingTags),
     );
 
     if (result == null || result.isEmpty) return;
@@ -241,6 +244,26 @@ class CallDetailScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         fontSize: 20,
                       ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ContactDetailScreen(
+                              normalizedNumber: normalizePhoneNumber(
+                                call.number,
+                              ),
+                              displayName: displayName,
+                              displayNumber: call.number ?? '',
+                              db: db,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.person_outline, size: 18),
+                      label: const Text('View Contact'),
                     ),
                     const SizedBox(height: 4),
                     if (call.number != null) Text(call.number!),
@@ -543,101 +566,6 @@ class _DetailRow extends StatelessWidget {
           Expanded(child: Text(value)),
         ],
       ),
-    );
-  }
-}
-
-class _AddTagDialog extends StatefulWidget {
-  final List<Tag> existingTags;
-
-  const _AddTagDialog({required this.existingTags});
-
-  @override
-  State<_AddTagDialog> createState() => _AddTagDialogState();
-}
-
-class _AddTagDialogState extends State<_AddTagDialog> {
-  late final TextEditingController _controller;
-  String _query = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-    _controller.addListener(() {
-      setState(() {
-        _query = _controller.text.trim();
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final filteredTags = widget.existingTags
-        .where((tag) => tag.name.toLowerCase().contains(_query.toLowerCase()))
-        .toList();
-
-    final exactMatchExists = widget.existingTags.any(
-      (tag) => tag.name.toLowerCase() == _query.toLowerCase(),
-    );
-
-    final buttonLabel = _query.isEmpty
-        ? 'Add'
-        : (exactMatchExists ? 'Add' : 'Create & Add');
-
-    return AlertDialog(
-      title: const Text('Add Tag'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Type to search or create…',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          if (filteredTags.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            const Text(
-              'Tap to select:',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: filteredTags
-                  .map(
-                    (tag) => ActionChip(
-                      label: Text(tag.name),
-                      onPressed: () => Navigator.pop(context, tag.name),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: _query.isEmpty
-              ? null
-              : () => Navigator.pop(context, _query),
-          child: Text(buttonLabel),
-        ),
-      ],
     );
   }
 }

@@ -7,6 +7,7 @@ import '../../history/screens/search_screen.dart';
 import '../models/contact_summary.dart';
 import '../repository/contacts_repository.dart';
 import '../widgets/contact_card.dart';
+import 'contact_detail_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -106,9 +107,11 @@ class _ContactsScreenState extends State<ContactsScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SearchScreen(
+        builder: (context) => ContactDetailScreen(
+          normalizedNumber: contact.normalizedNumber,
+          displayName: contact.displayName,
+          displayNumber: contact.displayNumber,
           db: widget.db,
-          initialContactQuery: contact.displayNumber,
         ),
       ),
     );
@@ -161,9 +164,11 @@ class _ContactsScreenState extends State<ContactsScreen>
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => SearchScreen(
+                          builder: (context) => ContactDetailScreen(
+                            normalizedNumber: contact.normalizedNumber,
+                            displayName: contact.displayName,
+                            displayNumber: contact.displayNumber,
                             db: widget.db,
-                            initialContactQuery: contact.displayNumber,
                           ),
                         ),
                       );
