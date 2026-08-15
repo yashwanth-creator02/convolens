@@ -5,7 +5,6 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../utils/normalize_number.dart';
 import 'tables/calls_table.dart';
 import 'tables/settings_table.dart';
 import 'tables/call_details_table.dart';

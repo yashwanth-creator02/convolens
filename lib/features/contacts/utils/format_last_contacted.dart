@@ -4,11 +4,7 @@ String formatLastContacted(int timestamp) {
 
   final difference = now.difference(dateTime);
 
-  if (difference.isNegative) {
-    return 'Just now';
-  }
-
-  if (difference.inMinutes < 1) {
+  if (difference.isNegative || difference.inMinutes < 1) {
     return 'Just now';
   }
 

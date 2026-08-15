@@ -17,7 +17,7 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  final AppDatabase db = AppDatabase();
+  final AppDatabase _db = AppDatabase();
 
   int _selectedIndex = 0;
 
@@ -33,9 +33,9 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   late final List<Widget> _screens = [
-    HistoryScreen(db: db),
+    HistoryScreen(db: _db),
     const ComingSoonView(title: 'Analytics'),
-    ContactsScreen(db: db),
+    ContactsScreen(db: _db),
     const ComingSoonView(title: 'Profile'),
   ];
 
@@ -51,7 +51,7 @@ class _MainShellState extends State<MainShell> {
 
   @override
   void dispose() {
-    db.close();
+    _db.close();
     super.dispose();
   }
 
@@ -60,6 +60,10 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   void _onNavigationItemSelected(int index) {
+    if (_selectedIndex == index) {
+      return;
+    }
+
     setState(() {
       _selectedIndex = index;
     });
@@ -68,14 +72,14 @@ class _MainShellState extends State<MainShell> {
   void _openSearch() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => SearchScreen(db: db)),
+      MaterialPageRoute(builder: (context) => SearchScreen(db: _db)),
     );
   }
 
   void _openSettings() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => SettingsScreen(db: db)),
+      MaterialPageRoute(builder: (context) => SettingsScreen(db: _db)),
     );
   }
 
@@ -89,7 +93,8 @@ class _MainShellState extends State<MainShell> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SearchScreen(db: db, initialContactQuery: number),
+        builder: (context) =>
+            SearchScreen(db: _db, initialContactQuery: number),
       ),
     );
   }

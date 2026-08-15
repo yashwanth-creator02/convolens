@@ -3,7 +3,6 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../history/screens/search_screen.dart';
 import '../models/contact_summary.dart';
 import '../repository/contacts_repository.dart';
 import '../widgets/contact_card.dart';
@@ -127,6 +126,10 @@ class _ContactsScreenState extends State<ContactsScreen>
       return _buildPermissionView();
     }
 
+    return _buildContactsList();
+  }
+
+  Widget _buildContactsList() {
     return StreamBuilder<List<ContactSummary>>(
       stream: _repository.watchContacts(_deviceContacts),
       builder: (context, snapshot) {
@@ -136,12 +139,7 @@ class _ContactsScreenState extends State<ContactsScreen>
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Failed to load contacts.\n${snapshot.error}',
-              textAlign: TextAlign.center,
-            ),
-          );
+          return _buildErrorView(snapshot.error);
         }
 
         final contacts = snapshot.data ?? [];
@@ -160,23 +158,23 @@ class _ContactsScreenState extends State<ContactsScreen>
               contact: contact,
               onTap: contact.displayNumber.isEmpty
                   ? null
-                  : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ContactDetailScreen(
-                            normalizedNumber: contact.normalizedNumber,
-                            displayName: contact.displayName,
-                            displayNumber: contact.displayNumber,
-                            db: widget.db,
-                          ),
-                        ),
-                      );
-                    },
+                  : () => _openContact(contact),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildErrorView(Object? error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          'Failed to load contacts.\n$error',
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 
