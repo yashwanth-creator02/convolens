@@ -133,18 +133,6 @@ class ContactsRepository {
   }
 
   int _compareContactSummaries(ContactSummary a, ContactSummary b) {
-    if (a.lastCallAt != null && b.lastCallAt != null) {
-      return b.lastCallAt!.compareTo(a.lastCallAt!);
-    }
-
-    if (a.lastCallAt != null) {
-      return -1;
-    }
-
-    if (b.lastCallAt != null) {
-      return 1;
-    }
-
     return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
 }

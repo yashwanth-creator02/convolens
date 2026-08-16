@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../core/database/app_database.dart';
 import '../models/contact_summary.dart';
 import '../repository/contacts_repository.dart';
+import '../utils/group_contacts_by_letter.dart';
 import '../widgets/contact_card.dart';
 import 'contact_detail_screen.dart';
 
@@ -148,12 +149,44 @@ class _ContactsScreenState extends State<ContactsScreen>
           return const Center(child: Text('No contacts found.'));
         }
 
-        return ListView.separated(
-          itemCount: contacts.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final contact = contacts[index];
+        final grouped = groupContactsByLetter(contacts);
+        final orderedLetters = grouped.keys.toList()
+          ..sort((a, b) {
+            if (a == '#') return 1;
+            if (b == '#') return -1;
+            return a.compareTo(b);
+          });
 
+        final items = <Object>[];
+        for (final letter in orderedLetters) {
+          items.add(letter);
+          items.addAll(grouped[letter]!);
+        }
+
+        return ListView.builder(
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+
+            if (item is String) {
+              return Container(
+                width: double.infinity,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              );
+            }
+
+            final contact = item as ContactSummary;
             return ContactCard(
               contact: contact,
               onTap: contact.displayNumber.isEmpty
