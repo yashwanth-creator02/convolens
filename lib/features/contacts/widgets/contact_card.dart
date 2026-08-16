@@ -17,11 +17,16 @@ class ContactCard extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       leading: CircleAvatar(
         radius: 24,
-        child: Text(
-          contact.displayName.isNotEmpty
-              ? contact.displayName[0].toUpperCase()
-              : '?',
-        ),
+        backgroundImage: contact.deviceContact?.thumbnail != null
+            ? MemoryImage(contact.deviceContact!.thumbnail!)
+            : null,
+        child: contact.deviceContact?.thumbnail == null
+            ? Text(
+                contact.displayName.isNotEmpty
+                    ? contact.displayName[0].toUpperCase()
+                    : '?',
+              )
+            : null,
       ),
       title: Text(
         contact.displayName,

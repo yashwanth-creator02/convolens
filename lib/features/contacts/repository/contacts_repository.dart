@@ -86,6 +86,7 @@ class ContactsRepository {
 
     return ContactSummary(
       deviceContactId: contact.id,
+      deviceContact: contact,
       normalizedNumber: numbers.isNotEmpty ? numbers.first : '',
       displayName: displayName,
       displayNumber: displayNumber,

@@ -70,7 +70,10 @@ class _ContactsScreenState extends State<ContactsScreen>
       return;
     }
 
-    final contacts = await FlutterContacts.getContacts(withProperties: true);
+    final contacts = await FlutterContacts.getContacts(
+      withProperties: true,
+      withThumbnail: true,
+    );
 
     if (!mounted) return;
 
@@ -102,6 +105,7 @@ class _ContactsScreenState extends State<ContactsScreen>
               normalizedNumber: contact.normalizedNumber,
               displayName: contact.displayName,
               displayNumber: contact.displayNumber,
+              deviceContact: contact.deviceContact,
               db: widget.db,
             ),
       ),
@@ -133,72 +137,128 @@ class _ContactsScreenState extends State<ContactsScreen>
   }
 
   Widget _buildContactsList() {
-    return StreamBuilder<List<ContactSummary>>(
-      stream: _repository.watchContacts(_deviceContacts),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            !snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return StreamBuilder<Set<String>>(
+      stream: widget.db.watchFavoriteNumbers(),
+      builder: (context, favoritesSnapshot) {
+        final favoriteNumbers = favoritesSnapshot.data ?? <String>{};
 
-        if (snapshot.hasError) {
-          return _buildErrorView(snapshot.error);
-        }
+        return StreamBuilder<List<ContactSummary>>(
+          stream: _repository.watchContacts(_deviceContacts),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        final contacts = snapshot.data ?? [];
+            if (snapshot.hasError) {
+              return _buildErrorView(snapshot.error);
+            }
 
-        if (contacts.isEmpty) {
-          return const Center(child: Text('No contacts found.'));
-        }
+            final contacts = snapshot.data ?? [];
 
-        final grouped = groupContactsByLetter(contacts);
-        final orderedLetters = grouped.keys.toList()
-          ..sort((a, b) {
-            if (a == '#') return 1;
-            if (b == '#') return -1;
-            return a.compareTo(b);
-          });
+            if (contacts.isEmpty) {
+              return const Center(child: Text('No contacts found.'));
+            }
 
-        final items = <Object>[];
-        for (final letter in orderedLetters) {
-          items.add(letter);
-          items.addAll(grouped[letter]!);
-        }
+            final favorites = contacts
+                .where((c) => favoriteNumbers.contains(c.normalizedNumber))
+                .toList()
+              ..sort((a, b) =>
+                  a.displayName.toLowerCase().compareTo(
+                      b.displayName.toLowerCase()));
 
-        return Stack(
-          children: [
-            ScrollablePositionedList.builder(
-              itemScrollController: _itemScrollController,
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
+            final remaining = contacts
+                .where((c) => !favoriteNumbers.contains(c.normalizedNumber))
+                .toList();
 
-                if (item is String) {
-                  return _buildLetterHeader(context, item);
-                }
+            final grouped = groupContactsByLetter(remaining);
+            final orderedLetters = grouped.keys.toList()
+              ..sort((a, b) {
+                if (a == '#') return 1;
+                if (b == '#') return -1;
+                return a.compareTo(b);
+              });
 
-                final contact = item as ContactSummary;
+            final items = <Object>[];
 
-                return ContactCard(
-                  contact: contact,
-                  onTap: contact.displayNumber.isEmpty
-                      ? null
-                      : () => _openContact(contact),
-                );
-              },
-            ),
-            Positioned(
-              right: 0,
-              top: 0,
-              bottom: 0,
-              child: SideBarAlphabetIndex(
-                letters: orderedLetters,
-                onLetterSelected: (letter) => _scrollToLetter(letter, items),
-              ),
-            ),
-          ],
+            if (favorites.isNotEmpty) {
+              items.add(const _FavoritesSectionMarker());
+              items.addAll(favorites);
+            }
+
+            for (final letter in orderedLetters) {
+              items.add(letter);
+              items.addAll(grouped[letter]!);
+            }
+
+            return Stack(
+              children: [
+                ScrollablePositionedList.builder(
+                  itemScrollController: _itemScrollController,
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+
+                    if (item is _FavoritesSectionMarker) {
+                      return _buildFavoritesHeader(context);
+                    }
+
+                    if (item is String) {
+                      return _buildLetterHeader(context, item);
+                    }
+
+                    final contact = item as ContactSummary;
+
+                    return ContactCard(
+                      contact: contact,
+                      onTap: contact.displayNumber.isEmpty
+                          ? null
+                          : () => _openContact(contact),
+                    );
+                  },
+                ),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: SideBarAlphabetIndex(
+                    letters: orderedLetters,
+                    onLetterSelected: (letter) =>
+                        _scrollToLetter(letter, items),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildFavoritesHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: Theme
+          .of(context)
+          .colorScheme
+          .surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Row(
+        children: [
+          Icon(Icons.star, size: 16, color: Colors.amber.shade700),
+          const SizedBox(width: 6),
+          Text(
+            'Favorites',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme
+                  .of(context)
+                  .colorScheme
+                  .primary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -258,4 +318,8 @@ class _ContactsScreenState extends State<ContactsScreen>
       ),
     );
   }
+}
+
+class _FavoritesSectionMarker {
+  const _FavoritesSectionMarker();
 }

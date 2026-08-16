@@ -438,6 +438,14 @@ class AppDatabase extends _$AppDatabase {
 
     return query.watch();
   }
+
+  Stream<Set<String>> watchFavoriteNumbers() {
+    final query = select(contactDetails)
+      ..where((c) => c.isFavorite.equals(true));
+    return query.watch().map(
+      (rows) => rows.map((r) => r.normalizedNumber).toSet(),
+    );
+  }
 }
 
 LazyDatabase _openConnection() {

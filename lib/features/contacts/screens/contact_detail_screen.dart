@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../widgets/contact_call_history.dart';
@@ -10,6 +11,7 @@ class ContactDetailScreen extends StatelessWidget {
   final String normalizedNumber;
   final String displayName;
   final String displayNumber;
+  final Contact? deviceContact;
   final AppDatabase db;
 
   const ContactDetailScreen({
@@ -17,6 +19,7 @@ class ContactDetailScreen extends StatelessWidget {
     required this.normalizedNumber,
     required this.displayName,
     required this.displayNumber,
+    this.deviceContact,
     required this.db,
   });
 
@@ -44,11 +47,11 @@ class ContactDetailScreen extends StatelessWidget {
                       ContactHeader(
                         displayName: displayName,
                         displayNumber: displayNumber,
+                        deviceContact: deviceContact,
                         isFavorite: detail?.isFavorite ?? false,
                         onFavoritePressed: () =>
                             _toggleFavorite(detail?.isFavorite ?? false),
                       ),
-
                       const Divider(height: 32),
 
                       ContactNoteSection(
