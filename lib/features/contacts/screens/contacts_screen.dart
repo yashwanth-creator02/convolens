@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/contact_summary.dart';
 import '../repository/contacts_repository.dart';
 import '../utils/group_contacts_by_letter.dart';
 import '../widgets/contact_card.dart';
+import '../widgets/side_bar_alphabet_index.dart';
 import 'contact_detail_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
@@ -21,6 +23,7 @@ class ContactsScreen extends StatefulWidget {
 class _ContactsScreenState extends State<ContactsScreen>
     with WidgetsBindingObserver {
   late final ContactsRepository _repository;
+  final ItemScrollController _itemScrollController = ItemScrollController();
 
   bool _permissionGranted = false;
   bool _loadingContacts = true;
@@ -30,11 +33,8 @@ class _ContactsScreenState extends State<ContactsScreen>
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
-
     _repository = ContactsRepository(widget.db);
-
     _loadDeviceContacts();
   }
 
@@ -52,9 +52,7 @@ class _ContactsScreenState extends State<ContactsScreen>
   }
 
   Future<void> _loadDeviceContacts() async {
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       _loadingContacts = true;
@@ -62,9 +60,7 @@ class _ContactsScreenState extends State<ContactsScreen>
 
     final status = await Permission.contacts.status;
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (!status.isGranted) {
       setState(() {
@@ -76,9 +72,7 @@ class _ContactsScreenState extends State<ContactsScreen>
 
     final contacts = await FlutterContacts.getContacts(withProperties: true);
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     setState(() {
       _permissionGranted = true;
@@ -90,9 +84,7 @@ class _ContactsScreenState extends State<ContactsScreen>
   Future<void> _requestContactsPermission() async {
     final status = await Permission.contacts.request();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     if (status.isGranted) {
       await _loadDeviceContacts();
@@ -100,21 +92,31 @@ class _ContactsScreenState extends State<ContactsScreen>
   }
 
   void _openContact(ContactSummary contact) {
-    if (contact.displayNumber.isEmpty) {
-      return;
-    }
+    if (contact.displayNumber.isEmpty) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ContactDetailScreen(
-          normalizedNumber: contact.normalizedNumber,
-          displayName: contact.displayName,
-          displayNumber: contact.displayNumber,
-          db: widget.db,
-        ),
+        builder: (context) =>
+            ContactDetailScreen(
+              normalizedNumber: contact.normalizedNumber,
+              displayName: contact.displayName,
+              displayNumber: contact.displayNumber,
+              db: widget.db,
+            ),
       ),
     );
+  }
+
+  void _scrollToLetter(String letter, List<Object> items) {
+    final index = items.indexOf(letter);
+    if (index != -1 && _itemScrollController.isAttached) {
+      _itemScrollController.scrollTo(
+        index: index,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   @override
@@ -163,37 +165,38 @@ class _ContactsScreenState extends State<ContactsScreen>
           items.addAll(grouped[letter]!);
         }
 
-        return ListView.builder(
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
+        return Stack(
+          children: [
+            ScrollablePositionedList.builder(
+              itemScrollController: _itemScrollController,
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
 
-            if (item is String) {
-              return Container(
-                width: double.infinity,
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 4,
-                ),
-                child: Text(
-                  item,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-              );
-            }
+                if (item is String) {
+                  return _buildLetterHeader(context, item);
+                }
 
-            final contact = item as ContactSummary;
-            return ContactCard(
-              contact: contact,
-              onTap: contact.displayNumber.isEmpty
-                  ? null
-                  : () => _openContact(contact),
-            );
-          },
+                final contact = item as ContactSummary;
+
+                return ContactCard(
+                  contact: contact,
+                  onTap: contact.displayNumber.isEmpty
+                      ? null
+                      : () => _openContact(contact),
+                );
+              },
+            ),
+            Positioned(
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: SideBarAlphabetIndex(
+                letters: orderedLetters,
+                onLetterSelected: (letter) => _scrollToLetter(letter, items),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -230,6 +233,27 @@ class _ContactsScreenState extends State<ContactsScreen>
               child: const Text('Grant Permission'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLetterHeader(BuildContext context, String letter) {
+    return Container(
+      width: double.infinity,
+      color: Theme
+          .of(context)
+          .colorScheme
+          .surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Text(
+        letter,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme
+              .of(context)
+              .colorScheme
+              .primary,
         ),
       ),
     );
