@@ -3,9 +3,11 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../widgets/contact_call_history.dart';
+import '../widgets/contact_call_history_list.dart';
 import '../widgets/contact_header.dart';
 import '../widgets/contact_note_section.dart';
 import '../widgets/contact_tags_section.dart';
+import '../widgets/contact_phone_numbers_section.dart';
 
 class ContactDetailScreen extends StatelessWidget {
   final String normalizedNumber;
@@ -36,53 +38,66 @@ class ContactDetailScreen extends StatelessWidget {
         builder: (context, snapshot) {
           final detail = snapshot.data;
 
-          return CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.all(16),
-                sliver: SliverToBoxAdapter(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ContactHeader(
-                        displayName: displayName,
-                        displayNumber: displayNumber,
-                        deviceContact: deviceContact,
-                        isFavorite: detail?.isFavorite ?? false,
-                        onFavoritePressed: () =>
-                            _toggleFavorite(detail?.isFavorite ?? false),
-                      ),
-                      const Divider(height: 32),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ContactHeader(
+                  displayName: displayName,
+                  displayNumber: displayNumber,
+                  deviceContact: deviceContact,
+                  isFavorite: detail?.isFavorite ?? false,
+                  onFavoritePressed: () =>
+                      _toggleFavorite(detail?.isFavorite ?? false),
+                ),
 
-                      ContactNoteSection(
-                        note: detail?.generalNote,
-                        onSave: (note) async {
-                          await db.saveContactNote(normalizedNumber, note);
-                        },
-                      ),
+                const Divider(height: 32),
 
-                      const Divider(height: 32),
+                const Text(
+                  'Phone Numbers',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ContactPhoneNumbersSection(
+                  deviceContact: deviceContact,
+                  fallbackNumber: displayNumber,
+                ),
 
-                      ContactTagsSection(
-                        normalizedNumber: normalizedNumber,
-                        db: db,
-                      ),
+                const Divider(height: 32),
 
-                      const Divider(height: 32),
+                ContactNoteSection(
+                  note: detail?.generalNote,
+                  onSave: (note) async {
+                    await db.saveContactNote(normalizedNumber, note);
+                  },
+                ),
 
-                      const Text(
-                        'Call History',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                const Divider(height: 32),
 
-                      const SizedBox(height: 8),
-                    ],
+                ContactTagsSection(normalizedNumber: normalizedNumber, db: db),
+
+                const Divider(height: 32),
+
+                const Text(
+                  'Call History',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+
+                Container(
+                  height: 260,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ContactCallHistoryList(
+                    normalizedNumber: normalizedNumber,
+                    db: db,
                   ),
                 ),
-              ),
-
-              ContactCallHistory(normalizedNumber: normalizedNumber, db: db),
-            ],
+              ],
+            ),
           );
         },
       ),
