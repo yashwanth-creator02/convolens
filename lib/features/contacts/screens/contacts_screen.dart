@@ -17,10 +17,10 @@ class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key, required this.db});
 
   @override
-  State<ContactsScreen> createState() => _ContactsScreenState();
+  State<ContactsScreen> createState() => ContactsScreenState();
 }
 
-class _ContactsScreenState extends State<ContactsScreen>
+class ContactsScreenState extends State<ContactsScreen>
     with WidgetsBindingObserver {
   late final ContactsRepository _repository;
   final ItemScrollController _itemScrollController = ItemScrollController();
@@ -29,6 +29,8 @@ class _ContactsScreenState extends State<ContactsScreen>
   bool _loadingContacts = true;
 
   List<Contact> _deviceContacts = [];
+
+  Future<void> refreshDeviceContacts() => _loadDeviceContacts();
 
   @override
   void initState() {
@@ -100,14 +102,13 @@ class _ContactsScreenState extends State<ContactsScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            ContactDetailScreen(
-              normalizedNumber: contact.normalizedNumber,
-              displayName: contact.displayName,
-              displayNumber: contact.displayNumber,
-              deviceContact: contact.deviceContact,
-              db: widget.db,
-            ),
+        builder: (context) => ContactDetailScreen(
+          normalizedNumber: contact.normalizedNumber,
+          displayName: contact.displayName,
+          displayNumber: contact.displayNumber,
+          deviceContact: contact.deviceContact,
+          db: widget.db,
+        ),
       ),
     );
   }
@@ -160,12 +161,15 @@ class _ContactsScreenState extends State<ContactsScreen>
               return const Center(child: Text('No contacts found.'));
             }
 
-            final favorites = contacts
-                .where((c) => favoriteNumbers.contains(c.normalizedNumber))
-                .toList()
-              ..sort((a, b) =>
-                  a.displayName.toLowerCase().compareTo(
-                      b.displayName.toLowerCase()));
+            final favorites =
+                contacts
+                    .where((c) => favoriteNumbers.contains(c.normalizedNumber))
+                    .toList()
+                  ..sort(
+                    (a, b) => a.displayName.toLowerCase().compareTo(
+                      b.displayName.toLowerCase(),
+                    ),
+                  );
 
             final remaining = contacts
                 .where((c) => !favoriteNumbers.contains(c.normalizedNumber))
@@ -238,10 +242,7 @@ class _ContactsScreenState extends State<ContactsScreen>
   Widget _buildFavoritesHeader(BuildContext context) {
     return Container(
       width: double.infinity,
-      color: Theme
-          .of(context)
-          .colorScheme
-          .surfaceContainerHighest,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         children: [
@@ -251,10 +252,7 @@ class _ContactsScreenState extends State<ContactsScreen>
             'Favorites',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Theme
-                  .of(context)
-                  .colorScheme
-                  .primary,
+              color: Theme.of(context).colorScheme.primary,
             ),
           ),
         ],
@@ -301,19 +299,13 @@ class _ContactsScreenState extends State<ContactsScreen>
   Widget _buildLetterHeader(BuildContext context, String letter) {
     return Container(
       width: double.infinity,
-      color: Theme
-          .of(context)
-          .colorScheme
-          .surfaceContainerHighest,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Text(
         letter,
         style: TextStyle(
           fontWeight: FontWeight.bold,
-          color: Theme
-              .of(context)
-              .colorScheme
-              .primary,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );

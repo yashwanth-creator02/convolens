@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
 import '../features/contacts/screens/contacts_screen.dart';
+import '../features/contacts/widgets/add_contact_screen.dart';
 import '../features/history/screens/history_screen.dart';
 import '../features/history/screens/search_screen.dart';
 import '../features/history/widgets/number_pad_sheet.dart';
@@ -18,6 +19,8 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   final AppDatabase _db = AppDatabase();
+
+  final _contactsScreenKey = GlobalKey<ContactsScreenState>();
 
   int _selectedIndex = 0;
 
@@ -35,7 +38,7 @@ class _MainShellState extends State<MainShell> {
   late final List<Widget> _screens = [
     HistoryScreen(db: _db),
     const ComingSoonView(title: 'Analytics'),
-    ContactsScreen(db: _db),
+    ContactsScreen(key: _contactsScreenKey, db: _db),
     const ComingSoonView(title: 'Profile'),
   ];
 
@@ -124,15 +127,38 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   Widget? _buildFloatingActionButton() {
-    if (_selectedIndex != 0) {
-      return null;
+    if (_selectedIndex == 0) {
+      return FloatingActionButton(
+        tooltip: 'Dial number',
+        onPressed: () async {
+          final number = await showNumberPadSheet(context);
+          if (!mounted || number == null || number.isEmpty) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  SearchScreen(db: _db, initialContactQuery: number),
+            ),
+          );
+        },
+        child: const Icon(Icons.dialpad),
+      );
     }
 
-    return FloatingActionButton(
-      tooltip: 'Dial number',
-      onPressed: _openNumberPad,
-      child: const Icon(Icons.dialpad),
-    );
+    if (_selectedIndex == 2) {
+      return FloatingActionButton(
+        tooltip: 'Add contact',
+        onPressed: () async {
+          final added = await showAddContactScreen(context);
+          if (added) {
+            await _contactsScreenKey.currentState?.refreshDeviceContacts();
+          }
+        },
+        child: const Icon(Icons.person_add),
+      );
+    }
+
+    return null;
   }
 
   // ---------------------------------------------------------------------------
