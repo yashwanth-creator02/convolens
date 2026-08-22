@@ -17,6 +17,8 @@ import '../widgets/call_details/call_info_section.dart';
 import '../widgets/call_details/call_note_section.dart';
 import '../widgets/call_details/call_reminder_section.dart';
 import '../widgets/call_details/call_tags_section.dart';
+import '../widgets/voice_note_player_sheet.dart';
+import '../widgets/voice_recorder_dialog.dart';
 
 class CallDetailScreen extends StatelessWidget {
   final Call call;
@@ -165,7 +167,38 @@ class CallDetailScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _addAttachment(BuildContext context) async {
+  Future<void> _chooseAttachmentType(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.attach_file),
+              title: const Text('Photo or PDF'),
+              onTap: () => Navigator.pop(context, 'file'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.mic),
+              title: const Text('Voice Note'),
+              onTap: () => Navigator.pop(context, 'voice'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!context.mounted || choice == null) return;
+
+    if (choice == 'file') {
+      await _addFileAttachment(context);
+    } else {
+      await _recordVoiceNote(context);
+    }
+  }
+
+  Future<void> _addFileAttachment(BuildContext context) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
@@ -204,6 +237,33 @@ class CallDetailScreen extends StatelessWidget {
       if (!context.mounted) return;
 
       ToastService.error(context, 'Failed to add attachment.');
+    }
+  }
+
+  Future<void> _recordVoiceNote(BuildContext context) async {
+    final destinationPath = await AttachmentStorage.newVoiceNotePath(call.id);
+
+    if (!context.mounted) return;
+
+    final savedPath = await showVoiceRecorderDialog(context, destinationPath);
+
+    if (savedPath == null || !context.mounted) return;
+
+    try {
+      await db.addAttachment(
+        callId: call.id,
+        filePath: savedPath,
+        originalFileName: 'Voice note',
+        fileType: 'voice',
+      );
+
+      if (!context.mounted) return;
+
+      ToastService.success(context, 'Voice note added.');
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ToastService.error(context, 'Failed to save voice note.');
     }
   }
 
@@ -249,6 +309,11 @@ class CallDetailScreen extends StatelessWidget {
           },
         ),
       );
+      return;
+    }
+
+    if (attachment.fileType == 'voice') {
+      showVoiceNotePlayerSheet(context, attachment.filePath);
       return;
     }
 
@@ -319,7 +384,7 @@ class CallDetailScreen extends StatelessWidget {
                       builder: (context, attachmentSnapshot) {
                         return CallAttachmentsSection(
                           attachments: attachmentSnapshot.data ?? const [],
-                          onAdd: () => _addAttachment(context),
+                          onAdd: () => _chooseAttachmentType(context),
                           onView: (attachment) =>
                               _viewAttachment(context, attachment),
                           onDelete: (attachment) =>

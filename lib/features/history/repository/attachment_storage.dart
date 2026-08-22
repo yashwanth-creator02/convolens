@@ -29,4 +29,16 @@ class AttachmentStorage {
       await file.delete();
     }
   }
+
+  static Future<String> newVoiceNotePath(int callId) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final attachmentsDir = Directory(p.join(appDir.path, 'attachments'));
+
+    if (!await attachmentsDir.exists()) {
+      await attachmentsDir.create(recursive: true);
+    }
+
+    final uniqueName = '${callId}_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    return p.join(attachmentsDir.path, uniqueName);
+  }
 }

@@ -16,6 +16,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
   bool _notificationsGranted = false;
   bool _exactAlarmGranted = false;
   bool _contactsGranted = false;
+  bool _microphoneGranted = false;
 
   bool _isRefreshing = false;
 
@@ -59,6 +60,8 @@ class _PermissionsScreenState extends State<PermissionsScreen>
 
       final contactsStatus = await Permission.contacts.status;
 
+      final microphoneStatus = await Permission.microphone.status;
+
       if (!mounted) {
         return;
       }
@@ -68,6 +71,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
         _notificationsGranted = notificationsGranted;
         _exactAlarmGranted = exactAlarmGranted;
         _contactsGranted = contactsStatus.isGranted;
+        _microphoneGranted = microphoneStatus.isGranted;
       });
     } finally {
       _isRefreshing = false;
@@ -124,6 +128,18 @@ class _PermissionsScreenState extends State<PermissionsScreen>
     await _refreshStatuses();
   }
 
+  Future<void> _requestMicrophonePermission() async {
+    final status = await Permission.microphone.status;
+
+    if (status.isPermanentlyDenied) {
+      await openAppSettings();
+    } else {
+      await Permission.microphone.request();
+    }
+
+    await _refreshStatuses();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -162,6 +178,12 @@ class _PermissionsScreenState extends State<PermissionsScreen>
             subtitle: 'Required to show all your device contacts',
             granted: _contactsGranted,
             onTap: _requestContactsPermission,
+          ),
+          _PermissionTile(
+            title: 'Microphone',
+            subtitle: 'Required to record voice notes attachments',
+            granted: _microphoneGranted,
+            onTap: _requestMicrophonePermission,
           ),
         ],
       ),
