@@ -13,6 +13,7 @@ import 'tables/call_tags_table.dart';
 import 'tables/call_attachments_table.dart';
 import 'tables/contact_details_table.dart';
 import 'tables/contact_tags_table.dart';
+import 'tables/contact_links_table.dart';
 
 part 'app_database.g.dart';
 
@@ -26,13 +27,14 @@ part 'app_database.g.dart';
     CallAttachments,
     ContactDetails,
     ContactTags,
+    ContactLinks,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -69,6 +71,9 @@ class AppDatabase extends _$AppDatabase {
         if (from < 9) {
           await m.createTable(contactDetails);
           await m.createTable(contactTags);
+        }
+        if (from < 10) {
+          await m.createTable(contactLinks);
         }
       },
       beforeOpen: (details) async {
@@ -445,6 +450,36 @@ class AppDatabase extends _$AppDatabase {
     return query.watch().map(
       (rows) => rows.map((r) => r.normalizedNumber).toSet(),
     );
+  }
+
+  Stream<List<ContactLink>> watchLinksForContact(String normalizedNumber) {
+    return (select(
+      contactLinks,
+    )..where((l) => l.normalizedNumber.equals(normalizedNumber))).watch();
+  }
+
+  Future<void> addContactLink(
+    String normalizedNumber,
+    String platform,
+    String url,
+  ) async {
+    await into(contactLinks).insert(
+      ContactLinksCompanion.insert(
+        normalizedNumber: normalizedNumber,
+        platform: platform,
+        url: url,
+      ),
+    );
+  }
+
+  Future<void> updateContactLink(int id, String url) async {
+    await (update(contactLinks)..where((l) => l.id.equals(id))).write(
+      ContactLinksCompanion(url: Value(url)),
+    );
+  }
+
+  Future<void> deleteContactLink(int id) async {
+    await (delete(contactLinks)..where((l) => l.id.equals(id))).go();
   }
 }
 

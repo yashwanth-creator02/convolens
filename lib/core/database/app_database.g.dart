@@ -2994,6 +2994,309 @@ class ContactTagsCompanion extends UpdateCompanion<ContactTag> {
   }
 }
 
+class $ContactLinksTable extends ContactLinks
+    with TableInfo<$ContactLinksTable, ContactLink> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ContactLinksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _normalizedNumberMeta = const VerificationMeta(
+    'normalizedNumber',
+  );
+  @override
+  late final GeneratedColumn<String> normalizedNumber = GeneratedColumn<String>(
+    'normalized_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _urlMeta = const VerificationMeta('url');
+  @override
+  late final GeneratedColumn<String> url = GeneratedColumn<String>(
+    'url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, normalizedNumber, platform, url];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'contact_links';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ContactLink> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('normalized_number')) {
+      context.handle(
+        _normalizedNumberMeta,
+        normalizedNumber.isAcceptableOrUnknown(
+          data['normalized_number']!,
+          _normalizedNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_normalizedNumberMeta);
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    if (data.containsKey('url')) {
+      context.handle(
+        _urlMeta,
+        url.isAcceptableOrUnknown(data['url']!, _urlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_urlMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ContactLink map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ContactLink(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      normalizedNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_number'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+      url: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}url'],
+      )!,
+    );
+  }
+
+  @override
+  $ContactLinksTable createAlias(String alias) {
+    return $ContactLinksTable(attachedDatabase, alias);
+  }
+}
+
+class ContactLink extends DataClass implements Insertable<ContactLink> {
+  final int id;
+  final String normalizedNumber;
+  final String platform;
+  final String url;
+  const ContactLink({
+    required this.id,
+    required this.normalizedNumber,
+    required this.platform,
+    required this.url,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['normalized_number'] = Variable<String>(normalizedNumber);
+    map['platform'] = Variable<String>(platform);
+    map['url'] = Variable<String>(url);
+    return map;
+  }
+
+  ContactLinksCompanion toCompanion(bool nullToAbsent) {
+    return ContactLinksCompanion(
+      id: Value(id),
+      normalizedNumber: Value(normalizedNumber),
+      platform: Value(platform),
+      url: Value(url),
+    );
+  }
+
+  factory ContactLink.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ContactLink(
+      id: serializer.fromJson<int>(json['id']),
+      normalizedNumber: serializer.fromJson<String>(json['normalizedNumber']),
+      platform: serializer.fromJson<String>(json['platform']),
+      url: serializer.fromJson<String>(json['url']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'normalizedNumber': serializer.toJson<String>(normalizedNumber),
+      'platform': serializer.toJson<String>(platform),
+      'url': serializer.toJson<String>(url),
+    };
+  }
+
+  ContactLink copyWith({
+    int? id,
+    String? normalizedNumber,
+    String? platform,
+    String? url,
+  }) => ContactLink(
+    id: id ?? this.id,
+    normalizedNumber: normalizedNumber ?? this.normalizedNumber,
+    platform: platform ?? this.platform,
+    url: url ?? this.url,
+  );
+  ContactLink copyWithCompanion(ContactLinksCompanion data) {
+    return ContactLink(
+      id: data.id.present ? data.id.value : this.id,
+      normalizedNumber: data.normalizedNumber.present
+          ? data.normalizedNumber.value
+          : this.normalizedNumber,
+      platform: data.platform.present ? data.platform.value : this.platform,
+      url: data.url.present ? data.url.value : this.url,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContactLink(')
+          ..write('id: $id, ')
+          ..write('normalizedNumber: $normalizedNumber, ')
+          ..write('platform: $platform, ')
+          ..write('url: $url')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, normalizedNumber, platform, url);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ContactLink &&
+          other.id == this.id &&
+          other.normalizedNumber == this.normalizedNumber &&
+          other.platform == this.platform &&
+          other.url == this.url);
+}
+
+class ContactLinksCompanion extends UpdateCompanion<ContactLink> {
+  final Value<int> id;
+  final Value<String> normalizedNumber;
+  final Value<String> platform;
+  final Value<String> url;
+  const ContactLinksCompanion({
+    this.id = const Value.absent(),
+    this.normalizedNumber = const Value.absent(),
+    this.platform = const Value.absent(),
+    this.url = const Value.absent(),
+  });
+  ContactLinksCompanion.insert({
+    this.id = const Value.absent(),
+    required String normalizedNumber,
+    required String platform,
+    required String url,
+  }) : normalizedNumber = Value(normalizedNumber),
+       platform = Value(platform),
+       url = Value(url);
+  static Insertable<ContactLink> custom({
+    Expression<int>? id,
+    Expression<String>? normalizedNumber,
+    Expression<String>? platform,
+    Expression<String>? url,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (normalizedNumber != null) 'normalized_number': normalizedNumber,
+      if (platform != null) 'platform': platform,
+      if (url != null) 'url': url,
+    });
+  }
+
+  ContactLinksCompanion copyWith({
+    Value<int>? id,
+    Value<String>? normalizedNumber,
+    Value<String>? platform,
+    Value<String>? url,
+  }) {
+    return ContactLinksCompanion(
+      id: id ?? this.id,
+      normalizedNumber: normalizedNumber ?? this.normalizedNumber,
+      platform: platform ?? this.platform,
+      url: url ?? this.url,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (normalizedNumber.present) {
+      map['normalized_number'] = Variable<String>(normalizedNumber.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    if (url.present) {
+      map['url'] = Variable<String>(url.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ContactLinksCompanion(')
+          ..write('id: $id, ')
+          ..write('normalizedNumber: $normalizedNumber, ')
+          ..write('platform: $platform, ')
+          ..write('url: $url')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3007,6 +3310,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $ContactDetailsTable contactDetails = $ContactDetailsTable(this);
   late final $ContactTagsTable contactTags = $ContactTagsTable(this);
+  late final $ContactLinksTable contactLinks = $ContactLinksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3020,6 +3324,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     callAttachments,
     contactDetails,
     contactTags,
+    contactLinks,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5700,6 +6005,183 @@ typedef $$ContactTagsTableProcessedTableManager =
       ContactTag,
       PrefetchHooks Function({bool tagId})
     >;
+typedef $$ContactLinksTableCreateCompanionBuilder =
+    ContactLinksCompanion Function({
+      Value<int> id,
+      required String normalizedNumber,
+      required String platform,
+      required String url,
+    });
+typedef $$ContactLinksTableUpdateCompanionBuilder =
+    ContactLinksCompanion Function({
+      Value<int> id,
+      Value<String> normalizedNumber,
+      Value<String> platform,
+      Value<String> url,
+    });
+
+class $$ContactLinksTableFilterComposer
+    extends Composer<_$AppDatabase, $ContactLinksTable> {
+  $$ContactLinksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ContactLinksTableOrderingComposer
+    extends Composer<_$AppDatabase, $ContactLinksTable> {
+  $$ContactLinksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ContactLinksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ContactLinksTable> {
+  $$ContactLinksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get normalizedNumber => $composableBuilder(
+    column: $table.normalizedNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  GeneratedColumn<String> get url =>
+      $composableBuilder(column: $table.url, builder: (column) => column);
+}
+
+class $$ContactLinksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ContactLinksTable,
+          ContactLink,
+          $$ContactLinksTableFilterComposer,
+          $$ContactLinksTableOrderingComposer,
+          $$ContactLinksTableAnnotationComposer,
+          $$ContactLinksTableCreateCompanionBuilder,
+          $$ContactLinksTableUpdateCompanionBuilder,
+          (
+            ContactLink,
+            BaseReferences<_$AppDatabase, $ContactLinksTable, ContactLink>,
+          ),
+          ContactLink,
+          PrefetchHooks Function()
+        > {
+  $$ContactLinksTableTableManager(_$AppDatabase db, $ContactLinksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ContactLinksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ContactLinksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ContactLinksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> normalizedNumber = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+                Value<String> url = const Value.absent(),
+              }) => ContactLinksCompanion(
+                id: id,
+                normalizedNumber: normalizedNumber,
+                platform: platform,
+                url: url,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String normalizedNumber,
+                required String platform,
+                required String url,
+              }) => ContactLinksCompanion.insert(
+                id: id,
+                normalizedNumber: normalizedNumber,
+                platform: platform,
+                url: url,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ContactLinksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ContactLinksTable,
+      ContactLink,
+      $$ContactLinksTableFilterComposer,
+      $$ContactLinksTableOrderingComposer,
+      $$ContactLinksTableAnnotationComposer,
+      $$ContactLinksTableCreateCompanionBuilder,
+      $$ContactLinksTableUpdateCompanionBuilder,
+      (
+        ContactLink,
+        BaseReferences<_$AppDatabase, $ContactLinksTable, ContactLink>,
+      ),
+      ContactLink,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5719,4 +6201,6 @@ class $AppDatabaseManager {
       $$ContactDetailsTableTableManager(_db, _db.contactDetails);
   $$ContactTagsTableTableManager get contactTags =>
       $$ContactTagsTableTableManager(_db, _db.contactTags);
+  $$ContactLinksTableTableManager get contactLinks =>
+      $$ContactLinksTableTableManager(_db, _db.contactLinks);
 }

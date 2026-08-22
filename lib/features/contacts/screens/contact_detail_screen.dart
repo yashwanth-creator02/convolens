@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
-import '../widgets/contact_call_history.dart';
 import '../widgets/contact_call_history_list.dart';
 import '../widgets/contact_header.dart';
+import '../widgets/contact_links_section.dart';
 import '../widgets/contact_note_section.dart';
 import '../widgets/contact_tags_section.dart';
 import '../widgets/contact_phone_numbers_section.dart';
@@ -63,6 +63,14 @@ class ContactDetailScreen extends StatelessWidget {
                   deviceContact: deviceContact,
                   fallbackNumber: displayNumber,
                 ),
+
+                const Divider(height: 32),
+                const Text(
+                  'Links',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ContactLinksSection(normalizedNumber: normalizedNumber, db: db),
 
                 const Divider(height: 32),
 
