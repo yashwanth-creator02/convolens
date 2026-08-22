@@ -9,6 +9,7 @@ import '../repository/contacts_repository.dart';
 import '../utils/group_contacts_by_letter.dart';
 import '../widgets/contact_card.dart';
 import '../widgets/side_bar_alphabet_index.dart';
+import 'archived_contacts_screen.dart';
 import 'contact_detail_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class ContactsScreen extends StatefulWidget {
 class ContactsScreenState extends State<ContactsScreen>
     with WidgetsBindingObserver {
   late final ContactsRepository _repository;
+
   final ItemScrollController _itemScrollController = ItemScrollController();
 
   bool _permissionGranted = false;
@@ -35,8 +37,11 @@ class ContactsScreenState extends State<ContactsScreen>
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
+
     _repository = ContactsRepository(widget.db);
+
     _loadDeviceContacts();
   }
 
@@ -72,18 +77,27 @@ class ContactsScreenState extends State<ContactsScreen>
       return;
     }
 
-    final contacts = await FlutterContacts.getContacts(
-      withProperties: true,
-      withThumbnail: true,
-    );
+    try {
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withThumbnail: true,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _permissionGranted = true;
-      _deviceContacts = contacts;
-      _loadingContacts = false;
-    });
+      setState(() {
+        _permissionGranted = true;
+        _deviceContacts = contacts;
+        _loadingContacts = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _permissionGranted = true;
+        _loadingContacts = false;
+      });
+    }
   }
 
   Future<void> _requestContactsPermission() async {
@@ -115,6 +129,7 @@ class ContactsScreenState extends State<ContactsScreen>
 
   void _scrollToLetter(String letter, List<Object> items) {
     final index = items.indexOf(letter);
+
     if (index != -1 && _itemScrollController.isAttached) {
       _itemScrollController.scrollTo(
         index: index,
@@ -138,102 +153,146 @@ class ContactsScreenState extends State<ContactsScreen>
   }
 
   Widget _buildContactsList() {
-    return StreamBuilder<Set<String>>(
-      stream: widget.db.watchFavoriteNumbers(),
-      builder: (context, favoritesSnapshot) {
-        final favoriteNumbers = favoritesSnapshot.data ?? <String>{};
+    return StreamBuilder<List<ContactSummary>>(
+      stream: _repository.watchArchivedContacts(_deviceContacts),
+      builder: (context, archivedSnapshot) {
+        final archivedCount = archivedSnapshot.data?.length ?? 0;
 
-        return StreamBuilder<List<ContactSummary>>(
-          stream: _repository.watchContacts(_deviceContacts),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting &&
-                !snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        return StreamBuilder<Set<String>>(
+          stream: widget.db.watchFavoriteNumbers(),
+          builder: (context, favoritesSnapshot) {
+            final favoriteNumbers = favoritesSnapshot.data ?? <String>{};
 
-            if (snapshot.hasError) {
-              return _buildErrorView(snapshot.error);
-            }
+            return StreamBuilder<List<ContactSummary>>(
+              stream: _repository.watchContacts(_deviceContacts),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            final contacts = snapshot.data ?? [];
+                if (snapshot.hasError) {
+                  return _buildErrorView(snapshot.error);
+                }
 
-            if (contacts.isEmpty) {
-              return const Center(child: Text('No contacts found.'));
-            }
+                final contacts = snapshot.data ?? [];
 
-            final favorites =
-                contacts
-                    .where((c) => favoriteNumbers.contains(c.normalizedNumber))
-                    .toList()
-                  ..sort(
-                    (a, b) => a.displayName.toLowerCase().compareTo(
-                      b.displayName.toLowerCase(),
+                if (contacts.isEmpty) {
+                  return const Center(child: Text('No contacts found.'));
+                }
+
+                final favorites =
+                    contacts
+                        .where(
+                          (contact) => favoriteNumbers.contains(
+                            contact.normalizedNumber,
+                          ),
+                        )
+                        .toList()
+                      ..sort(
+                        (a, b) => a.displayName.toLowerCase().compareTo(
+                          b.displayName.toLowerCase(),
+                        ),
+                      );
+
+                final remaining = contacts
+                    .where(
+                      (contact) =>
+                          !favoriteNumbers.contains(contact.normalizedNumber),
+                    )
+                    .toList();
+
+                final grouped = groupContactsByLetter(remaining);
+
+                final orderedLetters = grouped.keys.toList()
+                  ..sort((a, b) {
+                    if (a == '#') return 1;
+                    if (b == '#') return -1;
+
+                    return a.compareTo(b);
+                  });
+
+                final items = <Object>[];
+
+                if (favorites.isNotEmpty) {
+                  items.add(const _FavoritesSectionMarker());
+                  items.addAll(favorites);
+                }
+
+                for (final letter in orderedLetters) {
+                  items.add(letter);
+                  items.addAll(grouped[letter]!);
+                }
+
+                if (archivedCount > 0) {
+                  items.add(_ArchivedSectionMarker(archivedCount));
+                }
+
+                return Stack(
+                  children: [
+                    ScrollablePositionedList.builder(
+                      itemScrollController: _itemScrollController,
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+
+                        if (item is _ArchivedSectionMarker) {
+                          return _buildArchivedTile(context, item.count);
+                        }
+
+                        if (item is _FavoritesSectionMarker) {
+                          return _buildFavoritesHeader(context);
+                        }
+
+                        if (item is String) {
+                          return _buildLetterHeader(context, item);
+                        }
+
+                        final contact = item as ContactSummary;
+
+                        return ContactCard(
+                          contact: contact,
+                          onTap: contact.displayNumber.isEmpty
+                              ? null
+                              : () => _openContact(contact),
+                        );
+                      },
                     ),
-                  );
-
-            final remaining = contacts
-                .where((c) => !favoriteNumbers.contains(c.normalizedNumber))
-                .toList();
-
-            final grouped = groupContactsByLetter(remaining);
-            final orderedLetters = grouped.keys.toList()
-              ..sort((a, b) {
-                if (a == '#') return 1;
-                if (b == '#') return -1;
-                return a.compareTo(b);
-              });
-
-            final items = <Object>[];
-
-            if (favorites.isNotEmpty) {
-              items.add(const _FavoritesSectionMarker());
-              items.addAll(favorites);
-            }
-
-            for (final letter in orderedLetters) {
-              items.add(letter);
-              items.addAll(grouped[letter]!);
-            }
-
-            return Stack(
-              children: [
-                ScrollablePositionedList.builder(
-                  itemScrollController: _itemScrollController,
-                  itemCount: items.length,
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-
-                    if (item is _FavoritesSectionMarker) {
-                      return _buildFavoritesHeader(context);
-                    }
-
-                    if (item is String) {
-                      return _buildLetterHeader(context, item);
-                    }
-
-                    final contact = item as ContactSummary;
-
-                    return ContactCard(
-                      contact: contact,
-                      onTap: contact.displayNumber.isEmpty
-                          ? null
-                          : () => _openContact(contact),
-                    );
-                  },
-                ),
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: SideBarAlphabetIndex(
-                    letters: orderedLetters,
-                    onLetterSelected: (letter) =>
-                        _scrollToLetter(letter, items),
-                  ),
-                ),
-              ],
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: SideBarAlphabetIndex(
+                        letters: orderedLetters,
+                        onLetterSelected: (letter) {
+                          _scrollToLetter(letter, items);
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
             );
           },
+        );
+      },
+    );
+  }
+
+  Widget _buildArchivedTile(BuildContext context, int count) {
+    return ListTile(
+      leading: const Icon(Icons.archive_outlined),
+      title: const Text('Archived'),
+      trailing: Text('$count', style: const TextStyle(color: Colors.grey)),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ArchivedContactsScreen(
+              db: widget.db,
+              deviceContacts: _deviceContacts,
+            ),
+          ),
         );
       },
     );
@@ -314,4 +373,10 @@ class ContactsScreenState extends State<ContactsScreen>
 
 class _FavoritesSectionMarker {
   const _FavoritesSectionMarker();
+}
+
+class _ArchivedSectionMarker {
+  final int count;
+
+  const _ArchivedSectionMarker(this.count);
 }

@@ -9,20 +9,18 @@ class ContactsRepository {
 
   ContactsRepository(this._db);
 
-  Stream<List<ContactSummary>> watchContacts(List<Contact> deviceContacts) {
+  Stream<List<ContactSummary>> _watchAllSummaries(
+    List<Contact> deviceContacts,
+  ) {
     return _db.watchAllCalls().map((calls) {
       final callsByNumber = _groupCallsByNumber(calls);
       final summaries = <ContactSummary>[];
       final matchedNumbers = <String>{};
 
       for (final contact in deviceContacts) {
-        final summary = _buildDeviceContactSummary(
-          contact,
-          callsByNumber,
-          matchedNumbers,
+        summaries.add(
+          _buildDeviceContactSummary(contact, callsByNumber, matchedNumbers),
         );
-
-        summaries.add(summary);
       }
 
       summaries.addAll(
@@ -33,6 +31,33 @@ class ContactsRepository {
 
       return summaries;
     });
+  }
+
+  Stream<List<ContactSummary>> watchContacts(List<Contact> deviceContacts) {
+    return _watchAllSummaries(deviceContacts).asyncMap((summaries) async {
+      final archivedNumbers = await _archivedNumbers();
+      return summaries
+          .where((s) => !archivedNumbers.contains(s.normalizedNumber))
+          .toList();
+    });
+  }
+
+  Stream<List<ContactSummary>> watchArchivedContacts(
+    List<Contact> deviceContacts,
+  ) {
+    return _watchAllSummaries(deviceContacts).asyncMap((summaries) async {
+      final archivedNumbers = await _archivedNumbers();
+      return summaries
+          .where((s) => archivedNumbers.contains(s.normalizedNumber))
+          .toList();
+    });
+  }
+
+  Future<Set<String>> _archivedNumbers() async {
+    final rows = await (_db.select(
+      _db.contactDetails,
+    )..where((c) => c.isArchived.equals(true))).get();
+    return rows.map((row) => row.normalizedNumber).toSet();
   }
 
   Map<String, List<Call>> _groupCallsByNumber(List<Call> calls) {

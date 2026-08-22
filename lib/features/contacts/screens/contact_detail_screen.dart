@@ -1,11 +1,15 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../widgets/contact_call_history_list.dart';
+import '../widgets/contact_color_section.dart';
 import '../widgets/contact_header.dart';
 import '../widgets/contact_links_section.dart';
 import '../widgets/contact_note_section.dart';
+import '../widgets/contact_preferences_section.dart';
+import '../widgets/contact_settings_section.dart';
 import '../widgets/contact_tags_section.dart';
 import '../widgets/contact_phone_numbers_section.dart';
 
@@ -50,6 +54,7 @@ class ContactDetailScreen extends StatelessWidget {
                   isFavorite: detail?.isFavorite ?? false,
                   onFavoritePressed: () =>
                       _toggleFavorite(detail?.isFavorite ?? false),
+                  colorValue: detail?.colorValue,
                 ),
 
                 const Divider(height: 32),
@@ -84,6 +89,45 @@ class ContactDetailScreen extends StatelessWidget {
                 const Divider(height: 32),
 
                 ContactTagsSection(normalizedNumber: normalizedNumber, db: db),
+                const Divider(height: 32),
+                const Text(
+                  'Color',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ContactColorSection(
+                  colorValue: detail?.colorValue,
+                  onColorSelected: (value) => db.setContactFields(
+                    normalizedNumber,
+                    ContactDetailsCompanion(colorValue: drift.Value(value)),
+                  ),
+                ),
+
+                const Divider(height: 32),
+                const Text(
+                  'Preferences',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ContactPreferencesSection(
+                  normalizedNumber: normalizedNumber,
+                  detail: detail,
+                  db: db,
+                ),
+
+                const Divider(height: 32),
+                const Text(
+                  'Settings',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ContactSettingsSection(
+                  normalizedNumber: normalizedNumber,
+                  displayName: displayName,
+                  displayNumber: displayNumber,
+                  detail: detail,
+                  db: db,
+                ),
 
                 const Divider(height: 32),
 

@@ -8,6 +8,7 @@ class ContactHeader extends StatelessWidget {
   final Contact? deviceContact;
   final bool isFavorite;
   final VoidCallback? onFavoritePressed;
+  final int? colorValue;
 
   const ContactHeader({
     super.key,
@@ -16,6 +17,7 @@ class ContactHeader extends StatelessWidget {
     this.deviceContact,
     required this.isFavorite,
     this.onFavoritePressed,
+    this.colorValue,
   });
 
   Future<void> _call() async {
@@ -72,9 +74,11 @@ class ContactHeader extends StatelessWidget {
 
   Widget _buildAvatar() {
     final thumbnail = deviceContact?.thumbnail;
+    final color = colorValue != null ? Color(colorValue!) : null;
 
     return CircleAvatar(
       radius: 28,
+      backgroundColor: color,
       backgroundImage: thumbnail != null ? MemoryImage(thumbnail) : null,
       child: thumbnail == null
           ? Text(

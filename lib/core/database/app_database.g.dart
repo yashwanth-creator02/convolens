@@ -2527,11 +2527,78 @@ class $ContactDetailsTable extends ContactDetails
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _colorValueMeta = const VerificationMeta(
+    'colorValue',
+  );
+  @override
+  late final GeneratedColumn<int> colorValue = GeneratedColumn<int>(
+    'color_value',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _ignoreFromAnalyticsMeta =
+      const VerificationMeta('ignoreFromAnalytics');
+  @override
+  late final GeneratedColumn<bool> ignoreFromAnalytics = GeneratedColumn<bool>(
+    'ignore_from_analytics',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("ignore_from_analytics" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _preferredMethodMeta = const VerificationMeta(
+    'preferredMethod',
+  );
+  @override
+  late final GeneratedColumn<String> preferredMethod = GeneratedColumn<String>(
+    'preferred_method',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _bestTimeToCallMeta = const VerificationMeta(
+    'bestTimeToCall',
+  );
+  @override
+  late final GeneratedColumn<String> bestTimeToCall = GeneratedColumn<String>(
+    'best_time_to_call',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     normalizedNumber,
     generalNote,
     isFavorite,
+    colorValue,
+    isArchived,
+    ignoreFromAnalytics,
+    preferredMethod,
+    bestTimeToCall,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2571,6 +2638,45 @@ class $ContactDetailsTable extends ContactDetails
         isFavorite.isAcceptableOrUnknown(data['is_favorite']!, _isFavoriteMeta),
       );
     }
+    if (data.containsKey('color_value')) {
+      context.handle(
+        _colorValueMeta,
+        colorValue.isAcceptableOrUnknown(data['color_value']!, _colorValueMeta),
+      );
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
+    if (data.containsKey('ignore_from_analytics')) {
+      context.handle(
+        _ignoreFromAnalyticsMeta,
+        ignoreFromAnalytics.isAcceptableOrUnknown(
+          data['ignore_from_analytics']!,
+          _ignoreFromAnalyticsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preferred_method')) {
+      context.handle(
+        _preferredMethodMeta,
+        preferredMethod.isAcceptableOrUnknown(
+          data['preferred_method']!,
+          _preferredMethodMeta,
+        ),
+      );
+    }
+    if (data.containsKey('best_time_to_call')) {
+      context.handle(
+        _bestTimeToCallMeta,
+        bestTimeToCall.isAcceptableOrUnknown(
+          data['best_time_to_call']!,
+          _bestTimeToCallMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2592,6 +2698,26 @@ class $ContactDetailsTable extends ContactDetails
         DriftSqlType.bool,
         data['${effectivePrefix}is_favorite'],
       )!,
+      colorValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color_value'],
+      ),
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
+      ignoreFromAnalytics: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}ignore_from_analytics'],
+      )!,
+      preferredMethod: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preferred_method'],
+      ),
+      bestTimeToCall: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}best_time_to_call'],
+      ),
     );
   }
 
@@ -2605,10 +2731,20 @@ class ContactDetail extends DataClass implements Insertable<ContactDetail> {
   final String normalizedNumber;
   final String? generalNote;
   final bool isFavorite;
+  final int? colorValue;
+  final bool isArchived;
+  final bool ignoreFromAnalytics;
+  final String? preferredMethod;
+  final String? bestTimeToCall;
   const ContactDetail({
     required this.normalizedNumber,
     this.generalNote,
     required this.isFavorite,
+    this.colorValue,
+    required this.isArchived,
+    required this.ignoreFromAnalytics,
+    this.preferredMethod,
+    this.bestTimeToCall,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2618,6 +2754,17 @@ class ContactDetail extends DataClass implements Insertable<ContactDetail> {
       map['general_note'] = Variable<String>(generalNote);
     }
     map['is_favorite'] = Variable<bool>(isFavorite);
+    if (!nullToAbsent || colorValue != null) {
+      map['color_value'] = Variable<int>(colorValue);
+    }
+    map['is_archived'] = Variable<bool>(isArchived);
+    map['ignore_from_analytics'] = Variable<bool>(ignoreFromAnalytics);
+    if (!nullToAbsent || preferredMethod != null) {
+      map['preferred_method'] = Variable<String>(preferredMethod);
+    }
+    if (!nullToAbsent || bestTimeToCall != null) {
+      map['best_time_to_call'] = Variable<String>(bestTimeToCall);
+    }
     return map;
   }
 
@@ -2628,6 +2775,17 @@ class ContactDetail extends DataClass implements Insertable<ContactDetail> {
           ? const Value.absent()
           : Value(generalNote),
       isFavorite: Value(isFavorite),
+      colorValue: colorValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(colorValue),
+      isArchived: Value(isArchived),
+      ignoreFromAnalytics: Value(ignoreFromAnalytics),
+      preferredMethod: preferredMethod == null && nullToAbsent
+          ? const Value.absent()
+          : Value(preferredMethod),
+      bestTimeToCall: bestTimeToCall == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bestTimeToCall),
     );
   }
 
@@ -2640,6 +2798,13 @@ class ContactDetail extends DataClass implements Insertable<ContactDetail> {
       normalizedNumber: serializer.fromJson<String>(json['normalizedNumber']),
       generalNote: serializer.fromJson<String?>(json['generalNote']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
+      colorValue: serializer.fromJson<int?>(json['colorValue']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
+      ignoreFromAnalytics: serializer.fromJson<bool>(
+        json['ignoreFromAnalytics'],
+      ),
+      preferredMethod: serializer.fromJson<String?>(json['preferredMethod']),
+      bestTimeToCall: serializer.fromJson<String?>(json['bestTimeToCall']),
     );
   }
   @override
@@ -2649,6 +2814,11 @@ class ContactDetail extends DataClass implements Insertable<ContactDetail> {
       'normalizedNumber': serializer.toJson<String>(normalizedNumber),
       'generalNote': serializer.toJson<String?>(generalNote),
       'isFavorite': serializer.toJson<bool>(isFavorite),
+      'colorValue': serializer.toJson<int?>(colorValue),
+      'isArchived': serializer.toJson<bool>(isArchived),
+      'ignoreFromAnalytics': serializer.toJson<bool>(ignoreFromAnalytics),
+      'preferredMethod': serializer.toJson<String?>(preferredMethod),
+      'bestTimeToCall': serializer.toJson<String?>(bestTimeToCall),
     };
   }
 
@@ -2656,10 +2826,24 @@ class ContactDetail extends DataClass implements Insertable<ContactDetail> {
     String? normalizedNumber,
     Value<String?> generalNote = const Value.absent(),
     bool? isFavorite,
+    Value<int?> colorValue = const Value.absent(),
+    bool? isArchived,
+    bool? ignoreFromAnalytics,
+    Value<String?> preferredMethod = const Value.absent(),
+    Value<String?> bestTimeToCall = const Value.absent(),
   }) => ContactDetail(
     normalizedNumber: normalizedNumber ?? this.normalizedNumber,
     generalNote: generalNote.present ? generalNote.value : this.generalNote,
     isFavorite: isFavorite ?? this.isFavorite,
+    colorValue: colorValue.present ? colorValue.value : this.colorValue,
+    isArchived: isArchived ?? this.isArchived,
+    ignoreFromAnalytics: ignoreFromAnalytics ?? this.ignoreFromAnalytics,
+    preferredMethod: preferredMethod.present
+        ? preferredMethod.value
+        : this.preferredMethod,
+    bestTimeToCall: bestTimeToCall.present
+        ? bestTimeToCall.value
+        : this.bestTimeToCall,
   );
   ContactDetail copyWithCompanion(ContactDetailsCompanion data) {
     return ContactDetail(
@@ -2672,6 +2856,21 @@ class ContactDetail extends DataClass implements Insertable<ContactDetail> {
       isFavorite: data.isFavorite.present
           ? data.isFavorite.value
           : this.isFavorite,
+      colorValue: data.colorValue.present
+          ? data.colorValue.value
+          : this.colorValue,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
+      ignoreFromAnalytics: data.ignoreFromAnalytics.present
+          ? data.ignoreFromAnalytics.value
+          : this.ignoreFromAnalytics,
+      preferredMethod: data.preferredMethod.present
+          ? data.preferredMethod.value
+          : this.preferredMethod,
+      bestTimeToCall: data.bestTimeToCall.present
+          ? data.bestTimeToCall.value
+          : this.bestTimeToCall,
     );
   }
 
@@ -2680,49 +2879,94 @@ class ContactDetail extends DataClass implements Insertable<ContactDetail> {
     return (StringBuffer('ContactDetail(')
           ..write('normalizedNumber: $normalizedNumber, ')
           ..write('generalNote: $generalNote, ')
-          ..write('isFavorite: $isFavorite')
+          ..write('isFavorite: $isFavorite, ')
+          ..write('colorValue: $colorValue, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('ignoreFromAnalytics: $ignoreFromAnalytics, ')
+          ..write('preferredMethod: $preferredMethod, ')
+          ..write('bestTimeToCall: $bestTimeToCall')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(normalizedNumber, generalNote, isFavorite);
+  int get hashCode => Object.hash(
+    normalizedNumber,
+    generalNote,
+    isFavorite,
+    colorValue,
+    isArchived,
+    ignoreFromAnalytics,
+    preferredMethod,
+    bestTimeToCall,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ContactDetail &&
           other.normalizedNumber == this.normalizedNumber &&
           other.generalNote == this.generalNote &&
-          other.isFavorite == this.isFavorite);
+          other.isFavorite == this.isFavorite &&
+          other.colorValue == this.colorValue &&
+          other.isArchived == this.isArchived &&
+          other.ignoreFromAnalytics == this.ignoreFromAnalytics &&
+          other.preferredMethod == this.preferredMethod &&
+          other.bestTimeToCall == this.bestTimeToCall);
 }
 
 class ContactDetailsCompanion extends UpdateCompanion<ContactDetail> {
   final Value<String> normalizedNumber;
   final Value<String?> generalNote;
   final Value<bool> isFavorite;
+  final Value<int?> colorValue;
+  final Value<bool> isArchived;
+  final Value<bool> ignoreFromAnalytics;
+  final Value<String?> preferredMethod;
+  final Value<String?> bestTimeToCall;
   final Value<int> rowid;
   const ContactDetailsCompanion({
     this.normalizedNumber = const Value.absent(),
     this.generalNote = const Value.absent(),
     this.isFavorite = const Value.absent(),
+    this.colorValue = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.ignoreFromAnalytics = const Value.absent(),
+    this.preferredMethod = const Value.absent(),
+    this.bestTimeToCall = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ContactDetailsCompanion.insert({
     required String normalizedNumber,
     this.generalNote = const Value.absent(),
     this.isFavorite = const Value.absent(),
+    this.colorValue = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.ignoreFromAnalytics = const Value.absent(),
+    this.preferredMethod = const Value.absent(),
+    this.bestTimeToCall = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : normalizedNumber = Value(normalizedNumber);
   static Insertable<ContactDetail> custom({
     Expression<String>? normalizedNumber,
     Expression<String>? generalNote,
     Expression<bool>? isFavorite,
+    Expression<int>? colorValue,
+    Expression<bool>? isArchived,
+    Expression<bool>? ignoreFromAnalytics,
+    Expression<String>? preferredMethod,
+    Expression<String>? bestTimeToCall,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (normalizedNumber != null) 'normalized_number': normalizedNumber,
       if (generalNote != null) 'general_note': generalNote,
       if (isFavorite != null) 'is_favorite': isFavorite,
+      if (colorValue != null) 'color_value': colorValue,
+      if (isArchived != null) 'is_archived': isArchived,
+      if (ignoreFromAnalytics != null)
+        'ignore_from_analytics': ignoreFromAnalytics,
+      if (preferredMethod != null) 'preferred_method': preferredMethod,
+      if (bestTimeToCall != null) 'best_time_to_call': bestTimeToCall,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2731,12 +2975,22 @@ class ContactDetailsCompanion extends UpdateCompanion<ContactDetail> {
     Value<String>? normalizedNumber,
     Value<String?>? generalNote,
     Value<bool>? isFavorite,
+    Value<int?>? colorValue,
+    Value<bool>? isArchived,
+    Value<bool>? ignoreFromAnalytics,
+    Value<String?>? preferredMethod,
+    Value<String?>? bestTimeToCall,
     Value<int>? rowid,
   }) {
     return ContactDetailsCompanion(
       normalizedNumber: normalizedNumber ?? this.normalizedNumber,
       generalNote: generalNote ?? this.generalNote,
       isFavorite: isFavorite ?? this.isFavorite,
+      colorValue: colorValue ?? this.colorValue,
+      isArchived: isArchived ?? this.isArchived,
+      ignoreFromAnalytics: ignoreFromAnalytics ?? this.ignoreFromAnalytics,
+      preferredMethod: preferredMethod ?? this.preferredMethod,
+      bestTimeToCall: bestTimeToCall ?? this.bestTimeToCall,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2753,6 +3007,21 @@ class ContactDetailsCompanion extends UpdateCompanion<ContactDetail> {
     if (isFavorite.present) {
       map['is_favorite'] = Variable<bool>(isFavorite.value);
     }
+    if (colorValue.present) {
+      map['color_value'] = Variable<int>(colorValue.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (ignoreFromAnalytics.present) {
+      map['ignore_from_analytics'] = Variable<bool>(ignoreFromAnalytics.value);
+    }
+    if (preferredMethod.present) {
+      map['preferred_method'] = Variable<String>(preferredMethod.value);
+    }
+    if (bestTimeToCall.present) {
+      map['best_time_to_call'] = Variable<String>(bestTimeToCall.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2765,6 +3034,11 @@ class ContactDetailsCompanion extends UpdateCompanion<ContactDetail> {
           ..write('normalizedNumber: $normalizedNumber, ')
           ..write('generalNote: $generalNote, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('colorValue: $colorValue, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('ignoreFromAnalytics: $ignoreFromAnalytics, ')
+          ..write('preferredMethod: $preferredMethod, ')
+          ..write('bestTimeToCall: $bestTimeToCall, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5578,6 +5852,11 @@ typedef $$ContactDetailsTableCreateCompanionBuilder =
       required String normalizedNumber,
       Value<String?> generalNote,
       Value<bool> isFavorite,
+      Value<int?> colorValue,
+      Value<bool> isArchived,
+      Value<bool> ignoreFromAnalytics,
+      Value<String?> preferredMethod,
+      Value<String?> bestTimeToCall,
       Value<int> rowid,
     });
 typedef $$ContactDetailsTableUpdateCompanionBuilder =
@@ -5585,6 +5864,11 @@ typedef $$ContactDetailsTableUpdateCompanionBuilder =
       Value<String> normalizedNumber,
       Value<String?> generalNote,
       Value<bool> isFavorite,
+      Value<int?> colorValue,
+      Value<bool> isArchived,
+      Value<bool> ignoreFromAnalytics,
+      Value<String?> preferredMethod,
+      Value<String?> bestTimeToCall,
       Value<int> rowid,
     });
 
@@ -5609,6 +5893,31 @@ class $$ContactDetailsTableFilterComposer
 
   ColumnFilters<bool> get isFavorite => $composableBuilder(
     column: $table.isFavorite,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get ignoreFromAnalytics => $composableBuilder(
+    column: $table.ignoreFromAnalytics,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get preferredMethod => $composableBuilder(
+    column: $table.preferredMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bestTimeToCall => $composableBuilder(
+    column: $table.bestTimeToCall,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5636,6 +5945,31 @@ class $$ContactDetailsTableOrderingComposer
     column: $table.isFavorite,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get ignoreFromAnalytics => $composableBuilder(
+    column: $table.ignoreFromAnalytics,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get preferredMethod => $composableBuilder(
+    column: $table.preferredMethod,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bestTimeToCall => $composableBuilder(
+    column: $table.bestTimeToCall,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ContactDetailsTableAnnotationComposer
@@ -5659,6 +5993,31 @@ class $$ContactDetailsTableAnnotationComposer
 
   GeneratedColumn<bool> get isFavorite => $composableBuilder(
     column: $table.isFavorite,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get colorValue => $composableBuilder(
+    column: $table.colorValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get ignoreFromAnalytics => $composableBuilder(
+    column: $table.ignoreFromAnalytics,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get preferredMethod => $composableBuilder(
+    column: $table.preferredMethod,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get bestTimeToCall => $composableBuilder(
+    column: $table.bestTimeToCall,
     builder: (column) => column,
   );
 }
@@ -5699,11 +6058,21 @@ class $$ContactDetailsTableTableManager
                 Value<String> normalizedNumber = const Value.absent(),
                 Value<String?> generalNote = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
+                Value<int?> colorValue = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<bool> ignoreFromAnalytics = const Value.absent(),
+                Value<String?> preferredMethod = const Value.absent(),
+                Value<String?> bestTimeToCall = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContactDetailsCompanion(
                 normalizedNumber: normalizedNumber,
                 generalNote: generalNote,
                 isFavorite: isFavorite,
+                colorValue: colorValue,
+                isArchived: isArchived,
+                ignoreFromAnalytics: ignoreFromAnalytics,
+                preferredMethod: preferredMethod,
+                bestTimeToCall: bestTimeToCall,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5711,11 +6080,21 @@ class $$ContactDetailsTableTableManager
                 required String normalizedNumber,
                 Value<String?> generalNote = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
+                Value<int?> colorValue = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
+                Value<bool> ignoreFromAnalytics = const Value.absent(),
+                Value<String?> preferredMethod = const Value.absent(),
+                Value<String?> bestTimeToCall = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ContactDetailsCompanion.insert(
                 normalizedNumber: normalizedNumber,
                 generalNote: generalNote,
                 isFavorite: isFavorite,
+                colorValue: colorValue,
+                isArchived: isArchived,
+                ignoreFromAnalytics: ignoreFromAnalytics,
+                preferredMethod: preferredMethod,
+                bestTimeToCall: bestTimeToCall,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

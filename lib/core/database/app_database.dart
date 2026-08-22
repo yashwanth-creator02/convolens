@@ -34,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -74,6 +74,13 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 10) {
           await m.createTable(contactLinks);
+        }
+        if (from < 11) {
+          await m.addColumn(contactDetails, contactDetails.colorValue);
+          await m.addColumn(contactDetails, contactDetails.isArchived);
+          await m.addColumn(contactDetails, contactDetails.ignoreFromAnalytics);
+          await m.addColumn(contactDetails, contactDetails.preferredMethod);
+          await m.addColumn(contactDetails, contactDetails.bestTimeToCall);
         }
       },
       beforeOpen: (details) async {
@@ -480,6 +487,52 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteContactLink(int id) async {
     await (delete(contactLinks)..where((l) => l.id.equals(id))).go();
+  }
+
+  Future<void> setContactFields(
+    String normalizedNumber,
+    ContactDetailsCompanion fields,
+  ) async {
+    final existing =
+        await (select(contactDetails)
+              ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+            .getSingleOrNull();
+
+    if (existing == null) {
+      await into(contactDetails).insert(
+        ContactDetailsCompanion.insert(
+          normalizedNumber: normalizedNumber,
+        ).copyWith(
+          colorValue: fields.colorValue,
+          isArchived: fields.isArchived,
+          ignoreFromAnalytics: fields.ignoreFromAnalytics,
+          preferredMethod: fields.preferredMethod,
+          bestTimeToCall: fields.bestTimeToCall,
+          generalNote: fields.generalNote,
+        ),
+      );
+    } else {
+      await (update(contactDetails)
+            ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+          .write(fields);
+    }
+  }
+
+  Future<void> clearAllNotesForContact(String normalizedNumber) async {
+    await setContactFields(
+      normalizedNumber,
+      const ContactDetailsCompanion(generalNote: Value(null)),
+    );
+
+    final matchingCalls = await (select(
+      calls,
+    )..where((c) => c.number.like('%$normalizedNumber'))).get();
+
+    for (final call in matchingCalls) {
+      await (update(callDetails)..where((d) => d.callId.equals(call.id))).write(
+        const CallDetailsCompanion(note: Value(null)),
+      );
+    }
   }
 }
 
