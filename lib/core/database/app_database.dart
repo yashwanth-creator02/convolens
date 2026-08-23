@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'models/call_number_stat.dart';
 import 'tables/calls_table.dart';
 import 'tables/settings_table.dart';
 import 'tables/call_details_table.dart';
@@ -38,13 +39,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
         await m.createAll();
+        await _createIndexes(m);
       },
       onUpgrade: (Migrator m, int from, int to) async {
         if (from < 2) {
@@ -90,6 +92,9 @@ class AppDatabase extends _$AppDatabase {
           await m.createTable(profileFieldEntries);
           await m.createTable(profileMeta);
         }
+        if (from < 13) {
+          await _createIndexes(m);
+        }
       },
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');
@@ -120,6 +125,15 @@ class AppDatabase extends _$AppDatabase {
           }
         }
       },
+    );
+  }
+
+  Future<void> _createIndexes(Migrator m) async {
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_calls_timestamp ON calls(timestamp)',
+    );
+    await customStatement(
+      'CREATE INDEX IF NOT EXISTS idx_calls_number ON calls(number)',
     );
   }
 
@@ -581,6 +595,49 @@ class AppDatabase extends _$AppDatabase {
     await (update(profileMeta)..where((m) => m.id.equals(0))).write(
       ProfileMetaCompanion(photoPath: Value(path)),
     );
+  }
+
+  Future<Map<String, int>> getCallCountsByDay(DateTime since) async {
+    final sinceMs = since.millisecondsSinceEpoch;
+
+    final query = customSelect(
+      '''
+      SELECT strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch', 'localtime') AS day,
+             COUNT(*) AS count
+      FROM calls
+      WHERE timestamp >= ?
+      GROUP BY day
+      ''',
+      variables: [Variable.withInt(sinceMs)],
+      readsFrom: {calls},
+    );
+
+    final rows = await query.get();
+    return {
+      for (final row in rows) row.read<String>('day'): row.read<int>('count'),
+    };
+  }
+
+  Future<List<CallNumberStat>> getCallStatsByNumber() async {
+    final query = customSelect(
+      '''
+      SELECT number, COUNT(*) AS count, MAX(timestamp) AS last_timestamp, name
+      FROM calls
+      WHERE number IS NOT NULL
+      GROUP BY number
+      ''',
+      readsFrom: {calls},
+    );
+
+    final rows = await query.get();
+    return rows.map((row) {
+      return CallNumberStat(
+        number: row.read<String>('number'),
+        count: row.read<int>('count'),
+        lastTimestamp: row.read<int>('last_timestamp'),
+        name: row.readNullable<String>('name'),
+      );
+    }).toList();
   }
 }
 

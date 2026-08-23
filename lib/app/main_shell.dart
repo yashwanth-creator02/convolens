@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
+import '../features/analytics/screens/analytics_screen.dart';
 import '../features/contacts/screens/contacts_screen.dart';
 import '../features/contacts/widgets/add_contact_screen.dart';
 import '../features/history/screens/history_screen.dart';
@@ -38,7 +39,7 @@ class _MainShellState extends State<MainShell> {
 
   late final List<Widget> _screens = [
     HistoryScreen(db: _db),
-    const ComingSoonView(title: 'Analytics'),
+    AnalyticsScreen(db: _db),
     ContactsScreen(key: _contactsScreenKey, db: _db),
     ProfileScreen(db: _db),
   ];

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/database/models/call_number_stat.dart';
 import '../../../core/utils/normalize_number.dart';
 import '../models/contact_summary.dart';
 
@@ -8,30 +10,6 @@ class ContactsRepository {
   final AppDatabase _db;
 
   ContactsRepository(this._db);
-
-  Stream<List<ContactSummary>> _watchAllSummaries(
-    List<Contact> deviceContacts,
-  ) {
-    return _db.watchAllCalls().map((calls) {
-      final callsByNumber = _groupCallsByNumber(calls);
-      final summaries = <ContactSummary>[];
-      final matchedNumbers = <String>{};
-
-      for (final contact in deviceContacts) {
-        summaries.add(
-          _buildDeviceContactSummary(contact, callsByNumber, matchedNumbers),
-        );
-      }
-
-      summaries.addAll(
-        _buildUnknownContactSummaries(callsByNumber, matchedNumbers),
-      );
-
-      summaries.sort(_compareContactSummaries);
-
-      return summaries;
-    });
-  }
 
   Stream<List<ContactSummary>> watchContacts(List<Contact> deviceContacts) {
     return _watchAllSummaries(deviceContacts).asyncMap((summaries) async {
@@ -60,25 +38,22 @@ class ContactsRepository {
     return rows.map((row) => row.normalizedNumber).toSet();
   }
 
-  Map<String, List<Call>> _groupCallsByNumber(List<Call> calls) {
-    final callsByNumber = <String, List<Call>>{};
+  Future<List<CallNumberStat>> _getCallStats() {
+    return _db.getCallStatsByNumber();
+  }
 
-    for (final call in calls) {
-      final number = normalizePhoneNumber(call.number);
-
-      if (number.isEmpty) {
-        continue;
-      }
-
-      callsByNumber.putIfAbsent(number, () => []).add(call);
-    }
-
-    return callsByNumber;
+  Stream<List<ContactSummary>> _watchAllSummaries(
+    List<Contact> deviceContacts,
+  ) {
+    return _db.watchAllCalls().asyncMap((_) async {
+      final stats = await _getCallStats();
+      return compute(_mergeContactsIsolate, _MergeInput(deviceContacts, stats));
+    });
   }
 
   ContactSummary _buildDeviceContactSummary(
     Contact contact,
-    Map<String, List<Call>> callsByNumber,
+    Map<String, List<CallNumberStat>> statsByNormalized,
     Set<String> matchedNumbers,
   ) {
     final numbers = contact.phones
@@ -86,25 +61,25 @@ class ContactsRepository {
         .where((number) => number.isNotEmpty)
         .toSet();
 
-    final matchedCalls = <Call>[];
+    int totalCount = 0;
+    int? latestTimestamp;
 
     for (final number in numbers) {
-      final calls = callsByNumber[number];
+      final matches = statsByNormalized[number];
+      if (matches == null) continue;
 
-      if (calls == null) {
-        continue;
-      }
-
-      matchedCalls.addAll(calls);
       matchedNumbers.add(number);
+      for (final stat in matches) {
+        totalCount += stat.count;
+        if (latestTimestamp == null || stat.lastTimestamp > latestTimestamp) {
+          latestTimestamp = stat.lastTimestamp;
+        }
+      }
     }
-
-    matchedCalls.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
     final displayNumber = contact.phones.isNotEmpty
         ? contact.phones.first.number
         : '';
-
     final displayName = contact.displayName.isNotEmpty
         ? contact.displayName
         : displayNumber;
@@ -115,42 +90,42 @@ class ContactsRepository {
       normalizedNumber: numbers.isNotEmpty ? numbers.first : '',
       displayName: displayName,
       displayNumber: displayNumber,
-      callCount: matchedCalls.length,
-      lastCallAt: matchedCalls.isNotEmpty ? matchedCalls.first.timestamp : null,
+      callCount: totalCount,
+      lastCallAt: latestTimestamp,
     );
   }
 
   List<ContactSummary> _buildUnknownContactSummaries(
-    Map<String, List<Call>> callsByNumber,
+    Map<String, List<CallNumberStat>> statsByNormalized,
     Set<String> matchedNumbers,
   ) {
     final summaries = <ContactSummary>[];
 
-    for (final entry in callsByNumber.entries) {
-      if (matchedNumbers.contains(entry.key)) {
-        continue;
+    for (final entry in statsByNormalized.entries) {
+      if (matchedNumbers.contains(entry.key)) continue;
+
+      int totalCount = 0;
+      int latestTimestamp = 0;
+      String? name;
+
+      for (final stat in entry.value) {
+        totalCount += stat.count;
+        if (stat.lastTimestamp > latestTimestamp) {
+          latestTimestamp = stat.lastTimestamp;
+          name = stat.name?.isNotEmpty == true ? stat.name : name;
+        }
       }
-
-      final calls = entry.value;
-      final mostRecent = calls.first;
-
-      final namedCall = calls.firstWhere(
-        (call) => call.name != null && call.name!.isNotEmpty,
-        orElse: () => mostRecent,
-      );
-
-      final displayName = namedCall.name?.isNotEmpty == true
-          ? namedCall.name!
-          : (mostRecent.number ?? 'Unknown');
 
       summaries.add(
         ContactSummary(
           deviceContactId: null,
           normalizedNumber: entry.key,
-          displayName: displayName,
-          displayNumber: mostRecent.number ?? '',
-          callCount: calls.length,
-          lastCallAt: mostRecent.timestamp,
+          displayName: name?.isNotEmpty == true
+              ? name!
+              : entry.value.first.number,
+          displayNumber: entry.value.first.number,
+          callCount: totalCount,
+          lastCallAt: latestTimestamp,
         ),
       );
     }
@@ -158,7 +133,136 @@ class ContactsRepository {
     return summaries;
   }
 
+  Stream<List<ContactSummary>> watchAllContactSummaries(
+    List<Contact> deviceContacts,
+  ) {
+    return _watchAllSummaries(deviceContacts);
+  }
+
   int _compareContactSummaries(ContactSummary a, ContactSummary b) {
     return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
+}
+
+class _MergeInput {
+  final List<Contact> deviceContacts;
+  final List<CallNumberStat> stats;
+
+  const _MergeInput(this.deviceContacts, this.stats);
+}
+
+List<ContactSummary> _mergeContactsIsolate(_MergeInput input) {
+  final statsByNormalized = <String, List<CallNumberStat>>{};
+
+  for (final stat in input.stats) {
+    final key = normalizePhoneNumber(stat.number);
+    if (key.isEmpty) continue;
+    statsByNormalized.putIfAbsent(key, () => []).add(stat);
+  }
+
+  final summaries = <ContactSummary>[];
+  final matchedNumbers = <String>{};
+
+  for (final contact in input.deviceContacts) {
+    summaries.add(
+      _buildDeviceContactSummaryStatic(
+        contact,
+        statsByNormalized,
+        matchedNumbers,
+      ),
+    );
+  }
+
+  summaries.addAll(
+    _buildUnknownContactSummariesStatic(statsByNormalized, matchedNumbers),
+  );
+
+  summaries.sort(
+    (a, b) =>
+        a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
+  );
+
+  return summaries;
+}
+
+ContactSummary _buildDeviceContactSummaryStatic(
+  Contact contact,
+  Map<String, List<CallNumberStat>> statsByNormalized,
+  Set<String> matchedNumbers,
+) {
+  final numbers = contact.phones
+      .map((phone) => normalizePhoneNumber(phone.number))
+      .where((number) => number.isNotEmpty)
+      .toSet();
+
+  int totalCount = 0;
+  int? latestTimestamp;
+
+  for (final number in numbers) {
+    final matches = statsByNormalized[number];
+    if (matches == null) continue;
+
+    matchedNumbers.add(number);
+    for (final stat in matches) {
+      totalCount += stat.count;
+      if (latestTimestamp == null || stat.lastTimestamp > latestTimestamp) {
+        latestTimestamp = stat.lastTimestamp;
+      }
+    }
+  }
+
+  final displayNumber = contact.phones.isNotEmpty
+      ? contact.phones.first.number
+      : '';
+  final displayName = contact.displayName.isNotEmpty
+      ? contact.displayName
+      : displayNumber;
+
+  return ContactSummary(
+    deviceContactId: contact.id,
+    deviceContact: contact,
+    normalizedNumber: numbers.isNotEmpty ? numbers.first : '',
+    displayName: displayName,
+    displayNumber: displayNumber,
+    callCount: totalCount,
+    lastCallAt: latestTimestamp,
+  );
+}
+
+List<ContactSummary> _buildUnknownContactSummariesStatic(
+  Map<String, List<CallNumberStat>> statsByNormalized,
+  Set<String> matchedNumbers,
+) {
+  final summaries = <ContactSummary>[];
+
+  for (final entry in statsByNormalized.entries) {
+    if (matchedNumbers.contains(entry.key)) continue;
+
+    int totalCount = 0;
+    int latestTimestamp = 0;
+    String? name;
+
+    for (final stat in entry.value) {
+      totalCount += stat.count;
+      if (stat.lastTimestamp > latestTimestamp) {
+        latestTimestamp = stat.lastTimestamp;
+        name = stat.name?.isNotEmpty == true ? stat.name : name;
+      }
+    }
+
+    summaries.add(
+      ContactSummary(
+        deviceContactId: null,
+        normalizedNumber: entry.key,
+        displayName: name?.isNotEmpty == true
+            ? name!
+            : entry.value.first.number,
+        displayNumber: entry.value.first.number,
+        callCount: totalCount,
+        lastCallAt: latestTimestamp,
+      ),
+    );
+  }
+
+  return summaries;
 }
