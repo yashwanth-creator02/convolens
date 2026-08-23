@@ -639,6 +639,61 @@ class AppDatabase extends _$AppDatabase {
       );
     }).toList();
   }
+
+  Future<Map<int, int>> getCallCountsByType() async {
+    final query = customSelect(
+      'SELECT type, COUNT(*) AS count FROM calls GROUP BY type',
+      readsFrom: {calls},
+    );
+    final rows = await query.get();
+    return {
+      for (final row in rows) row.read<int>('type'): row.read<int>('count'),
+    };
+  }
+
+  Future<Map<String, int>> getCallCountsByPeriod(
+    DateTime since,
+    String periodFormat,
+  ) async {
+    final sinceMs = since.millisecondsSinceEpoch;
+
+    final query = customSelect(
+      '''
+      SELECT strftime('$periodFormat', timestamp / 1000, 'unixepoch', 'localtime') AS period,
+             COUNT(*) AS count
+      FROM calls
+      WHERE timestamp >= ?
+      GROUP BY period
+      ''',
+      variables: [Variable.withInt(sinceMs)],
+      readsFrom: {calls},
+    );
+
+    final rows = await query.get();
+    return {
+      for (final row in rows)
+        row.read<String>('period'): row.read<int>('count'),
+    };
+  }
+
+  Future<Map<String, int>> getCallCountsByTag() async {
+    final query = customSelect(
+      '''
+      SELECT tags.name AS tag_name, COUNT(*) AS count
+      FROM call_tags
+      INNER JOIN tags ON tags.id = call_tags.tag_id
+      GROUP BY tags.name
+      ORDER BY count DESC
+      ''',
+      readsFrom: {callTags, tags},
+    );
+
+    final rows = await query.get();
+    return {
+      for (final row in rows)
+        row.read<String>('tag_name'): row.read<int>('count'),
+    };
+  }
 }
 
 LazyDatabase _openConnection() {

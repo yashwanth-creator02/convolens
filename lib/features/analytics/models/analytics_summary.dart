@@ -8,6 +8,9 @@ class AnalyticsSummary {
   final List<String> dayLabels;
   final List<ContactSummary> mostContacted;
   final List<ContactSummary> silentContacts;
+  final Map<int, int> callTypeCounts;
+  final Map<String, int> tagCounts;
+  final String selectedRange;
 
   const AnalyticsSummary({
     required this.totalCalls,
@@ -17,5 +20,8 @@ class AnalyticsSummary {
     required this.dayLabels,
     required this.mostContacted,
     required this.silentContacts,
+    required this.callTypeCounts,
+    required this.tagCounts,
+    required this.selectedRange,
   });
 }

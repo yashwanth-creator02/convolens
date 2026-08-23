@@ -21,6 +21,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   late final AnalyticsRepository _repository;
   List<Contact> _deviceContacts = [];
   bool _loading = true;
+  String _selectedRange = 'week';
 
   @override
   void initState() {
@@ -59,7 +60,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     return StreamBuilder<AnalyticsSummary>(
-      stream: _repository.watchSummary(_deviceContacts),
+      stream: _repository.watchSummary(_deviceContacts, range: _selectedRange),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -82,14 +83,54 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
 
+            const SizedBox(height: 24),
+            SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'week', label: Text('Week')),
+                ButtonSegment(value: 'month', label: Text('Month')),
+                ButtonSegment(value: 'year', label: Text('Year')),
+              ],
+              selected: {_selectedRange},
+              onSelectionChanged: (selection) {
+                setState(() => _selectedRange = selection.first);
+              },
+            ),
+
+            const SizedBox(height: 12),
             const Text(
               'Calls — Last 14 Days',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             _buildBarChart(summary),
+
+            const SizedBox(height: 24),
+            const Text(
+              'Call Types',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            _buildTypeBreakdown(summary.callTypeCounts),
+
+            const SizedBox(height: 24),
+            const Text('By Tag', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            if (summary.tagCounts.isEmpty)
+              const Text(
+                'No tagged calls yet.',
+                style: TextStyle(color: Colors.grey),
+              )
+            else
+              ...summary.tagCounts.entries.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [Text(entry.key), Text('${entry.value}')],
+                  ),
+                ),
+              ),
 
             const SizedBox(height: 24),
             const Text(
@@ -214,6 +255,43 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           );
         }),
       ),
+    );
+  }
+
+  Widget _buildTypeBreakdown(Map<int, int> counts) {
+    const labels = {
+      1: 'Incoming',
+      2: 'Outgoing',
+      3: 'Missed',
+      4: 'Voicemail',
+      5: 'Rejected',
+      6: 'Blocked',
+    };
+    final total = counts.values.fold<int>(0, (a, b) => a + b);
+    if (total == 0)
+      return const Text('No calls yet.', style: TextStyle(color: Colors.grey));
+
+    return Column(
+      children: counts.entries.map((entry) {
+        final label = labels[entry.key] ?? 'Unknown';
+        final fraction = entry.value / total;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$label — ${entry.value} (${(fraction * 100).round()}%)',
+                style: const TextStyle(fontSize: 12),
+              ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(value: fraction, minHeight: 6),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

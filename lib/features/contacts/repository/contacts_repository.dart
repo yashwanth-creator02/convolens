@@ -51,96 +51,10 @@ class ContactsRepository {
     });
   }
 
-  ContactSummary _buildDeviceContactSummary(
-    Contact contact,
-    Map<String, List<CallNumberStat>> statsByNormalized,
-    Set<String> matchedNumbers,
-  ) {
-    final numbers = contact.phones
-        .map((phone) => normalizePhoneNumber(phone.number))
-        .where((number) => number.isNotEmpty)
-        .toSet();
-
-    int totalCount = 0;
-    int? latestTimestamp;
-
-    for (final number in numbers) {
-      final matches = statsByNormalized[number];
-      if (matches == null) continue;
-
-      matchedNumbers.add(number);
-      for (final stat in matches) {
-        totalCount += stat.count;
-        if (latestTimestamp == null || stat.lastTimestamp > latestTimestamp) {
-          latestTimestamp = stat.lastTimestamp;
-        }
-      }
-    }
-
-    final displayNumber = contact.phones.isNotEmpty
-        ? contact.phones.first.number
-        : '';
-    final displayName = contact.displayName.isNotEmpty
-        ? contact.displayName
-        : displayNumber;
-
-    return ContactSummary(
-      deviceContactId: contact.id,
-      deviceContact: contact,
-      normalizedNumber: numbers.isNotEmpty ? numbers.first : '',
-      displayName: displayName,
-      displayNumber: displayNumber,
-      callCount: totalCount,
-      lastCallAt: latestTimestamp,
-    );
-  }
-
-  List<ContactSummary> _buildUnknownContactSummaries(
-    Map<String, List<CallNumberStat>> statsByNormalized,
-    Set<String> matchedNumbers,
-  ) {
-    final summaries = <ContactSummary>[];
-
-    for (final entry in statsByNormalized.entries) {
-      if (matchedNumbers.contains(entry.key)) continue;
-
-      int totalCount = 0;
-      int latestTimestamp = 0;
-      String? name;
-
-      for (final stat in entry.value) {
-        totalCount += stat.count;
-        if (stat.lastTimestamp > latestTimestamp) {
-          latestTimestamp = stat.lastTimestamp;
-          name = stat.name?.isNotEmpty == true ? stat.name : name;
-        }
-      }
-
-      summaries.add(
-        ContactSummary(
-          deviceContactId: null,
-          normalizedNumber: entry.key,
-          displayName: name?.isNotEmpty == true
-              ? name!
-              : entry.value.first.number,
-          displayNumber: entry.value.first.number,
-          callCount: totalCount,
-          lastCallAt: latestTimestamp,
-        ),
-      );
-    }
-
-    return summaries;
-  }
-
   Stream<List<ContactSummary>> watchAllContactSummaries(
     List<Contact> deviceContacts,
   ) {
     return _watchAllSummaries(deviceContacts);
-  }
-
-  int _compareContactSummaries(ContactSummary a, ContactSummary b) {
-    return a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase());
   }
 }
 
