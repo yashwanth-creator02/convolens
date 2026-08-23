@@ -41,4 +41,23 @@ class AttachmentStorage {
     final uniqueName = '${callId}_${DateTime.now().millisecondsSinceEpoch}.m4a';
     return p.join(attachmentsDir.path, uniqueName);
   }
+
+  static Future<String> saveProfilePhoto(String sourcePath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final profileDir = Directory(p.join(appDir.path, 'profile'));
+
+    if (!await profileDir.exists()) {
+      await profileDir.create(recursive: true);
+    }
+
+    final extension = p.extension(sourcePath);
+    final fileName =
+        'profile_photo_${DateTime.now().millisecondsSinceEpoch}$extension';
+
+    final destinationPath = p.join(profileDir.path, fileName);
+
+    await File(sourcePath).copy(destinationPath);
+
+    return destinationPath;
+  }
 }

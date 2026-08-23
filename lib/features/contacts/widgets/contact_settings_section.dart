@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/toast/toast_service.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
-import '../models/contact_summary.dart';
 
 class ContactSettingsSection extends StatelessWidget {
   final String normalizedNumber;

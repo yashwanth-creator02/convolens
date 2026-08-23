@@ -7,6 +7,7 @@ import '../features/contacts/widgets/add_contact_screen.dart';
 import '../features/history/screens/history_screen.dart';
 import '../features/history/screens/search_screen.dart';
 import '../features/history/widgets/number_pad_sheet.dart';
+import '../features/profile/screens/profile_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../shared/widgets/coming_soon_view.dart';
 
@@ -39,7 +40,7 @@ class _MainShellState extends State<MainShell> {
     HistoryScreen(db: _db),
     const ComingSoonView(title: 'Analytics'),
     ContactsScreen(key: _contactsScreenKey, db: _db),
-    const ComingSoonView(title: 'Profile'),
+    ProfileScreen(db: _db),
   ];
 
   // ---------------------------------------------------------------------------

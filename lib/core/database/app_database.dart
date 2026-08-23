@@ -14,6 +14,8 @@ import 'tables/call_attachments_table.dart';
 import 'tables/contact_details_table.dart';
 import 'tables/contact_tags_table.dart';
 import 'tables/contact_links_table.dart';
+import 'tables/profile_fields_table.dart';
+import 'tables/profile_meta_table.dart';
 
 part 'app_database.g.dart';
 
@@ -28,13 +30,15 @@ part 'app_database.g.dart';
     ContactDetails,
     ContactTags,
     ContactLinks,
+    ProfileFieldEntries,
+    ProfileMeta,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration {
@@ -82,12 +86,20 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(contactDetails, contactDetails.preferredMethod);
           await m.addColumn(contactDetails, contactDetails.bestTimeToCall);
         }
+        if (from < 12) {
+          await m.createTable(profileFieldEntries);
+          await m.createTable(profileMeta);
+        }
       },
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');
         await into(
           settings,
         ).insertOnConflictUpdate(const SettingsCompanion(id: Value(0)));
+
+        await into(
+          profileMeta,
+        ).insertOnConflictUpdate(const ProfileMetaCompanion(id: Value(0)));
 
         final tagCount = await (selectOnly(tags)..addColumns([tags.id.count()]))
             .getSingle()
@@ -533,6 +545,42 @@ class AppDatabase extends _$AppDatabase {
         const CallDetailsCompanion(note: Value(null)),
       );
     }
+  }
+
+  Stream<Map<String, ProfileFieldEntry>> watchProfileFields() {
+    return select(profileFieldEntries).watch().map((rows) {
+      return {for (final row in rows) row.key: row};
+    });
+  }
+
+  Future<void> setProfileFieldValue(String key, String value) async {
+    await into(profileFieldEntries).insertOnConflictUpdate(
+      ProfileFieldEntriesCompanion.insert(key: key, value: Value(value)),
+    );
+  }
+
+  Future<void> setProfileFieldShared(String key, bool shared) async {
+    final existing = await (select(
+      profileFieldEntries,
+    )..where((f) => f.key.equals(key))).getSingleOrNull();
+
+    await into(profileFieldEntries).insertOnConflictUpdate(
+      ProfileFieldEntriesCompanion.insert(
+        key: key,
+        value: Value(existing?.value),
+        shared: Value(shared),
+      ),
+    );
+  }
+
+  Stream<ProfileMetaData> watchProfileMeta() {
+    return (select(profileMeta)..where((m) => m.id.equals(0))).watchSingle();
+  }
+
+  Future<void> setProfilePhotoPath(String? path) async {
+    await (update(profileMeta)..where((m) => m.id.equals(0))).write(
+      ProfileMetaCompanion(photoPath: Value(path)),
+    );
   }
 }
 

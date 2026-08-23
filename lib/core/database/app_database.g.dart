@@ -3571,6 +3571,472 @@ class ContactLinksCompanion extends UpdateCompanion<ContactLink> {
   }
 }
 
+class $ProfileFieldEntriesTable extends ProfileFieldEntries
+    with TableInfo<$ProfileFieldEntriesTable, ProfileFieldEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProfileFieldEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sharedMeta = const VerificationMeta('shared');
+  @override
+  late final GeneratedColumn<bool> shared = GeneratedColumn<bool>(
+    'shared',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("shared" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value, shared];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'profile_field_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProfileFieldEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    }
+    if (data.containsKey('shared')) {
+      context.handle(
+        _sharedMeta,
+        shared.isAcceptableOrUnknown(data['shared']!, _sharedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  ProfileFieldEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProfileFieldEntry(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      ),
+      shared: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}shared'],
+      )!,
+    );
+  }
+
+  @override
+  $ProfileFieldEntriesTable createAlias(String alias) {
+    return $ProfileFieldEntriesTable(attachedDatabase, alias);
+  }
+}
+
+class ProfileFieldEntry extends DataClass
+    implements Insertable<ProfileFieldEntry> {
+  final String key;
+  final String? value;
+  final bool shared;
+  const ProfileFieldEntry({
+    required this.key,
+    this.value,
+    required this.shared,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    if (!nullToAbsent || value != null) {
+      map['value'] = Variable<String>(value);
+    }
+    map['shared'] = Variable<bool>(shared);
+    return map;
+  }
+
+  ProfileFieldEntriesCompanion toCompanion(bool nullToAbsent) {
+    return ProfileFieldEntriesCompanion(
+      key: Value(key),
+      value: value == null && nullToAbsent
+          ? const Value.absent()
+          : Value(value),
+      shared: Value(shared),
+    );
+  }
+
+  factory ProfileFieldEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProfileFieldEntry(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String?>(json['value']),
+      shared: serializer.fromJson<bool>(json['shared']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String?>(value),
+      'shared': serializer.toJson<bool>(shared),
+    };
+  }
+
+  ProfileFieldEntry copyWith({
+    String? key,
+    Value<String?> value = const Value.absent(),
+    bool? shared,
+  }) => ProfileFieldEntry(
+    key: key ?? this.key,
+    value: value.present ? value.value : this.value,
+    shared: shared ?? this.shared,
+  );
+  ProfileFieldEntry copyWithCompanion(ProfileFieldEntriesCompanion data) {
+    return ProfileFieldEntry(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+      shared: data.shared.present ? data.shared.value : this.shared,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfileFieldEntry(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('shared: $shared')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value, shared);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProfileFieldEntry &&
+          other.key == this.key &&
+          other.value == this.value &&
+          other.shared == this.shared);
+}
+
+class ProfileFieldEntriesCompanion extends UpdateCompanion<ProfileFieldEntry> {
+  final Value<String> key;
+  final Value<String?> value;
+  final Value<bool> shared;
+  final Value<int> rowid;
+  const ProfileFieldEntriesCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.shared = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProfileFieldEntriesCompanion.insert({
+    required String key,
+    this.value = const Value.absent(),
+    this.shared = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : key = Value(key);
+  static Insertable<ProfileFieldEntry> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<bool>? shared,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (shared != null) 'shared': shared,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProfileFieldEntriesCompanion copyWith({
+    Value<String>? key,
+    Value<String?>? value,
+    Value<bool>? shared,
+    Value<int>? rowid,
+  }) {
+    return ProfileFieldEntriesCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      shared: shared ?? this.shared,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (shared.present) {
+      map['shared'] = Variable<bool>(shared.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfileFieldEntriesCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('shared: $shared, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ProfileMetaTable extends ProfileMeta
+    with TableInfo<$ProfileMetaTable, ProfileMetaData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProfileMetaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _photoPathMeta = const VerificationMeta(
+    'photoPath',
+  );
+  @override
+  late final GeneratedColumn<String> photoPath = GeneratedColumn<String>(
+    'photo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, photoPath];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'profile_meta';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProfileMetaData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('photo_path')) {
+      context.handle(
+        _photoPathMeta,
+        photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProfileMetaData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProfileMetaData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      photoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_path'],
+      ),
+    );
+  }
+
+  @override
+  $ProfileMetaTable createAlias(String alias) {
+    return $ProfileMetaTable(attachedDatabase, alias);
+  }
+}
+
+class ProfileMetaData extends DataClass implements Insertable<ProfileMetaData> {
+  final int id;
+  final String? photoPath;
+  const ProfileMetaData({required this.id, this.photoPath});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || photoPath != null) {
+      map['photo_path'] = Variable<String>(photoPath);
+    }
+    return map;
+  }
+
+  ProfileMetaCompanion toCompanion(bool nullToAbsent) {
+    return ProfileMetaCompanion(
+      id: Value(id),
+      photoPath: photoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoPath),
+    );
+  }
+
+  factory ProfileMetaData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProfileMetaData(
+      id: serializer.fromJson<int>(json['id']),
+      photoPath: serializer.fromJson<String?>(json['photoPath']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'photoPath': serializer.toJson<String?>(photoPath),
+    };
+  }
+
+  ProfileMetaData copyWith({
+    int? id,
+    Value<String?> photoPath = const Value.absent(),
+  }) => ProfileMetaData(
+    id: id ?? this.id,
+    photoPath: photoPath.present ? photoPath.value : this.photoPath,
+  );
+  ProfileMetaData copyWithCompanion(ProfileMetaCompanion data) {
+    return ProfileMetaData(
+      id: data.id.present ? data.id.value : this.id,
+      photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfileMetaData(')
+          ..write('id: $id, ')
+          ..write('photoPath: $photoPath')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, photoPath);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProfileMetaData &&
+          other.id == this.id &&
+          other.photoPath == this.photoPath);
+}
+
+class ProfileMetaCompanion extends UpdateCompanion<ProfileMetaData> {
+  final Value<int> id;
+  final Value<String?> photoPath;
+  const ProfileMetaCompanion({
+    this.id = const Value.absent(),
+    this.photoPath = const Value.absent(),
+  });
+  ProfileMetaCompanion.insert({
+    this.id = const Value.absent(),
+    this.photoPath = const Value.absent(),
+  });
+  static Insertable<ProfileMetaData> custom({
+    Expression<int>? id,
+    Expression<String>? photoPath,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (photoPath != null) 'photo_path': photoPath,
+    });
+  }
+
+  ProfileMetaCompanion copyWith({Value<int>? id, Value<String?>? photoPath}) {
+    return ProfileMetaCompanion(
+      id: id ?? this.id,
+      photoPath: photoPath ?? this.photoPath,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (photoPath.present) {
+      map['photo_path'] = Variable<String>(photoPath.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProfileMetaCompanion(')
+          ..write('id: $id, ')
+          ..write('photoPath: $photoPath')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3585,6 +4051,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ContactDetailsTable contactDetails = $ContactDetailsTable(this);
   late final $ContactTagsTable contactTags = $ContactTagsTable(this);
   late final $ContactLinksTable contactLinks = $ContactLinksTable(this);
+  late final $ProfileFieldEntriesTable profileFieldEntries =
+      $ProfileFieldEntriesTable(this);
+  late final $ProfileMetaTable profileMeta = $ProfileMetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3599,6 +4068,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     contactDetails,
     contactTags,
     contactLinks,
+    profileFieldEntries,
+    profileMeta,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -6561,6 +7032,309 @@ typedef $$ContactLinksTableProcessedTableManager =
       ContactLink,
       PrefetchHooks Function()
     >;
+typedef $$ProfileFieldEntriesTableCreateCompanionBuilder =
+    ProfileFieldEntriesCompanion Function({
+      required String key,
+      Value<String?> value,
+      Value<bool> shared,
+      Value<int> rowid,
+    });
+typedef $$ProfileFieldEntriesTableUpdateCompanionBuilder =
+    ProfileFieldEntriesCompanion Function({
+      Value<String> key,
+      Value<String?> value,
+      Value<bool> shared,
+      Value<int> rowid,
+    });
+
+class $$ProfileFieldEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $ProfileFieldEntriesTable> {
+  $$ProfileFieldEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get shared => $composableBuilder(
+    column: $table.shared,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProfileFieldEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProfileFieldEntriesTable> {
+  $$ProfileFieldEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get shared => $composableBuilder(
+    column: $table.shared,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProfileFieldEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProfileFieldEntriesTable> {
+  $$ProfileFieldEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<bool> get shared =>
+      $composableBuilder(column: $table.shared, builder: (column) => column);
+}
+
+class $$ProfileFieldEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProfileFieldEntriesTable,
+          ProfileFieldEntry,
+          $$ProfileFieldEntriesTableFilterComposer,
+          $$ProfileFieldEntriesTableOrderingComposer,
+          $$ProfileFieldEntriesTableAnnotationComposer,
+          $$ProfileFieldEntriesTableCreateCompanionBuilder,
+          $$ProfileFieldEntriesTableUpdateCompanionBuilder,
+          (
+            ProfileFieldEntry,
+            BaseReferences<
+              _$AppDatabase,
+              $ProfileFieldEntriesTable,
+              ProfileFieldEntry
+            >,
+          ),
+          ProfileFieldEntry,
+          PrefetchHooks Function()
+        > {
+  $$ProfileFieldEntriesTableTableManager(
+    _$AppDatabase db,
+    $ProfileFieldEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProfileFieldEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProfileFieldEntriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ProfileFieldEntriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String?> value = const Value.absent(),
+                Value<bool> shared = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProfileFieldEntriesCompanion(
+                key: key,
+                value: value,
+                shared: shared,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String key,
+                Value<String?> value = const Value.absent(),
+                Value<bool> shared = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProfileFieldEntriesCompanion.insert(
+                key: key,
+                value: value,
+                shared: shared,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProfileFieldEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProfileFieldEntriesTable,
+      ProfileFieldEntry,
+      $$ProfileFieldEntriesTableFilterComposer,
+      $$ProfileFieldEntriesTableOrderingComposer,
+      $$ProfileFieldEntriesTableAnnotationComposer,
+      $$ProfileFieldEntriesTableCreateCompanionBuilder,
+      $$ProfileFieldEntriesTableUpdateCompanionBuilder,
+      (
+        ProfileFieldEntry,
+        BaseReferences<
+          _$AppDatabase,
+          $ProfileFieldEntriesTable,
+          ProfileFieldEntry
+        >,
+      ),
+      ProfileFieldEntry,
+      PrefetchHooks Function()
+    >;
+typedef $$ProfileMetaTableCreateCompanionBuilder =
+    ProfileMetaCompanion Function({Value<int> id, Value<String?> photoPath});
+typedef $$ProfileMetaTableUpdateCompanionBuilder =
+    ProfileMetaCompanion Function({Value<int> id, Value<String?> photoPath});
+
+class $$ProfileMetaTableFilterComposer
+    extends Composer<_$AppDatabase, $ProfileMetaTable> {
+  $$ProfileMetaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProfileMetaTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProfileMetaTable> {
+  $$ProfileMetaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProfileMetaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProfileMetaTable> {
+  $$ProfileMetaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get photoPath =>
+      $composableBuilder(column: $table.photoPath, builder: (column) => column);
+}
+
+class $$ProfileMetaTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProfileMetaTable,
+          ProfileMetaData,
+          $$ProfileMetaTableFilterComposer,
+          $$ProfileMetaTableOrderingComposer,
+          $$ProfileMetaTableAnnotationComposer,
+          $$ProfileMetaTableCreateCompanionBuilder,
+          $$ProfileMetaTableUpdateCompanionBuilder,
+          (
+            ProfileMetaData,
+            BaseReferences<_$AppDatabase, $ProfileMetaTable, ProfileMetaData>,
+          ),
+          ProfileMetaData,
+          PrefetchHooks Function()
+        > {
+  $$ProfileMetaTableTableManager(_$AppDatabase db, $ProfileMetaTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProfileMetaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProfileMetaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProfileMetaTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
+              }) => ProfileMetaCompanion(id: id, photoPath: photoPath),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
+              }) => ProfileMetaCompanion.insert(id: id, photoPath: photoPath),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProfileMetaTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProfileMetaTable,
+      ProfileMetaData,
+      $$ProfileMetaTableFilterComposer,
+      $$ProfileMetaTableOrderingComposer,
+      $$ProfileMetaTableAnnotationComposer,
+      $$ProfileMetaTableCreateCompanionBuilder,
+      $$ProfileMetaTableUpdateCompanionBuilder,
+      (
+        ProfileMetaData,
+        BaseReferences<_$AppDatabase, $ProfileMetaTable, ProfileMetaData>,
+      ),
+      ProfileMetaData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6582,4 +7356,8 @@ class $AppDatabaseManager {
       $$ContactTagsTableTableManager(_db, _db.contactTags);
   $$ContactLinksTableTableManager get contactLinks =>
       $$ContactLinksTableTableManager(_db, _db.contactLinks);
+  $$ProfileFieldEntriesTableTableManager get profileFieldEntries =>
+      $$ProfileFieldEntriesTableTableManager(_db, _db.profileFieldEntries);
+  $$ProfileMetaTableTableManager get profileMeta =>
+      $$ProfileMetaTableTableManager(_db, _db.profileMeta);
 }
