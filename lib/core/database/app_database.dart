@@ -694,6 +694,54 @@ class AppDatabase extends _$AppDatabase {
         row.read<String>('tag_name'): row.read<int>('count'),
     };
   }
+
+  Future<Map<int, int>> getCallCountsByHour() async {
+    final query = customSelect(
+      '''
+      SELECT CAST(strftime('%H', timestamp / 1000, 'unixepoch', 'localtime') AS INTEGER) AS hour,
+             COUNT(*) AS count
+      FROM calls
+      GROUP BY hour
+      ''',
+      readsFrom: {calls},
+    );
+    final rows = await query.get();
+    return {
+      for (final row in rows) row.read<int>('hour'): row.read<int>('count'),
+    };
+  }
+
+  Future<int> getLongestCallDuration() async {
+    final query = customSelect(
+      'SELECT MAX(duration) AS max_duration FROM calls',
+      readsFrom: {calls},
+    );
+    final row = await query.getSingle();
+    return row.readNullable<int>('max_duration') ?? 0;
+  }
+  Future<Map<String, dynamic>> getContactCallStats(String normalizedNumber) async {
+    final query = customSelect(
+      '''
+      SELECT COUNT(*) AS total, SUM(duration) AS total_duration,
+             AVG(duration) AS avg_duration,
+             SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) AS incoming,
+             SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END) AS outgoing
+      FROM calls
+      WHERE number LIKE ?
+      ''',
+      variables: [Variable.withString('%$normalizedNumber')],
+      readsFrom: {calls},
+    );
+    final row = await query.getSingle();
+    return {
+      'total': row.readNullable<int>('total') ?? 0,
+      'totalDuration': row.readNullable<int>('total_duration') ?? 0,
+      'avgDuration': row.readNullable<double>('avg_duration') ?? 0,
+      'incoming': row.readNullable<int>('incoming') ?? 0,
+      'outgoing': row.readNullable<int>('outgoing') ?? 0,
+    };
+  }
+
 }
 
 LazyDatabase _openConnection() {

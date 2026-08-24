@@ -11,6 +11,15 @@ class AnalyticsSummary {
   final Map<int, int> callTypeCounts;
   final Map<String, int> tagCounts;
   final String selectedRange;
+  final Map<String, int> heatmapData;
+  final int currentStreak;
+  final int longestStreak;
+  final Map<int, int> hourCounts;
+  final String? longestCallSeconds;
+  final String? busiestDayCount;
+  final String? busiestDayDate;
+  final double missedCallRate;
+
 
   const AnalyticsSummary({
     required this.totalCalls,
@@ -23,5 +32,13 @@ class AnalyticsSummary {
     required this.callTypeCounts,
     required this.tagCounts,
     required this.selectedRange,
+    required this.heatmapData,
+    required this.currentStreak,
+    required this.longestStreak,
+    required this.hourCounts,
+    this.longestCallSeconds,
+    this.busiestDayCount,
+    this.busiestDayDate,
+    required this.missedCallRate,
   });
 }

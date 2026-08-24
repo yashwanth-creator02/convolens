@@ -7,6 +7,7 @@ import '../../contacts/models/contact_summary.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../models/analytics_summary.dart';
 import '../repository/analytics_repository.dart';
+import '../widgets/contribution_heatmap.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -48,6 +49,30 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           displayNumber: contact.displayNumber,
           deviceContact: contact.deviceContact,
           db: widget.db,
+        ),
+      ),
+    );
+  }
+
+  void _showDayDetail(BuildContext context, DateTime day, int count) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${day.day}/${day.month}/${day.year}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              count == 0
+                  ? 'No calls this day.'
+                  : '$count call${count == 1 ? '' : 's'}',
+            ),
+          ],
         ),
       ),
     );
@@ -104,6 +129,42 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
             const SizedBox(height: 12),
             _buildBarChart(summary),
+
+            const SizedBox(height: 24),
+            const Text(
+              'Activity',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ContributionHeatmap(
+              countsByDate: summary.heatmapData,
+              onDayTap: (day, count) => _showDayDetail(context, day, count),
+            ),
+
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                _statCard('🔥 Streak', '${summary.currentStreak}d'),
+                const SizedBox(width: 12),
+                _statCard('Best Streak', '${summary.longestStreak}d'),
+                const SizedBox(width: 12),
+                _statCard(
+                  'Longest Call',
+                  '${(int.tryParse(summary.longestCallSeconds ?? '0') ?? 0) ~/ 60}m',
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (summary.busiestDayDate != null)
+              Text('Busiest day: ${summary.busiestDayDate} (${summary.busiestDayCount} calls)',
+                  style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            Text('Missed call rate: ${(summary.missedCallRate * 100).round()}%',
+                style: const TextStyle(color: Colors.grey, fontSize: 12)),
+
+            const SizedBox(height: 24),
+            const Text('Busiest Hours', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildHourHistogram(summary.hourCounts),
 
             const SizedBox(height: 24),
             const Text(
@@ -292,6 +353,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildHourHistogram(Map<int, int> hourCounts) {
+    final maxCount = hourCounts.values.isEmpty
+        ? 1
+        : hourCounts.values.reduce((a, b) => a > b ? a : b).clamp(1, 999999);
+
+    return SizedBox(
+      height: 60,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: List.generate(24, (hour) {
+          final count = hourCounts[hour] ?? 0;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0.5),
+              child: Container(
+                height: 50 * (count / maxCount),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }

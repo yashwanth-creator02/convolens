@@ -10,7 +10,6 @@ import '../features/history/screens/search_screen.dart';
 import '../features/history/widgets/number_pad_sheet.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
-import '../shared/widgets/coming_soon_view.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -85,22 +84,6 @@ class _MainShellState extends State<MainShell> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => SettingsScreen(db: _db)),
-    );
-  }
-
-  Future<void> _openNumberPad() async {
-    final number = await showNumberPadSheet(context);
-
-    if (!mounted || number == null || number.isEmpty) {
-      return;
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            SearchScreen(db: _db, initialContactQuery: number),
-      ),
     );
   }
 

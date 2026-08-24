@@ -12,6 +12,39 @@ class AnalyticsRepository {
     _contactsRepository = ContactsRepository(_db);
   }
 
+  Map<String, int> _computeStreaks(Map<String, int> heatmapCounts, DateTime now) {
+    int currentStreak = 0;
+    int longestStreak = 0;
+    int runningStreak = 0;
+
+    var cursor = DateTime(now.year, now.month, now.day);
+    bool stillCountingCurrent = true;
+
+    for (int i = 0; i < 365; i++) {
+      final key = '${cursor.year.toString().padLeft(4, '0')}-'
+          '${cursor.month.toString().padLeft(2, '0')}-'
+          '${cursor.day.toString().padLeft(2, '0')}';
+      final hasCalls = (heatmapCounts[key] ?? 0) > 0;
+
+      if (hasCalls) {
+        runningStreak++;
+        if (stillCountingCurrent) currentStreak++;
+      } else {
+        if (i == 0) {
+          // today has no calls yet — don't break the streak on today specifically
+        } else {
+          stillCountingCurrent = false;
+          runningStreak = 0;
+        }
+      }
+
+      if (runningStreak > longestStreak) longestStreak = runningStreak;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+
+    return {'current': currentStreak, 'longest': longestStreak};
+  }
+
   Stream<AnalyticsSummary> watchSummary(
     List<Contact> deviceContacts, {
     String range = 'week',
@@ -90,6 +123,27 @@ class AnalyticsRepository {
       final callsPerDay = <int>[];
       final dayLabels = <String>[];
 
+      final yearAgo = now.subtract(const Duration(days: 364));
+      final heatmapCounts = await _db.getCallCountsByPeriod(
+        yearAgo,
+        '%Y-%m-%d',
+      );
+
+      final streaks = _computeStreaks(heatmapCounts, now);
+      final hourCounts = await _db.getCallCountsByHour();
+      final longestCallSeconds = await _db.getLongestCallDuration();
+
+      final busiestDayEntry = heatmapCounts.entries.isEmpty
+          ? null
+          : heatmapCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
+
+      final missedCount = callTypeCounts[3] ?? 0;
+      final incomingCount = callTypeCounts[1] ?? 0;
+      final missedRate = (incomingCount + missedCount) > 0
+          ? missedCount / (incomingCount + missedCount)
+          : 0.0;
+
+
       if (range == 'week') {
         for (int i = 13; i >= 0; i--) {
           final day = DateTime(
@@ -156,6 +210,19 @@ class AnalyticsRepository {
         tagCounts: tagCounts,
 
         selectedRange: range,
+
+        heatmapData: heatmapCounts,
+
+        currentStreak: streaks['current'] ?? 0,
+        longestStreak: streaks['longest'] ?? 0,
+
+        hourCounts: hourCounts,
+
+        longestCallSeconds: longestCallSeconds.toString(),
+        busiestDayCount: busiestDayEntry?.value.toString(),
+        busiestDayDate: busiestDayEntry?.key,
+
+        missedCallRate: missedRate,
       );
     });
   }

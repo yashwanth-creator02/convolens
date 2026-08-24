@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../widgets/contact_analytics_section.dart';
 import '../widgets/contact_call_history_list.dart';
 import '../widgets/contact_color_section.dart';
 import '../widgets/contact_header.dart';
@@ -114,6 +115,11 @@ class ContactDetailScreen extends StatelessWidget {
                   detail: detail,
                   db: db,
                 ),
+
+                const Divider(height: 32),
+                const Text('Analytics', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ContactAnalyticsSection(normalizedNumber: normalizedNumber, db: db),
 
                 const Divider(height: 32),
                 const Text(
