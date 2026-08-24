@@ -19,7 +19,7 @@ class AnalyticsSummary {
   final String? busiestDayCount;
   final String? busiestDayDate;
   final double missedCallRate;
-
+  final Map<int, int> weekdayCounts;
 
   const AnalyticsSummary({
     required this.totalCalls,
@@ -39,6 +39,6 @@ class AnalyticsSummary {
     this.longestCallSeconds,
     this.busiestDayCount,
     this.busiestDayDate,
-    required this.missedCallRate,
+    required this.missedCallRate, required this.weekdayCounts,
   });
 }

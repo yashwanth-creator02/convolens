@@ -195,6 +195,8 @@ class AnalyticsRepository {
             }).toList()
             ..sort((a, b) => (a.lastCallAt ?? 0).compareTo(b.lastCallAt ?? 0));
 
+      final weekdayCounts = await _db.getCallCountsByWeekday();
+
       return AnalyticsSummary(
         totalCalls: includedCalls.length,
         totalContacts: includedSummaries.length,
@@ -223,6 +225,7 @@ class AnalyticsRepository {
         busiestDayDate: busiestDayEntry?.key,
 
         missedCallRate: missedRate,
+        weekdayCounts: weekdayCounts,
       );
     });
   }

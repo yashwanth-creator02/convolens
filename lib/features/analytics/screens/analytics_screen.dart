@@ -167,6 +167,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             _buildHourHistogram(summary.hourCounts),
 
             const SizedBox(height: 24),
+            const Text('Talk Ratio', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildTalkRatio(summary.callTypeCounts),
+
+            const SizedBox(height: 24),
+            const Text('Answered / Missed / Declined', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildAnsweredMissedDeclined(summary.callTypeCounts),
+
+            const SizedBox(height: 24),
+            const Text('Day of Week', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildWeekdayChart(summary.weekdayCounts),
+
+            const SizedBox(height: 24),
             const Text(
               'Call Types',
               style: TextStyle(fontWeight: FontWeight.bold),
@@ -376,6 +391,117 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(1),
                 ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildTalkRatio(Map<int, int> counts) {
+    final outgoing = counts[2] ?? 0;
+    final incoming = counts[1] ?? 0;
+    final total = outgoing + incoming;
+
+    if (total == 0) return const Text('No calls yet.', style: TextStyle(color: Colors.grey));
+
+    final youFraction = outgoing / total;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Row(
+            children: [
+              Expanded(
+                flex: (youFraction * 100).round().clamp(1, 99),
+                child: Container(height: 20, color: Theme.of(context).colorScheme.primary),
+              ),
+              Expanded(
+                flex: 100 - (youFraction * 100).round().clamp(1, 99),
+                child: Container(height: 20, color: Colors.grey.shade400),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text('You initiated ${(youFraction * 100).round()}% • They initiated '
+            '${(100 - youFraction * 100).round()}%'),
+      ],
+    );
+  }
+
+  Widget _buildAnsweredMissedDeclined(Map<int, int> counts) {
+    final answered = (counts[1] ?? 0) + (counts[2] ?? 0);
+    final missed = counts[3] ?? 0;
+    final declined = (counts[5] ?? 0) + (counts[6] ?? 0);
+    final total = answered + missed + declined;
+
+    if (total == 0) return const Text('No calls yet.', style: TextStyle(color: Colors.grey));
+
+    Widget bar(String label, int value, Color color) {
+      final fraction = value / total;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$label — $value', style: const TextStyle(fontSize: 12)),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: fraction,
+                minHeight: 8,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        bar('Answered', answered, Colors.green),
+        bar('Missed', missed, Colors.orange),
+        bar('Declined', declined, Colors.red),
+      ],
+    );
+  }
+
+  Widget _buildWeekdayChart(Map<int, int> weekdayCounts) {
+    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const sqliteOrder = [1, 2, 3, 4, 5, 6, 0];
+
+    final maxCount = weekdayCounts.values.isEmpty
+        ? 1
+        : weekdayCounts.values.reduce((a, b) => a > b ? a : b).clamp(1, 999999);
+
+    return SizedBox(
+      height: 90,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: List.generate(7, (i) {
+          final count = weekdayCounts[sqliteOrder[i]] ?? 0;
+          return Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text('$count', style: const TextStyle(fontSize: 9)),
+                  Container(
+                    height: 50 * (count / maxCount),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(labels[i], style: const TextStyle(fontSize: 9)),
+                ],
               ),
             ),
           );

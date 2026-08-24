@@ -742,6 +742,21 @@ class AppDatabase extends _$AppDatabase {
     };
   }
 
+  Future<Map<int, int>> getCallCountsByWeekday() async {
+    final query = customSelect(
+      '''
+      SELECT CAST(strftime('%w', timestamp / 1000, 'unixepoch', 'localtime') AS INTEGER) AS weekday,
+             COUNT(*) AS count
+      FROM calls
+      GROUP BY weekday
+      ''',
+      readsFrom: {calls},
+    );
+    final rows = await query.get();
+    return {
+      for (final row in rows) row.read<int>('weekday'): row.read<int>('count'),
+    };
+  }
 }
 
 LazyDatabase _openConnection() {
