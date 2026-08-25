@@ -22,30 +22,25 @@ class ThemeScreen extends StatelessWidget {
           final settings = snapshot.data!;
 
           return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             children: [
-              _ThemeOption(
-                title: 'Light',
-                subtitle: 'Use the light appearance',
-                icon: Icons.light_mode_outlined,
-                selected: settings.theme == 'light',
-                onTap: () => _setTheme('light'),
+              Text(
+                'Appearance',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
 
-              _ThemeOption(
-                title: 'Dark',
-                subtitle: 'Use the dark appearance',
-                icon: Icons.dark_mode_outlined,
-                selected: settings.theme == 'dark',
-                onTap: () => _setTheme('dark'),
+              const SizedBox(height: 6),
+
+              Text(
+                'Choose how ConvoLens should look.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
 
-              _ThemeOption(
-                title: 'Cosmo',
-                subtitle: 'Use the Cosmo appearance',
-                icon: Icons.auto_awesome_outlined,
-                selected: settings.theme == 'cosmo',
-                onTap: () => _setTheme('cosmo'),
-              ),
+              const SizedBox(height: 20),
 
               _ThemeOption(
                 title: 'System Default',
@@ -53,6 +48,30 @@ class ThemeScreen extends StatelessWidget {
                 icon: Icons.brightness_auto_outlined,
                 selected: settings.theme == 'system',
                 onTap: () => _setTheme('system'),
+              ),
+
+              _ThemeOption(
+                title: 'Light',
+                subtitle: 'Clean and bright',
+                icon: Icons.light_mode_outlined,
+                selected: settings.theme == 'light',
+                onTap: () => _setTheme('light'),
+              ),
+
+              _ThemeOption(
+                title: 'Dark',
+                subtitle: 'Comfortable in low light',
+                icon: Icons.dark_mode_outlined,
+                selected: settings.theme == 'dark',
+                onTap: () => _setTheme('dark'),
+              ),
+
+              _ThemeOption(
+                title: 'Cosmo',
+                subtitle: 'The ConvoLens custom theme',
+                icon: Icons.auto_awesome_outlined,
+                selected: settings.theme == 'cosmo',
+                onTap: () => _setTheme('cosmo'),
               ),
             ],
           );
@@ -83,12 +102,88 @@ class _ThemeOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: selected ? const Icon(Icons.check) : null,
-      onTap: onTap,
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: selected
+            ? colorScheme.primaryContainer
+            : colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: selected ? colorScheme.primary : colorScheme.outlineVariant,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? colorScheme.primary
+                      : colorScheme.surfaceContainerHighest,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: selected
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: selected
+                    ? Icon(
+                        Icons.check_circle,
+                        key: const ValueKey('selected'),
+                        color: colorScheme.primary,
+                      )
+                    : Icon(
+                        Icons.circle_outlined,
+                        key: const ValueKey('unselected'),
+                        color: colorScheme.outline,
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
