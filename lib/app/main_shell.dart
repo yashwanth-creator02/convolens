@@ -12,14 +12,16 @@ import '../features/profile/screens/profile_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  final AppDatabase db;
+
+  const MainShell({super.key, required this.db});
 
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
 class _MainShellState extends State<MainShell> {
-  final AppDatabase _db = AppDatabase();
+  AppDatabase get _db => widget.db;
 
   final _contactsScreenKey = GlobalKey<ContactsScreenState>();
 
@@ -51,12 +53,6 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     NotificationService.init();
-  }
-
-  @override
-  void dispose() {
-    _db.close();
-    super.dispose();
   }
 
   // ---------------------------------------------------------------------------

@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -106,6 +106,10 @@ class AppDatabase extends _$AppDatabase {
 
         if (from < 13) {
           await _createIndexes(m);
+        }
+
+        if (from < 14) {
+          await m.addColumn(settings, settings.theme);
         }
       },
 

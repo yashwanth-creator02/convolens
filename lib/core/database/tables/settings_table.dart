@@ -9,6 +9,8 @@ class Settings extends Table {
 
   BoolColumn get devMode => boolean().withDefault(const Constant(false))();
 
+  TextColumn get theme => text().withDefault(const Constant('system'))();
+
   BoolColumn get showContactName =>
       boolean().withDefault(const Constant(true))();
 

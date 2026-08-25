@@ -519,6 +519,16 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _themeMeta = const VerificationMeta('theme');
+  @override
+  late final GeneratedColumn<String> theme = GeneratedColumn<String>(
+    'theme',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('light'),
+  );
   static const VerificationMeta _showContactNameMeta = const VerificationMeta(
     'showContactName',
   );
@@ -674,6 +684,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     syncEnabled,
     archiveMode,
     devMode,
+    theme,
     showContactName,
     showPhoneNumber,
     showCallType,
@@ -722,6 +733,12 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
       context.handle(
         _devModeMeta,
         devMode.isAcceptableOrUnknown(data['dev_mode']!, _devModeMeta),
+      );
+    }
+    if (data.containsKey('theme')) {
+      context.handle(
+        _themeMeta,
+        theme.isAcceptableOrUnknown(data['theme']!, _themeMeta),
       );
     }
     if (data.containsKey('show_contact_name')) {
@@ -830,6 +847,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.bool,
         data['${effectivePrefix}dev_mode'],
       )!,
+      theme: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}theme'],
+      )!,
       showContactName: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}show_contact_name'],
@@ -884,6 +905,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   final bool syncEnabled;
   final bool archiveMode;
   final bool devMode;
+  final String theme;
   final bool showContactName;
   final bool showPhoneNumber;
   final bool showCallType;
@@ -899,6 +921,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     required this.syncEnabled,
     required this.archiveMode,
     required this.devMode,
+    required this.theme,
     required this.showContactName,
     required this.showPhoneNumber,
     required this.showCallType,
@@ -917,6 +940,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['sync_enabled'] = Variable<bool>(syncEnabled);
     map['archive_mode'] = Variable<bool>(archiveMode);
     map['dev_mode'] = Variable<bool>(devMode);
+    map['theme'] = Variable<String>(theme);
     map['show_contact_name'] = Variable<bool>(showContactName);
     map['show_phone_number'] = Variable<bool>(showPhoneNumber);
     map['show_call_type'] = Variable<bool>(showCallType);
@@ -936,6 +960,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       syncEnabled: Value(syncEnabled),
       archiveMode: Value(archiveMode),
       devMode: Value(devMode),
+      theme: Value(theme),
       showContactName: Value(showContactName),
       showPhoneNumber: Value(showPhoneNumber),
       showCallType: Value(showCallType),
@@ -959,6 +984,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       syncEnabled: serializer.fromJson<bool>(json['syncEnabled']),
       archiveMode: serializer.fromJson<bool>(json['archiveMode']),
       devMode: serializer.fromJson<bool>(json['devMode']),
+      theme: serializer.fromJson<String>(json['theme']),
       showContactName: serializer.fromJson<bool>(json['showContactName']),
       showPhoneNumber: serializer.fromJson<bool>(json['showPhoneNumber']),
       showCallType: serializer.fromJson<bool>(json['showCallType']),
@@ -983,6 +1009,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       'syncEnabled': serializer.toJson<bool>(syncEnabled),
       'archiveMode': serializer.toJson<bool>(archiveMode),
       'devMode': serializer.toJson<bool>(devMode),
+      'theme': serializer.toJson<String>(theme),
       'showContactName': serializer.toJson<bool>(showContactName),
       'showPhoneNumber': serializer.toJson<bool>(showPhoneNumber),
       'showCallType': serializer.toJson<bool>(showCallType),
@@ -1001,6 +1028,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     bool? syncEnabled,
     bool? archiveMode,
     bool? devMode,
+    String? theme,
     bool? showContactName,
     bool? showPhoneNumber,
     bool? showCallType,
@@ -1016,6 +1044,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     syncEnabled: syncEnabled ?? this.syncEnabled,
     archiveMode: archiveMode ?? this.archiveMode,
     devMode: devMode ?? this.devMode,
+    theme: theme ?? this.theme,
     showContactName: showContactName ?? this.showContactName,
     showPhoneNumber: showPhoneNumber ?? this.showPhoneNumber,
     showCallType: showCallType ?? this.showCallType,
@@ -1037,6 +1066,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           ? data.archiveMode.value
           : this.archiveMode,
       devMode: data.devMode.present ? data.devMode.value : this.devMode,
+      theme: data.theme.present ? data.theme.value : this.theme,
       showContactName: data.showContactName.present
           ? data.showContactName.value
           : this.showContactName,
@@ -1071,6 +1101,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('syncEnabled: $syncEnabled, ')
           ..write('archiveMode: $archiveMode, ')
           ..write('devMode: $devMode, ')
+          ..write('theme: $theme, ')
           ..write('showContactName: $showContactName, ')
           ..write('showPhoneNumber: $showPhoneNumber, ')
           ..write('showCallType: $showCallType, ')
@@ -1091,6 +1122,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     syncEnabled,
     archiveMode,
     devMode,
+    theme,
     showContactName,
     showPhoneNumber,
     showCallType,
@@ -1110,6 +1142,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.syncEnabled == this.syncEnabled &&
           other.archiveMode == this.archiveMode &&
           other.devMode == this.devMode &&
+          other.theme == this.theme &&
           other.showContactName == this.showContactName &&
           other.showPhoneNumber == this.showPhoneNumber &&
           other.showCallType == this.showCallType &&
@@ -1127,6 +1160,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<bool> syncEnabled;
   final Value<bool> archiveMode;
   final Value<bool> devMode;
+  final Value<String> theme;
   final Value<bool> showContactName;
   final Value<bool> showPhoneNumber;
   final Value<bool> showCallType;
@@ -1142,6 +1176,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.syncEnabled = const Value.absent(),
     this.archiveMode = const Value.absent(),
     this.devMode = const Value.absent(),
+    this.theme = const Value.absent(),
     this.showContactName = const Value.absent(),
     this.showPhoneNumber = const Value.absent(),
     this.showCallType = const Value.absent(),
@@ -1158,6 +1193,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.syncEnabled = const Value.absent(),
     this.archiveMode = const Value.absent(),
     this.devMode = const Value.absent(),
+    this.theme = const Value.absent(),
     this.showContactName = const Value.absent(),
     this.showPhoneNumber = const Value.absent(),
     this.showCallType = const Value.absent(),
@@ -1174,6 +1210,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<bool>? syncEnabled,
     Expression<bool>? archiveMode,
     Expression<bool>? devMode,
+    Expression<String>? theme,
     Expression<bool>? showContactName,
     Expression<bool>? showPhoneNumber,
     Expression<bool>? showCallType,
@@ -1190,6 +1227,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (syncEnabled != null) 'sync_enabled': syncEnabled,
       if (archiveMode != null) 'archive_mode': archiveMode,
       if (devMode != null) 'dev_mode': devMode,
+      if (theme != null) 'theme': theme,
       if (showContactName != null) 'show_contact_name': showContactName,
       if (showPhoneNumber != null) 'show_phone_number': showPhoneNumber,
       if (showCallType != null) 'show_call_type': showCallType,
@@ -1210,6 +1248,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Value<bool>? syncEnabled,
     Value<bool>? archiveMode,
     Value<bool>? devMode,
+    Value<String>? theme,
     Value<bool>? showContactName,
     Value<bool>? showPhoneNumber,
     Value<bool>? showCallType,
@@ -1226,6 +1265,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       syncEnabled: syncEnabled ?? this.syncEnabled,
       archiveMode: archiveMode ?? this.archiveMode,
       devMode: devMode ?? this.devMode,
+      theme: theme ?? this.theme,
       showContactName: showContactName ?? this.showContactName,
       showPhoneNumber: showPhoneNumber ?? this.showPhoneNumber,
       showCallType: showCallType ?? this.showCallType,
@@ -1254,6 +1294,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     }
     if (devMode.present) {
       map['dev_mode'] = Variable<bool>(devMode.value);
+    }
+    if (theme.present) {
+      map['theme'] = Variable<String>(theme.value);
     }
     if (showContactName.present) {
       map['show_contact_name'] = Variable<bool>(showContactName.value);
@@ -1297,6 +1340,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('syncEnabled: $syncEnabled, ')
           ..write('archiveMode: $archiveMode, ')
           ..write('devMode: $devMode, ')
+          ..write('theme: $theme, ')
           ..write('showContactName: $showContactName, ')
           ..write('showPhoneNumber: $showPhoneNumber, ')
           ..write('showCallType: $showCallType, ')
@@ -4645,6 +4689,7 @@ typedef $$SettingsTableCreateCompanionBuilder =
       Value<bool> syncEnabled,
       Value<bool> archiveMode,
       Value<bool> devMode,
+      Value<String> theme,
       Value<bool> showContactName,
       Value<bool> showPhoneNumber,
       Value<bool> showCallType,
@@ -4662,6 +4707,7 @@ typedef $$SettingsTableUpdateCompanionBuilder =
       Value<bool> syncEnabled,
       Value<bool> archiveMode,
       Value<bool> devMode,
+      Value<String> theme,
       Value<bool> showContactName,
       Value<bool> showPhoneNumber,
       Value<bool> showCallType,
@@ -4700,6 +4746,11 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<bool> get devMode => $composableBuilder(
     column: $table.devMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get theme => $composableBuilder(
+    column: $table.theme,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4783,6 +4834,11 @@ class $$SettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get theme => $composableBuilder(
+    column: $table.theme,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get showContactName => $composableBuilder(
     column: $table.showContactName,
     builder: (column) => ColumnOrderings(column),
@@ -4858,6 +4914,9 @@ class $$SettingsTableAnnotationComposer
 
   GeneratedColumn<bool> get devMode =>
       $composableBuilder(column: $table.devMode, builder: (column) => column);
+
+  GeneratedColumn<String> get theme =>
+      $composableBuilder(column: $table.theme, builder: (column) => column);
 
   GeneratedColumn<bool> get showContactName => $composableBuilder(
     column: $table.showContactName,
@@ -4936,6 +4995,7 @@ class $$SettingsTableTableManager
                 Value<bool> syncEnabled = const Value.absent(),
                 Value<bool> archiveMode = const Value.absent(),
                 Value<bool> devMode = const Value.absent(),
+                Value<String> theme = const Value.absent(),
                 Value<bool> showContactName = const Value.absent(),
                 Value<bool> showPhoneNumber = const Value.absent(),
                 Value<bool> showCallType = const Value.absent(),
@@ -4951,6 +5011,7 @@ class $$SettingsTableTableManager
                 syncEnabled: syncEnabled,
                 archiveMode: archiveMode,
                 devMode: devMode,
+                theme: theme,
                 showContactName: showContactName,
                 showPhoneNumber: showPhoneNumber,
                 showCallType: showCallType,
@@ -4968,6 +5029,7 @@ class $$SettingsTableTableManager
                 Value<bool> syncEnabled = const Value.absent(),
                 Value<bool> archiveMode = const Value.absent(),
                 Value<bool> devMode = const Value.absent(),
+                Value<String> theme = const Value.absent(),
                 Value<bool> showContactName = const Value.absent(),
                 Value<bool> showPhoneNumber = const Value.absent(),
                 Value<bool> showCallType = const Value.absent(),
@@ -4983,6 +5045,7 @@ class $$SettingsTableTableManager
                 syncEnabled: syncEnabled,
                 archiveMode: archiveMode,
                 devMode: devMode,
+                theme: theme,
                 showContactName: showContactName,
                 showPhoneNumber: showPhoneNumber,
                 showCallType: showCallType,

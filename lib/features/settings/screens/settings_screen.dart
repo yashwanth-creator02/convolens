@@ -7,6 +7,7 @@ import '../../../shared/widgets/confirm_dialog.dart';
 import 'developer_screen.dart';
 import 'permissions_screen.dart';
 import 'call_card_settings_screen.dart';
+import 'theme_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   final AppDatabase db;
@@ -86,6 +87,22 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               const _SectionHeader('Display'),
+
+              ListTile(
+                leading: const Icon(Icons.palette_outlined),
+                title: const Text('Theme'),
+                subtitle: const Text('Choose the appearance of Convolens'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ThemeScreen(db: db),
+                    ),
+                  );
+                },
+              ),
+
               ListTile(
                 leading: const Icon(Icons.credit_card),
                 title: const Text('Call Card Display'),
