@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/database/app_database.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_theme_type.dart';
+import '../shared/widgets/cosmo/cosmo_preview_screen.dart';
 import 'main_shell.dart';
 
 class App extends StatefulWidget {
@@ -70,7 +71,7 @@ class _AppState extends State<App> {
             darkTheme: AppTheme.getTheme(AppThemeType.dark),
             themeMode: ThemeMode.system,
             debugShowCheckedModeBanner: false,
-            home: MainShell(db: _db),
+            home: const CosmoPreviewScreen(),
           );
         }
 
@@ -79,7 +80,7 @@ class _AppState extends State<App> {
           title: 'ConvoLens',
           theme: AppTheme.getTheme(themeType),
           debugShowCheckedModeBanner: false,
-          home: MainShell(db: _db),
+          home: const CosmoPreviewScreen(),
         );
       },
     );
