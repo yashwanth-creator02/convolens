@@ -9,6 +9,7 @@ import '../models/analytics_filters.dart';
 import '../models/analytics_summary.dart';
 import '../repository/analytics_repository.dart';
 import '../widgets/contribution_heatmap.dart';
+import '../widgets/relationship_web.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -339,6 +340,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   child: Text(_rankByDuration ? 'By Calls' : 'By Talk Time'),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 24),
+            const Text(
+              'Your Network',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Line thickness reflects how often you talk',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            RelationshipWeb(
+              contacts: summary.mostContacted,
+              onContactTap: _openContact,
             ),
 
             const SizedBox(height: 8),
