@@ -13,6 +13,7 @@ import '../widgets/contact_preferences_section.dart';
 import '../widgets/contact_settings_section.dart';
 import '../widgets/contact_tags_section.dart';
 import '../widgets/contact_phone_numbers_section.dart';
+import '../widgets/contact_timeline_section.dart';
 
 class ContactDetailScreen extends StatelessWidget {
   final String normalizedNumber;
@@ -117,10 +118,31 @@ class ContactDetailScreen extends StatelessWidget {
                 ),
 
                 const Divider(height: 32),
-                const Text('Analytics', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Analytics',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
-                ContactAnalyticsSection(normalizedNumber: normalizedNumber, db: db),
+                ContactAnalyticsSection(
+                  normalizedNumber: normalizedNumber,
+                  db: db,
+                ),
 
+                const Divider(height: 32),
+                const Text(
+                  'Timeline',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 400),
+                  child: SingleChildScrollView(
+                    child: ContactTimelineSection(
+                      normalizedNumber: normalizedNumber,
+                      db: db,
+                    ),
+                  ),
+                ),
                 const Divider(height: 32),
                 const Text(
                   'Settings',

@@ -5,40 +5,41 @@ class AnalyticsSummary {
   final int totalContacts;
   final int totalTalkSeconds;
   final List<int> callsPerDay;
+  final List<int> durationTrend;
   final List<String> dayLabels;
   final List<ContactSummary> mostContacted;
   final List<ContactSummary> silentContacts;
   final Map<int, int> callTypeCounts;
+  final Map<int, int> weekdayCounts;
+  final Map<int, int> hourCounts;
   final Map<String, int> tagCounts;
-  final String selectedRange;
   final Map<String, int> heatmapData;
   final int currentStreak;
   final int longestStreak;
-  final Map<int, int> hourCounts;
-  final String? longestCallSeconds;
-  final String? busiestDayCount;
+  final int longestCallSeconds;
   final String? busiestDayDate;
+  final int busiestDayCount;
   final double missedCallRate;
-  final Map<int, int> weekdayCounts;
 
   const AnalyticsSummary({
     required this.totalCalls,
     required this.totalContacts,
     required this.totalTalkSeconds,
     required this.callsPerDay,
+    required this.durationTrend,
     required this.dayLabels,
     required this.mostContacted,
     required this.silentContacts,
     required this.callTypeCounts,
+    required this.weekdayCounts,
+    required this.hourCounts,
     required this.tagCounts,
-    required this.selectedRange,
     required this.heatmapData,
     required this.currentStreak,
     required this.longestStreak,
-    required this.hourCounts,
-    this.longestCallSeconds,
-    this.busiestDayCount,
+    required this.longestCallSeconds,
     this.busiestDayDate,
-    required this.missedCallRate, required this.weekdayCounts,
+    required this.busiestDayCount,
+    required this.missedCallRate,
   });
 }

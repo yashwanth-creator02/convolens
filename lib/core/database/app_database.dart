@@ -48,39 +48,49 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
         await _createIndexes(m);
       },
+
       onUpgrade: (Migrator m, int from, int to) async {
         if (from < 2) {
           await m.createTable(settings);
         }
+
         if (from < 3) {
           await m.createTable(callDetails);
         }
+
         if (from < 4) {
           await m.createTable(tags);
           await m.createTable(callTags);
         }
+
         if (from < 5) {
           await m.addColumn(callDetails, callDetails.reminderAt);
         }
+
         if (from < 6) {
           await m.addColumn(callDetails, callDetails.reminderLabel);
         }
+
         if (from < 7) {
           await m.createTable(callAttachments);
         }
+
         if (from < 8) {
           await m.addColumn(settings, settings.showNotePreview);
           await m.addColumn(settings, settings.showTags);
           await m.addColumn(settings, settings.showReminderIndicator);
           await m.addColumn(settings, settings.showAttachmentCount);
         }
+
         if (from < 9) {
           await m.createTable(contactDetails);
           await m.createTable(contactTags);
         }
+
         if (from < 10) {
           await m.createTable(contactLinks);
         }
+
         if (from < 11) {
           await m.addColumn(contactDetails, contactDetails.colorValue);
           await m.addColumn(contactDetails, contactDetails.isArchived);
@@ -88,16 +98,20 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(contactDetails, contactDetails.preferredMethod);
           await m.addColumn(contactDetails, contactDetails.bestTimeToCall);
         }
+
         if (from < 12) {
           await m.createTable(profileFieldEntries);
           await m.createTable(profileMeta);
         }
+
         if (from < 13) {
           await _createIndexes(m);
         }
       },
+
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');
+
         await into(
           settings,
         ).insertOnConflictUpdate(const SettingsCompanion(id: Value(0)));
@@ -118,6 +132,7 @@ class AppDatabase extends _$AppDatabase {
             'Client',
             'Personal',
           ];
+
           for (final name in defaultTags) {
             await into(
               tags,
@@ -130,12 +145,19 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> _createIndexes(Migrator m) async {
     await customStatement(
-      'CREATE INDEX IF NOT EXISTS idx_calls_timestamp ON calls(timestamp)',
+      'CREATE INDEX IF NOT EXISTS idx_calls_timestamp '
+      'ON calls(timestamp)',
     );
+
     await customStatement(
-      'CREATE INDEX IF NOT EXISTS idx_calls_number ON calls(number)',
+      'CREATE INDEX IF NOT EXISTS idx_calls_number '
+      'ON calls(number)',
     );
   }
+
+  // ============================================================
+  // GENERIC
+  // ============================================================
 
   Future<List<Map<String, dynamic>>> getRawRows<
     T extends Table,
@@ -143,8 +165,13 @@ class AppDatabase extends _$AppDatabase {
   >(TableInfo<T, D> table) async {
     final query = table.select();
     final rows = await query.get();
+
     return rows.map((row) => row.toJson()).toList();
   }
+
+  // ============================================================
+  // CALLS
+  // ============================================================
 
   Stream<List<Call>> watchAllCalls() {
     return (select(calls)..orderBy([
@@ -155,168 +182,20 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int?> getLatestTimestamp() async {
     final query = selectOnly(calls)..addColumns([calls.timestamp.max()]);
+
     final row = await query.getSingleOrNull();
+
     return row?.read(calls.timestamp.max());
-  }
-
-  Stream<Setting> watchSettings() {
-    return (select(settings)..where((s) => s.id.equals(0))).watchSingle();
-  }
-
-  Future<void> updateSetting(SettingsCompanion updated) {
-    return (update(settings)..where((s) => s.id.equals(0))).write(updated);
-  }
-
-  Future<bool> getArchiveMode() async {
-    final row = await (select(
-      settings,
-    )..where((s) => s.id.equals(0))).getSingle();
-    return row.archiveMode;
   }
 
   Future<bool> hasAnyCalls() async {
     final row = await (selectOnly(
       calls,
     )..addColumns([calls.id.count()])).getSingle();
+
     final count = row.read(calls.id.count()) ?? 0;
+
     return count > 0;
-  }
-
-  Stream<CallDetail?> watchDetailsForCall(int callId) {
-    return (select(
-      callDetails,
-    )..where((d) => d.callId.equals(callId))).watchSingleOrNull();
-  }
-
-  Future<void> saveNote(int callId, String note) async {
-    final existing = await (select(
-      callDetails,
-    )..where((t) => t.callId.equals(callId))).getSingleOrNull();
-
-    if (existing == null) {
-      await into(
-        callDetails,
-      ).insert(CallDetailsCompanion.insert(callId: callId, note: Value(note)));
-    } else {
-      await (update(callDetails)..where((t) => t.callId.equals(callId))).write(
-        CallDetailsCompanion(note: Value(note)),
-      );
-    }
-  }
-
-  Stream<List<Tag>> watchTagsForCall(int callId) {
-    final query = select(tags).join([
-      innerJoin(callTags, callTags.tagId.equalsExp(tags.id)),
-    ])..where(callTags.callId.equals(callId));
-
-    return query.watch().map(
-      (rows) => rows.map((row) => row.readTable(tags)).toList(),
-    );
-  }
-
-  Future<void> addTagToCall(int callId, String tagName) async {
-    final normalizedName = tagName.trim();
-    if (normalizedName.isEmpty) return;
-
-    final existingTag = await (select(
-      tags,
-    )..where((t) => t.name.equals(normalizedName))).getSingleOrNull();
-
-    final tagId =
-        existingTag?.id ??
-        await into(tags).insert(TagsCompanion.insert(name: normalizedName));
-
-    await into(callTags).insertOnConflictUpdate(
-      CallTagsCompanion.insert(callId: callId, tagId: tagId),
-    );
-  }
-
-  Future<void> removeTagFromCall(int callId, int tagId) async {
-    await (delete(
-      callTags,
-    )..where((t) => t.callId.equals(callId) & t.tagId.equals(tagId))).go();
-  }
-
-  Future<List<Tag>> getAllTags() {
-    return select(tags).get();
-  }
-
-  Stream<CallDetail?> watchReminderForCall(int callId) {
-    return (select(
-      callDetails,
-    )..where((d) => d.callId.equals(callId))).watchSingleOrNull();
-  }
-
-  Future<void> saveReminder(
-    int callId,
-    DateTime reminderTime,
-    String? label,
-  ) async {
-    final existing = await (select(
-      callDetails,
-    )..where((d) => d.callId.equals(callId))).getSingleOrNull();
-
-    if (existing == null) {
-      await into(callDetails).insert(
-        CallDetailsCompanion.insert(
-          callId: callId,
-          reminderAt: Value(reminderTime.millisecondsSinceEpoch),
-          reminderLabel: Value(label),
-        ),
-      );
-    } else {
-      await (update(callDetails)..where((d) => d.callId.equals(callId))).write(
-        CallDetailsCompanion(
-          reminderAt: Value(reminderTime.millisecondsSinceEpoch),
-          reminderLabel: Value(label),
-        ),
-      );
-    }
-  }
-
-  Future<void> clearReminder(int callId) async {
-    await (update(callDetails)..where((d) => d.callId.equals(callId))).write(
-      const CallDetailsCompanion(
-        reminderAt: Value(null),
-        reminderLabel: Value(null),
-      ),
-    );
-  }
-
-  Stream<List<CallAttachment>> watchAttachmentsForCall(int callId) {
-    return (select(
-      callAttachments,
-    )..where((a) => a.callId.equals(callId))).watch();
-  }
-
-  Future<void> addAttachment({
-    required int callId,
-    required String filePath,
-    required String originalFileName,
-    required String fileType,
-  }) async {
-    await into(callAttachments).insert(
-      CallAttachmentsCompanion.insert(
-        callId: callId,
-        filePath: filePath,
-        originalFileName: originalFileName,
-        fileType: fileType,
-        addedAt: DateTime.now().millisecondsSinceEpoch,
-      ),
-    );
-  }
-
-  Future<void> deleteAttachment(int id) async {
-    await (delete(callAttachments)..where((a) => a.id.equals(id))).go();
-  }
-
-  Stream<int> watchAttachmentCountForCall(int callId) {
-    final query = selectOnly(callAttachments)
-      ..addColumns([callAttachments.id.count()])
-      ..where(callAttachments.callId.equals(callId));
-    return query.watchSingle().map(
-      (row) => row.read(callAttachments.id.count()) ?? 0,
-    );
   }
 
   Stream<List<Call>> searchCalls({
@@ -332,6 +211,7 @@ class AppDatabase extends _$AppDatabase {
 
     if (contactQuery.isNotEmpty) {
       final likeQuery = '%$contactQuery%';
+
       selectQuery.where(
         calls.name.like(likeQuery) | calls.number.like(likeQuery),
       );
@@ -378,6 +258,208 @@ class AppDatabase extends _$AppDatabase {
       (rows) => rows.map((row) => row.readTable(calls)).toList(),
     );
   }
+
+  Stream<List<Call>> watchCallsForNumber(String normalizedNumber) {
+    final query = select(calls)
+      ..where((c) => c.number.like('%$normalizedNumber'))
+      ..orderBy([
+        (c) => OrderingTerm(expression: c.timestamp, mode: OrderingMode.desc),
+      ]);
+
+    return query.watch();
+  }
+
+  // ============================================================
+  // SETTINGS
+  // ============================================================
+
+  Stream<Setting> watchSettings() {
+    return (select(settings)..where((s) => s.id.equals(0))).watchSingle();
+  }
+
+  Future<void> updateSetting(SettingsCompanion updated) {
+    return (update(settings)..where((s) => s.id.equals(0))).write(updated);
+  }
+
+  Future<bool> getArchiveMode() async {
+    final row = await (select(
+      settings,
+    )..where((s) => s.id.equals(0))).getSingle();
+
+    return row.archiveMode;
+  }
+
+  // ============================================================
+  // CALL DETAILS / NOTES
+  // ============================================================
+
+  Stream<CallDetail?> watchDetailsForCall(int callId) {
+    return (select(
+      callDetails,
+    )..where((d) => d.callId.equals(callId))).watchSingleOrNull();
+  }
+
+  Future<void> saveNote(int callId, String note) async {
+    final existing = await (select(
+      callDetails,
+    )..where((t) => t.callId.equals(callId))).getSingleOrNull();
+
+    if (existing == null) {
+      await into(
+        callDetails,
+      ).insert(CallDetailsCompanion.insert(callId: callId, note: Value(note)));
+    } else {
+      await (update(callDetails)..where((t) => t.callId.equals(callId))).write(
+        CallDetailsCompanion(note: Value(note)),
+      );
+    }
+  }
+
+  Stream<CallDetail?> watchReminderForCall(int callId) {
+    return (select(
+      callDetails,
+    )..where((d) => d.callId.equals(callId))).watchSingleOrNull();
+  }
+
+  Future<void> saveReminder(
+    int callId,
+    DateTime reminderTime,
+    String? label,
+  ) async {
+    final existing = await (select(
+      callDetails,
+    )..where((d) => d.callId.equals(callId))).getSingleOrNull();
+
+    if (existing == null) {
+      await into(callDetails).insert(
+        CallDetailsCompanion.insert(
+          callId: callId,
+          reminderAt: Value(reminderTime.millisecondsSinceEpoch),
+          reminderLabel: Value(label),
+        ),
+      );
+    } else {
+      await (update(callDetails)..where((d) => d.callId.equals(callId))).write(
+        CallDetailsCompanion(
+          reminderAt: Value(reminderTime.millisecondsSinceEpoch),
+          reminderLabel: Value(label),
+        ),
+      );
+    }
+  }
+
+  Future<void> clearReminder(int callId) async {
+    await (update(callDetails)..where((d) => d.callId.equals(callId))).write(
+      const CallDetailsCompanion(
+        reminderAt: Value(null),
+        reminderLabel: Value(null),
+      ),
+    );
+  }
+
+  Future<void> clearAllNotesForContact(String normalizedNumber) async {
+    await setContactFields(
+      normalizedNumber,
+      const ContactDetailsCompanion(generalNote: Value(null)),
+    );
+
+    final matchingCalls = await (select(
+      calls,
+    )..where((c) => c.number.like('%$normalizedNumber'))).get();
+
+    for (final call in matchingCalls) {
+      await (update(callDetails)..where((d) => d.callId.equals(call.id))).write(
+        const CallDetailsCompanion(note: Value(null)),
+      );
+    }
+  }
+
+  // ============================================================
+  // TAGS
+  // ============================================================
+
+  Stream<List<Tag>> watchTagsForCall(int callId) {
+    final query = select(tags).join([
+      innerJoin(callTags, callTags.tagId.equalsExp(tags.id)),
+    ])..where(callTags.callId.equals(callId));
+
+    return query.watch().map(
+      (rows) => rows.map((row) => row.readTable(tags)).toList(),
+    );
+  }
+
+  Future<void> addTagToCall(int callId, String tagName) async {
+    final normalizedName = tagName.trim();
+
+    if (normalizedName.isEmpty) return;
+
+    final existingTag = await (select(
+      tags,
+    )..where((t) => t.name.equals(normalizedName))).getSingleOrNull();
+
+    final tagId =
+        existingTag?.id ??
+        await into(tags).insert(TagsCompanion.insert(name: normalizedName));
+
+    await into(callTags).insertOnConflictUpdate(
+      CallTagsCompanion.insert(callId: callId, tagId: tagId),
+    );
+  }
+
+  Future<void> removeTagFromCall(int callId, int tagId) async {
+    await (delete(
+      callTags,
+    )..where((t) => t.callId.equals(callId) & t.tagId.equals(tagId))).go();
+  }
+
+  Future<List<Tag>> getAllTags() {
+    return select(tags).get();
+  }
+
+  // ============================================================
+  // ATTACHMENTS
+  // ============================================================
+
+  Stream<List<CallAttachment>> watchAttachmentsForCall(int callId) {
+    return (select(
+      callAttachments,
+    )..where((a) => a.callId.equals(callId))).watch();
+  }
+
+  Future<void> addAttachment({
+    required int callId,
+    required String filePath,
+    required String originalFileName,
+    required String fileType,
+  }) async {
+    await into(callAttachments).insert(
+      CallAttachmentsCompanion.insert(
+        callId: callId,
+        filePath: filePath,
+        originalFileName: originalFileName,
+        fileType: fileType,
+        addedAt: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
+  }
+
+  Future<void> deleteAttachment(int id) async {
+    await (delete(callAttachments)..where((a) => a.id.equals(id))).go();
+  }
+
+  Stream<int> watchAttachmentCountForCall(int callId) {
+    final query = selectOnly(callAttachments)
+      ..addColumns([callAttachments.id.count()])
+      ..where(callAttachments.callId.equals(callId));
+
+    return query.watchSingle().map(
+      (row) => row.read(callAttachments.id.count()) ?? 0,
+    );
+  }
+
+  // ============================================================
+  // CONTACT DETAILS
+  // ============================================================
 
   Stream<ContactDetail?> watchContactDetails(String normalizedNumber) {
     return (select(contactDetails)
@@ -428,6 +510,48 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<void> setContactFields(
+    String normalizedNumber,
+    ContactDetailsCompanion fields,
+  ) async {
+    final existing =
+        await (select(contactDetails)
+              ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+            .getSingleOrNull();
+
+    if (existing == null) {
+      await into(contactDetails).insert(
+        ContactDetailsCompanion.insert(
+          normalizedNumber: normalizedNumber,
+        ).copyWith(
+          colorValue: fields.colorValue,
+          isArchived: fields.isArchived,
+          ignoreFromAnalytics: fields.ignoreFromAnalytics,
+          preferredMethod: fields.preferredMethod,
+          bestTimeToCall: fields.bestTimeToCall,
+          generalNote: fields.generalNote,
+        ),
+      );
+    } else {
+      await (update(contactDetails)
+            ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
+          .write(fields);
+    }
+  }
+
+  Stream<Set<String>> watchFavoriteNumbers() {
+    final query = select(contactDetails)
+      ..where((c) => c.isFavorite.equals(true));
+
+    return query.watch().map(
+      (rows) => rows.map((r) => r.normalizedNumber).toSet(),
+    );
+  }
+
+  // ============================================================
+  // CONTACT TAGS
+  // ============================================================
+
   Stream<List<Tag>> watchTagsForContact(String normalizedNumber) {
     final query = select(tags).join([
       innerJoin(contactTags, contactTags.tagId.equalsExp(tags.id)),
@@ -440,6 +564,7 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> addTagToContact(String normalizedNumber, String tagName) async {
     final name = tagName.trim();
+
     if (name.isEmpty) return;
 
     final existingTag = await (select(
@@ -467,23 +592,9 @@ class AppDatabase extends _$AppDatabase {
         .go();
   }
 
-  Stream<List<Call>> watchCallsForNumber(String normalizedNumber) {
-    final query = select(calls)
-      ..where((c) => c.number.like('%$normalizedNumber'))
-      ..orderBy([
-        (c) => OrderingTerm(expression: c.timestamp, mode: OrderingMode.desc),
-      ]);
-
-    return query.watch();
-  }
-
-  Stream<Set<String>> watchFavoriteNumbers() {
-    final query = select(contactDetails)
-      ..where((c) => c.isFavorite.equals(true));
-    return query.watch().map(
-      (rows) => rows.map((r) => r.normalizedNumber).toSet(),
-    );
-  }
+  // ============================================================
+  // CONTACT LINKS
+  // ============================================================
 
   Stream<List<ContactLink>> watchLinksForContact(String normalizedNumber) {
     return (select(
@@ -515,56 +626,14 @@ class AppDatabase extends _$AppDatabase {
     await (delete(contactLinks)..where((l) => l.id.equals(id))).go();
   }
 
-  Future<void> setContactFields(
-    String normalizedNumber,
-    ContactDetailsCompanion fields,
-  ) async {
-    final existing =
-        await (select(contactDetails)
-              ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
-            .getSingleOrNull();
-
-    if (existing == null) {
-      await into(contactDetails).insert(
-        ContactDetailsCompanion.insert(
-          normalizedNumber: normalizedNumber,
-        ).copyWith(
-          colorValue: fields.colorValue,
-          isArchived: fields.isArchived,
-          ignoreFromAnalytics: fields.ignoreFromAnalytics,
-          preferredMethod: fields.preferredMethod,
-          bestTimeToCall: fields.bestTimeToCall,
-          generalNote: fields.generalNote,
-        ),
-      );
-    } else {
-      await (update(contactDetails)
-            ..where((c) => c.normalizedNumber.equals(normalizedNumber)))
-          .write(fields);
-    }
-  }
-
-  Future<void> clearAllNotesForContact(String normalizedNumber) async {
-    await setContactFields(
-      normalizedNumber,
-      const ContactDetailsCompanion(generalNote: Value(null)),
-    );
-
-    final matchingCalls = await (select(
-      calls,
-    )..where((c) => c.number.like('%$normalizedNumber'))).get();
-
-    for (final call in matchingCalls) {
-      await (update(callDetails)..where((d) => d.callId.equals(call.id))).write(
-        const CallDetailsCompanion(note: Value(null)),
-      );
-    }
-  }
+  // ============================================================
+  // PROFILE
+  // ============================================================
 
   Stream<Map<String, ProfileFieldEntry>> watchProfileFields() {
-    return select(profileFieldEntries).watch().map((rows) {
-      return {for (final row in rows) row.key: row};
-    });
+    return select(
+      profileFieldEntries,
+    ).watch().map((rows) => {for (final row in rows) row.key: row});
   }
 
   Future<void> setProfileFieldValue(String key, String value) async {
@@ -597,55 +666,166 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<Map<String, int>> getCallCountsByDay(DateTime since) async {
-    final sinceMs = since.millisecondsSinceEpoch;
+  // ============================================================
+  // ANALYTICS
+  // ============================================================
 
-    final query = customSelect(
-      '''
-      SELECT strftime('%Y-%m-%d', timestamp / 1000, 'unixepoch', 'localtime') AS day,
-             COUNT(*) AS count
+  Future<Map<String, int>> getCallCountsByDay(
+    DateTime since, {
+    DateTime? until,
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT strftime(
+        '%Y-%m-%d',
+        timestamp / 1000,
+        'unixepoch',
+        'localtime'
+      ) AS day,
+      COUNT(*) AS count
       FROM calls
       WHERE timestamp >= ?
-      GROUP BY day
-      ''',
-      variables: [Variable.withInt(sinceMs)],
+    ''');
+
+    final variables = <Variable>[
+      Variable.withInt(since.millisecondsSinceEpoch),
+    ];
+
+    if (until != null) {
+      buffer.write(' AND timestamp <= ?');
+      variables.add(Variable.withInt(until.millisecondsSinceEpoch));
+    }
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    buffer.write(' GROUP BY day');
+
+    final query = customSelect(
+      buffer.toString(),
+      variables: variables,
       readsFrom: {calls},
     );
 
     final rows = await query.get();
+
     return {
       for (final row in rows) row.read<String>('day'): row.read<int>('count'),
     };
   }
 
-  Future<List<CallNumberStat>> getCallStatsByNumber() async {
-    final query = customSelect(
-      '''
-      SELECT number, COUNT(*) AS count, MAX(timestamp) AS last_timestamp, name
+  Future<List<CallNumberStat>> getCallStatsByNumber({
+    DateTime? since,
+    DateTime? until,
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT
+        number,
+        COUNT(*) AS count,
+        MAX(timestamp) AS last_timestamp,
+        SUM(duration) AS total_duration,
+        name
       FROM calls
       WHERE number IS NOT NULL
-      GROUP BY number
-      ''',
+    ''');
+
+    final variables = <Variable>[];
+
+    if (since != null) {
+      buffer.write(' AND timestamp >= ?');
+      variables.add(Variable.withInt(since.millisecondsSinceEpoch));
+    }
+
+    if (until != null) {
+      buffer.write(' AND timestamp <= ?');
+      variables.add(Variable.withInt(until.millisecondsSinceEpoch));
+    }
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    buffer.write(' GROUP BY number');
+
+    final query = customSelect(
+      buffer.toString(),
+      variables: variables,
       readsFrom: {calls},
     );
 
     final rows = await query.get();
+
     return rows.map((row) {
       return CallNumberStat(
         number: row.read<String>('number'),
         count: row.read<int>('count'),
         lastTimestamp: row.read<int>('last_timestamp'),
+        totalDuration: row.readNullable<int>('total_duration') ?? 0,
         name: row.readNullable<String>('name'),
       );
     }).toList();
   }
 
-  Future<Map<int, int>> getCallCountsByType() async {
+  Future<Map<int, int>> getCallCountsByType({
+    DateTime? since,
+    DateTime? until,
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT type, COUNT(*) AS count
+      FROM calls
+      WHERE 1 = 1
+    ''');
+
+    final variables = <Variable>[];
+
+    if (since != null) {
+      buffer.write(' AND timestamp >= ?');
+      variables.add(Variable.withInt(since.millisecondsSinceEpoch));
+    }
+
+    if (until != null) {
+      buffer.write(' AND timestamp <= ?');
+      variables.add(Variable.withInt(until.millisecondsSinceEpoch));
+    }
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    buffer.write(' GROUP BY type');
+
     final query = customSelect(
-      'SELECT type, COUNT(*) AS count FROM calls GROUP BY type',
+      buffer.toString(),
+      variables: variables,
       readsFrom: {calls},
     );
+
     final rows = await query.get();
+
     return {
       for (final row in rows) row.read<int>('type'): row.read<int>('count'),
     };
@@ -653,116 +833,398 @@ class AppDatabase extends _$AppDatabase {
 
   Future<Map<String, int>> getCallCountsByPeriod(
     DateTime since,
-    String periodFormat,
-  ) async {
-    final sinceMs = since.millisecondsSinceEpoch;
-
-    final query = customSelect(
-      '''
-      SELECT strftime('$periodFormat', timestamp / 1000, 'unixepoch', 'localtime') AS period,
-             COUNT(*) AS count
+    DateTime until,
+    String periodFormat, {
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT
+        strftime(
+          '$periodFormat',
+          timestamp / 1000,
+          'unixepoch',
+          'localtime'
+        ) AS period,
+        COUNT(*) AS count
       FROM calls
       WHERE timestamp >= ?
-      GROUP BY period
-      ''',
-      variables: [Variable.withInt(sinceMs)],
+        AND timestamp <= ?
+    ''');
+
+    final variables = <Variable>[
+      Variable.withInt(since.millisecondsSinceEpoch),
+      Variable.withInt(until.millisecondsSinceEpoch),
+    ];
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    buffer.write(' GROUP BY period');
+
+    final query = customSelect(
+      buffer.toString(),
+      variables: variables,
       readsFrom: {calls},
     );
 
     final rows = await query.get();
+
     return {
       for (final row in rows)
         row.read<String>('period'): row.read<int>('count'),
     };
   }
 
-  Future<Map<String, int>> getCallCountsByTag() async {
-    final query = customSelect(
-      '''
-      SELECT tags.name AS tag_name, COUNT(*) AS count
+  Future<Map<String, int>> getCallCountsByTag({
+    DateTime? since,
+    DateTime? until,
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT
+        tags.name AS tag_name,
+        COUNT(*) AS count
       FROM call_tags
-      INNER JOIN tags ON tags.id = call_tags.tag_id
+      INNER JOIN tags
+        ON tags.id = call_tags.tag_id
+      INNER JOIN calls
+        ON calls.id = call_tags.call_id
+      WHERE 1 = 1
+    ''');
+
+    final variables = <Variable>[];
+
+    if (since != null) {
+      buffer.write(' AND calls.timestamp >= ?');
+      variables.add(Variable.withInt(since.millisecondsSinceEpoch));
+    }
+
+    if (until != null) {
+      buffer.write(' AND calls.timestamp <= ?');
+      variables.add(Variable.withInt(until.millisecondsSinceEpoch));
+    }
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND calls.number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND calls.type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    buffer.write('''
       GROUP BY tags.name
       ORDER BY count DESC
-      ''',
-      readsFrom: {callTags, tags},
+    ''');
+
+    final query = customSelect(
+      buffer.toString(),
+      variables: variables,
+      readsFrom: {calls, callTags, tags},
     );
 
     final rows = await query.get();
+
     return {
       for (final row in rows)
         row.read<String>('tag_name'): row.read<int>('count'),
     };
   }
 
-  Future<Map<int, int>> getCallCountsByHour() async {
-    final query = customSelect(
-      '''
-      SELECT CAST(strftime('%H', timestamp / 1000, 'unixepoch', 'localtime') AS INTEGER) AS hour,
-             COUNT(*) AS count
+  Future<Map<int, int>> getCallCountsByHour({
+    DateTime? since,
+    DateTime? until,
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT
+        CAST(
+          strftime(
+            '%H',
+            timestamp / 1000,
+            'unixepoch',
+            'localtime'
+          ) AS INTEGER
+        ) AS hour,
+        COUNT(*) AS count
       FROM calls
-      GROUP BY hour
-      ''',
+      WHERE 1 = 1
+    ''');
+
+    final variables = <Variable>[];
+
+    if (since != null) {
+      buffer.write(' AND timestamp >= ?');
+      variables.add(Variable.withInt(since.millisecondsSinceEpoch));
+    }
+
+    if (until != null) {
+      buffer.write(' AND timestamp <= ?');
+      variables.add(Variable.withInt(until.millisecondsSinceEpoch));
+    }
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    buffer.write(' GROUP BY hour');
+
+    final query = customSelect(
+      buffer.toString(),
+      variables: variables,
       readsFrom: {calls},
     );
+
     final rows = await query.get();
+
     return {
       for (final row in rows) row.read<int>('hour'): row.read<int>('count'),
     };
   }
 
-  Future<int> getLongestCallDuration() async {
+  Future<int> getLongestCallDuration({
+    DateTime? since,
+    DateTime? until,
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT MAX(duration) AS max_duration
+      FROM calls
+      WHERE 1 = 1
+    ''');
+
+    final variables = <Variable>[];
+
+    if (since != null) {
+      buffer.write(' AND timestamp >= ?');
+      variables.add(Variable.withInt(since.millisecondsSinceEpoch));
+    }
+
+    if (until != null) {
+      buffer.write(' AND timestamp <= ?');
+      variables.add(Variable.withInt(until.millisecondsSinceEpoch));
+    }
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
     final query = customSelect(
-      'SELECT MAX(duration) AS max_duration FROM calls',
+      buffer.toString(),
+      variables: variables,
       readsFrom: {calls},
     );
+
     final row = await query.getSingle();
+
     return row.readNullable<int>('max_duration') ?? 0;
   }
-  Future<Map<String, dynamic>> getContactCallStats(String normalizedNumber) async {
-    final query = customSelect(
-      '''
-      SELECT COUNT(*) AS total, SUM(duration) AS total_duration,
-             AVG(duration) AS avg_duration,
-             SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) AS incoming,
-             SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END) AS outgoing
+
+  Future<Map<String, int>> getDurationByPeriod(
+    DateTime since,
+    DateTime until,
+    String periodFormat, {
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT
+        strftime(
+          '$periodFormat',
+          timestamp / 1000,
+          'unixepoch',
+          'localtime'
+        ) AS period,
+        SUM(duration) AS total_duration
       FROM calls
-      WHERE number LIKE ?
-      ''',
-      variables: [Variable.withString('%$normalizedNumber')],
+      WHERE timestamp >= ?
+        AND timestamp <= ?
+    ''');
+
+    final variables = <Variable>[
+      Variable.withInt(since.millisecondsSinceEpoch),
+      Variable.withInt(until.millisecondsSinceEpoch),
+    ];
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    buffer.write(' GROUP BY period');
+
+    final query = customSelect(
+      buffer.toString(),
+      variables: variables,
       readsFrom: {calls},
     );
-    final row = await query.getSingle();
+
+    final rows = await query.get();
+
     return {
-      'total': row.readNullable<int>('total') ?? 0,
-      'totalDuration': row.readNullable<int>('total_duration') ?? 0,
-      'avgDuration': row.readNullable<double>('avg_duration') ?? 0,
-      'incoming': row.readNullable<int>('incoming') ?? 0,
-      'outgoing': row.readNullable<int>('outgoing') ?? 0,
+      for (final row in rows)
+        row.read<String>('period'):
+            row.readNullable<int>('total_duration') ?? 0,
     };
   }
 
-  Future<Map<int, int>> getCallCountsByWeekday() async {
-    final query = customSelect(
-      '''
-      SELECT CAST(strftime('%w', timestamp / 1000, 'unixepoch', 'localtime') AS INTEGER) AS weekday,
-             COUNT(*) AS count
+  Future<Map<int, int>> getCallCountsByWeekday({
+    DateTime? since,
+    DateTime? until,
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT
+        CAST(
+          strftime(
+            '%w',
+            timestamp / 1000,
+            'unixepoch',
+            'localtime'
+          ) AS INTEGER
+        ) AS weekday,
+        COUNT(*) AS count
       FROM calls
-      GROUP BY weekday
-      ''',
+      WHERE 1 = 1
+    ''');
+
+    final variables = <Variable>[];
+
+    if (since != null) {
+      buffer.write(' AND timestamp >= ?');
+      variables.add(Variable.withInt(since.millisecondsSinceEpoch));
+    }
+
+    if (until != null) {
+      buffer.write(' AND timestamp <= ?');
+      variables.add(Variable.withInt(until.millisecondsSinceEpoch));
+    }
+
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    buffer.write(' GROUP BY weekday');
+
+    final query = customSelect(
+      buffer.toString(),
+      variables: variables,
       readsFrom: {calls},
     );
+
     final rows = await query.get();
+
     return {
       for (final row in rows) row.read<int>('weekday'): row.read<int>('count'),
     };
   }
+
+  Future<Map<String, dynamic>> getContactCallStats(
+    String normalizedNumber, {
+    DateTime? since,
+    DateTime? until,
+    int? callType,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT
+        COUNT(*) AS total,
+        SUM(duration) AS total_duration,
+        AVG(duration) AS avg_duration,
+        SUM(
+          CASE WHEN type = 1 THEN 1 ELSE 0 END
+        ) AS incoming,
+        SUM(
+          CASE WHEN type = 2 THEN 1 ELSE 0 END
+        ) AS outgoing
+      FROM calls
+      WHERE number LIKE ?
+    ''');
+
+    final variables = <Variable>[Variable.withString('%$normalizedNumber')];
+
+    if (since != null) {
+      buffer.write(' AND timestamp >= ?');
+      variables.add(Variable.withInt(since.millisecondsSinceEpoch));
+    }
+
+    if (until != null) {
+      buffer.write(' AND timestamp <= ?');
+      variables.add(Variable.withInt(until.millisecondsSinceEpoch));
+    }
+
+    if (callType != null) {
+      buffer.write(' AND type = ?');
+      variables.add(Variable.withInt(callType));
+    }
+
+    final query = customSelect(
+      buffer.toString(),
+      variables: variables,
+      readsFrom: {calls},
+    );
+
+    final row = await query.getSingle();
+
+    final avgDuration =
+        row.readNullable<num>('avg_duration')?.toDouble() ?? 0.0;
+
+    return {
+      'total': row.readNullable<int>('total') ?? 0,
+      'totalDuration': row.readNullable<int>('total_duration') ?? 0,
+      'avgDuration': avgDuration,
+      'incoming': row.readNullable<int>('incoming') ?? 0,
+      'outgoing': row.readNullable<int>('outgoing') ?? 0,
+    };
+  }
 }
+
+// ============================================================
+// DATABASE CONNECTION
+// ============================================================
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
+
     final file = File(p.join(dbFolder.path, 'convolens.sqlite'));
+
     return NativeDatabase(file);
   });
 }

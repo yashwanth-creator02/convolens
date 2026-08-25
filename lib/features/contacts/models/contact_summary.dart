@@ -8,6 +8,7 @@ class ContactSummary {
   final String displayNumber;
   final int callCount;
   final int? lastCallAt;
+  final int totalDuration;
 
   const ContactSummary({
     this.deviceContactId,
@@ -17,5 +18,6 @@ class ContactSummary {
     required this.displayNumber,
     required this.callCount,
     this.lastCallAt,
+    required this.totalDuration,
   });
 }
