@@ -1227,6 +1227,7 @@ class AppDatabase extends _$AppDatabase {
         COUNT(*) AS total,
         SUM(duration) AS total_duration,
         AVG(duration) AS avg_duration,
+        MAX(timestamp) AS last_ts,
         SUM(
           CASE WHEN type = 1 THEN 1 ELSE 0 END
         ) AS incoming,
@@ -1262,8 +1263,7 @@ class AppDatabase extends _$AppDatabase {
 
     final row = await query.getSingle();
 
-    final avgDuration =
-        row.readNullable<num>('avg_duration')?.toDouble() ?? 0.0;
+    final avgDuration = row.readNullable<double>('avg_duration') ?? 0.0;
 
     return {
       'total': row.readNullable<int>('total') ?? 0,
@@ -1271,7 +1271,18 @@ class AppDatabase extends _$AppDatabase {
       'avgDuration': avgDuration,
       'incoming': row.readNullable<int>('incoming') ?? 0,
       'outgoing': row.readNullable<int>('outgoing') ?? 0,
+      'lastCallAt': row.readNullable<int>('last_ts'),
     };
+  }
+
+  Future<int?> getFirstCallTimestamp(String normalizedNumberSuffix) async {
+    final query = customSelect(
+      'SELECT MIN(timestamp) AS first_ts FROM calls WHERE number LIKE ?',
+      variables: [Variable.withString('%$normalizedNumberSuffix')],
+      readsFrom: {calls},
+    );
+    final row = await query.getSingle();
+    return row.readNullable<int>('first_ts');
   }
 }
 

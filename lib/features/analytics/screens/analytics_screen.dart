@@ -12,6 +12,7 @@ import '../repository/analytics_repository.dart';
 import '../widgets/contribution_heatmap.dart';
 import '../widgets/relationship_web.dart';
 import 'comparison_screen.dart';
+import 'yearly_recap_screen.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -602,6 +603,23 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       onTap: () => _openContact(c),
                     ),
                   ),
+
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => YearlyRecapScreen(
+                      db: widget.db,
+                      deviceContacts: _deviceContacts,
+                      year: DateTime.now().year,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.auto_awesome, size: 18),
+              label: Text('${DateTime.now().year} Recap'),
+            ),
           ],
         );
       },
