@@ -8,12 +8,14 @@ class AnalyticsFilters {
   final DateTime? customEnd;
   final String? contactNormalizedNumber;
   final CallTypeFilter callType;
+  final int? tagId;
 
   const AnalyticsFilters({
     this.dateRange = DateRangeOption.last30,
     this.customStart,
     this.customEnd,
     this.contactNormalizedNumber,
+    this.tagId,
     this.callType = CallTypeFilter.all,
   });
 
@@ -23,6 +25,8 @@ class AnalyticsFilters {
     DateTime? customEnd,
     String? contactNormalizedNumber,
     bool clearContact = false,
+    int? tagId,
+    bool clearTag = false,
     CallTypeFilter? callType,
   }) {
     return AnalyticsFilters(
@@ -32,6 +36,7 @@ class AnalyticsFilters {
       contactNormalizedNumber: clearContact
           ? null
           : (contactNormalizedNumber ?? this.contactNormalizedNumber),
+      tagId: clearTag ? null : (tagId ?? this.tagId),
       callType: callType ?? this.callType,
     );
   }

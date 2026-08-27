@@ -34,6 +34,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   bool _rankByDuration = false;
 
   String? _selectedContactName;
+  String? _selectedTagName;
 
   @override
   void initState() {
@@ -152,6 +153,41 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
   }
 
+  Future<void> _pickTagFilter() async {
+    final allTags = await widget.db.getAllTags();
+
+    if (!mounted) return;
+
+    final selected = await showDialog<Tag?>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Filter by tag'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('All Tags'),
+          ),
+          ...allTags.map(
+            (tag) => SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, tag),
+              child: Text(tag.name),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    setState(() {
+      if (selected == null) {
+        _filters = _filters.copyWith(clearTag: true);
+        _selectedTagName = null;
+      } else {
+        _filters = _filters.copyWith(tagId: selected.id);
+        _selectedTagName = selected.name;
+      }
+    });
+  }
+
   Future<void> _pickCustomDateRange() async {
     final range = await showDateRangePicker(
       context: context,
@@ -247,6 +283,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             .toList(),
       ),
     );
+
     if (first == null || !mounted) return;
 
     final second = await showDialog<ContactSummary>(
@@ -264,6 +301,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             .toList(),
       ),
     );
+
     if (second == null) return;
 
     _openComparison(
@@ -460,16 +498,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             ),
 
             const SizedBox(height: 24),
+
             const Text(
               'Your Network',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 4),
+
             const Text(
               'Line thickness reflects how often you talk',
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
+
             const SizedBox(height: 12),
+
             RelationshipWeb(
               contacts: summary.mostContacted,
               onContactTap: _openContact,
@@ -680,6 +723,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               },
             ),
           ],
+        ),
+
+        const SizedBox(height: 8),
+
+        OutlinedButton.icon(
+          onPressed: _pickTagFilter,
+          icon: const Icon(Icons.label_outline, size: 16),
+          label: Text(_selectedTagName ?? 'All Tags'),
         ),
       ],
     );

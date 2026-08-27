@@ -57,6 +57,7 @@ class AnalyticsRepository {
         periodFormat,
         contactNumberSuffix: contact,
         callType: type,
+        tagId: filters.tagId,
       );
 
       final durationByPeriod = await _db.getDurationByPeriod(
@@ -65,6 +66,7 @@ class AnalyticsRepository {
         periodFormat,
         contactNumberSuffix: contact,
         callType: type,
+        tagId: filters.tagId,
       );
 
       // ============================================================
@@ -79,6 +81,7 @@ class AnalyticsRepository {
         since: start,
         until: end,
         contactNumberSuffix: contact,
+        tagId: filters.tagId,
       );
 
       // ============================================================
@@ -90,6 +93,7 @@ class AnalyticsRepository {
         until: end,
         contactNumberSuffix: contact,
         callType: type,
+        tagId: filters.tagId,
       );
 
       // ============================================================
@@ -101,6 +105,7 @@ class AnalyticsRepository {
         until: end,
         contactNumberSuffix: contact,
         callType: type,
+        tagId: filters.tagId,
       );
 
       // ============================================================
@@ -112,6 +117,7 @@ class AnalyticsRepository {
         until: end,
         contactNumberSuffix: contact,
         callType: type,
+        tagId: filters.tagId,
       );
 
       // ============================================================
@@ -126,6 +132,7 @@ class AnalyticsRepository {
         '%Y-%m-%d',
         contactNumberSuffix: contact,
         callType: type,
+        tagId: filters.tagId,
       );
 
       // ============================================================
@@ -162,6 +169,7 @@ class AnalyticsRepository {
         since: start,
         until: end,
         callType: type,
+        tagId: filters.tagId,
       );
 
       // ============================================================

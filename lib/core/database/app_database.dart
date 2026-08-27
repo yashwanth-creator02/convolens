@@ -6,17 +6,17 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'models/call_number_stat.dart';
-import 'tables/calls_table.dart';
-import 'tables/settings_table.dart';
-import 'tables/call_details_table.dart';
-import 'tables/tags_table.dart';
-import 'tables/call_tags_table.dart';
 import 'tables/call_attachments_table.dart';
+import 'tables/call_details_table.dart';
+import 'tables/call_tags_table.dart';
+import 'tables/calls_table.dart';
 import 'tables/contact_details_table.dart';
-import 'tables/contact_tags_table.dart';
 import 'tables/contact_links_table.dart';
+import 'tables/contact_tags_table.dart';
 import 'tables/profile_fields_table.dart';
 import 'tables/profile_meta_table.dart';
+import 'tables/settings_table.dart';
+import 'tables/tags_table.dart';
 
 part 'app_database.g.dart';
 
@@ -731,6 +731,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? until,
     String? contactNumberSuffix,
     int? callType,
+    int? tagId,
   }) async {
     final buffer = StringBuffer('''
       SELECT
@@ -765,12 +766,19 @@ class AppDatabase extends _$AppDatabase {
       variables.add(Variable.withInt(callType));
     }
 
+    if (tagId != null) {
+      buffer.write(
+        ' AND id IN (SELECT call_id FROM call_tags WHERE tag_id = ?)',
+      );
+      variables.add(Variable.withInt(tagId));
+    }
+
     buffer.write(' GROUP BY number');
 
     final query = customSelect(
       buffer.toString(),
       variables: variables,
-      readsFrom: {calls},
+      readsFrom: {calls, callTags},
     );
 
     final rows = await query.get();
@@ -791,6 +799,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? until,
     String? contactNumberSuffix,
     int? callType,
+    int? tagId,
   }) async {
     final buffer = StringBuffer('''
       SELECT type, COUNT(*) AS count
@@ -820,12 +829,19 @@ class AppDatabase extends _$AppDatabase {
       variables.add(Variable.withInt(callType));
     }
 
+    if (tagId != null) {
+      buffer.write(
+        ' AND id IN (SELECT call_id FROM call_tags WHERE tag_id = ?)',
+      );
+      variables.add(Variable.withInt(tagId));
+    }
+
     buffer.write(' GROUP BY type');
 
     final query = customSelect(
       buffer.toString(),
       variables: variables,
-      readsFrom: {calls},
+      readsFrom: {calls, callTags},
     );
 
     final rows = await query.get();
@@ -841,6 +857,7 @@ class AppDatabase extends _$AppDatabase {
     String periodFormat, {
     String? contactNumberSuffix,
     int? callType,
+    int? tagId,
   }) async {
     final buffer = StringBuffer('''
       SELECT
@@ -871,12 +888,19 @@ class AppDatabase extends _$AppDatabase {
       variables.add(Variable.withInt(callType));
     }
 
+    if (tagId != null) {
+      buffer.write(
+        ' AND id IN (SELECT call_id FROM call_tags WHERE tag_id = ?)',
+      );
+      variables.add(Variable.withInt(tagId));
+    }
+
     buffer.write(' GROUP BY period');
 
     final query = customSelect(
       buffer.toString(),
       variables: variables,
-      readsFrom: {calls},
+      readsFrom: {calls, callTags},
     );
 
     final rows = await query.get();
@@ -951,6 +975,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? until,
     String? contactNumberSuffix,
     int? callType,
+    int? tagId,
   }) async {
     final buffer = StringBuffer('''
       SELECT
@@ -989,12 +1014,19 @@ class AppDatabase extends _$AppDatabase {
       variables.add(Variable.withInt(callType));
     }
 
+    if (tagId != null) {
+      buffer.write(
+        ' AND id IN (SELECT call_id FROM call_tags WHERE tag_id = ?)',
+      );
+      variables.add(Variable.withInt(tagId));
+    }
+
     buffer.write(' GROUP BY hour');
 
     final query = customSelect(
       buffer.toString(),
       variables: variables,
-      readsFrom: {calls},
+      readsFrom: {calls, callTags},
     );
 
     final rows = await query.get();
@@ -1009,6 +1041,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? until,
     String? contactNumberSuffix,
     int? callType,
+    int? tagId,
   }) async {
     final buffer = StringBuffer('''
       SELECT MAX(duration) AS max_duration
@@ -1038,10 +1071,17 @@ class AppDatabase extends _$AppDatabase {
       variables.add(Variable.withInt(callType));
     }
 
+    if (tagId != null) {
+      buffer.write(
+        ' AND id IN (SELECT call_id FROM call_tags WHERE tag_id = ?)',
+      );
+      variables.add(Variable.withInt(tagId));
+    }
+
     final query = customSelect(
       buffer.toString(),
       variables: variables,
-      readsFrom: {calls},
+      readsFrom: {calls, callTags},
     );
 
     final row = await query.getSingle();
@@ -1055,6 +1095,7 @@ class AppDatabase extends _$AppDatabase {
     String periodFormat, {
     String? contactNumberSuffix,
     int? callType,
+    int? tagId,
   }) async {
     final buffer = StringBuffer('''
       SELECT
@@ -1085,12 +1126,19 @@ class AppDatabase extends _$AppDatabase {
       variables.add(Variable.withInt(callType));
     }
 
+    if (tagId != null) {
+      buffer.write(
+        ' AND id IN (SELECT call_id FROM call_tags WHERE tag_id = ?)',
+      );
+      variables.add(Variable.withInt(tagId));
+    }
+
     buffer.write(' GROUP BY period');
 
     final query = customSelect(
       buffer.toString(),
       variables: variables,
-      readsFrom: {calls},
+      readsFrom: {calls, callTags},
     );
 
     final rows = await query.get();
@@ -1107,6 +1155,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? until,
     String? contactNumberSuffix,
     int? callType,
+    int? tagId,
   }) async {
     final buffer = StringBuffer('''
       SELECT
@@ -1145,12 +1194,19 @@ class AppDatabase extends _$AppDatabase {
       variables.add(Variable.withInt(callType));
     }
 
+    if (tagId != null) {
+      buffer.write(
+        ' AND id IN (SELECT call_id FROM call_tags WHERE tag_id = ?)',
+      );
+      variables.add(Variable.withInt(tagId));
+    }
+
     buffer.write(' GROUP BY weekday');
 
     final query = customSelect(
       buffer.toString(),
       variables: variables,
-      readsFrom: {calls},
+      readsFrom: {calls, callTags},
     );
 
     final rows = await query.get();
