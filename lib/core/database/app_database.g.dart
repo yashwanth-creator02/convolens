@@ -527,7 +527,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('light'),
+    defaultValue: const Constant('system'),
   );
   static const VerificationMeta _showContactNameMeta = const VerificationMeta(
     'showContactName',
@@ -678,6 +678,28 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _lastNotifiedStreakMeta =
+      const VerificationMeta('lastNotifiedStreak');
+  @override
+  late final GeneratedColumn<int> lastNotifiedStreak = GeneratedColumn<int>(
+    'last_notified_streak',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastWeeklySummaryTimestampMeta =
+      const VerificationMeta('lastWeeklySummaryTimestamp');
+  @override
+  late final GeneratedColumn<int> lastWeeklySummaryTimestamp =
+      GeneratedColumn<int>(
+        'last_weekly_summary_timestamp',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -695,6 +717,8 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     showTags,
     showReminderIndicator,
     showAttachmentCount,
+    lastNotifiedStreak,
+    lastWeeklySummaryTimestamp,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -822,6 +846,24 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         ),
       );
     }
+    if (data.containsKey('last_notified_streak')) {
+      context.handle(
+        _lastNotifiedStreakMeta,
+        lastNotifiedStreak.isAcceptableOrUnknown(
+          data['last_notified_streak']!,
+          _lastNotifiedStreakMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_weekly_summary_timestamp')) {
+      context.handle(
+        _lastWeeklySummaryTimestampMeta,
+        lastWeeklySummaryTimestamp.isAcceptableOrUnknown(
+          data['last_weekly_summary_timestamp']!,
+          _lastWeeklySummaryTimestampMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -891,6 +933,14 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.bool,
         data['${effectivePrefix}show_attachment_count'],
       )!,
+      lastNotifiedStreak: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_notified_streak'],
+      )!,
+      lastWeeklySummaryTimestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_weekly_summary_timestamp'],
+      ),
     );
   }
 
@@ -916,6 +966,8 @@ class Setting extends DataClass implements Insertable<Setting> {
   final bool showTags;
   final bool showReminderIndicator;
   final bool showAttachmentCount;
+  final int lastNotifiedStreak;
+  final int? lastWeeklySummaryTimestamp;
   const Setting({
     required this.id,
     required this.syncEnabled,
@@ -932,6 +984,8 @@ class Setting extends DataClass implements Insertable<Setting> {
     required this.showTags,
     required this.showReminderIndicator,
     required this.showAttachmentCount,
+    required this.lastNotifiedStreak,
+    this.lastWeeklySummaryTimestamp,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -951,6 +1005,12 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['show_tags'] = Variable<bool>(showTags);
     map['show_reminder_indicator'] = Variable<bool>(showReminderIndicator);
     map['show_attachment_count'] = Variable<bool>(showAttachmentCount);
+    map['last_notified_streak'] = Variable<int>(lastNotifiedStreak);
+    if (!nullToAbsent || lastWeeklySummaryTimestamp != null) {
+      map['last_weekly_summary_timestamp'] = Variable<int>(
+        lastWeeklySummaryTimestamp,
+      );
+    }
     return map;
   }
 
@@ -971,6 +1031,11 @@ class Setting extends DataClass implements Insertable<Setting> {
       showTags: Value(showTags),
       showReminderIndicator: Value(showReminderIndicator),
       showAttachmentCount: Value(showAttachmentCount),
+      lastNotifiedStreak: Value(lastNotifiedStreak),
+      lastWeeklySummaryTimestamp:
+          lastWeeklySummaryTimestamp == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastWeeklySummaryTimestamp),
     );
   }
 
@@ -999,6 +1064,10 @@ class Setting extends DataClass implements Insertable<Setting> {
       showAttachmentCount: serializer.fromJson<bool>(
         json['showAttachmentCount'],
       ),
+      lastNotifiedStreak: serializer.fromJson<int>(json['lastNotifiedStreak']),
+      lastWeeklySummaryTimestamp: serializer.fromJson<int?>(
+        json['lastWeeklySummaryTimestamp'],
+      ),
     );
   }
   @override
@@ -1020,6 +1089,10 @@ class Setting extends DataClass implements Insertable<Setting> {
       'showTags': serializer.toJson<bool>(showTags),
       'showReminderIndicator': serializer.toJson<bool>(showReminderIndicator),
       'showAttachmentCount': serializer.toJson<bool>(showAttachmentCount),
+      'lastNotifiedStreak': serializer.toJson<int>(lastNotifiedStreak),
+      'lastWeeklySummaryTimestamp': serializer.toJson<int?>(
+        lastWeeklySummaryTimestamp,
+      ),
     };
   }
 
@@ -1039,6 +1112,8 @@ class Setting extends DataClass implements Insertable<Setting> {
     bool? showTags,
     bool? showReminderIndicator,
     bool? showAttachmentCount,
+    int? lastNotifiedStreak,
+    Value<int?> lastWeeklySummaryTimestamp = const Value.absent(),
   }) => Setting(
     id: id ?? this.id,
     syncEnabled: syncEnabled ?? this.syncEnabled,
@@ -1055,6 +1130,10 @@ class Setting extends DataClass implements Insertable<Setting> {
     showTags: showTags ?? this.showTags,
     showReminderIndicator: showReminderIndicator ?? this.showReminderIndicator,
     showAttachmentCount: showAttachmentCount ?? this.showAttachmentCount,
+    lastNotifiedStreak: lastNotifiedStreak ?? this.lastNotifiedStreak,
+    lastWeeklySummaryTimestamp: lastWeeklySummaryTimestamp.present
+        ? lastWeeklySummaryTimestamp.value
+        : this.lastWeeklySummaryTimestamp,
   );
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
@@ -1091,6 +1170,12 @@ class Setting extends DataClass implements Insertable<Setting> {
       showAttachmentCount: data.showAttachmentCount.present
           ? data.showAttachmentCount.value
           : this.showAttachmentCount,
+      lastNotifiedStreak: data.lastNotifiedStreak.present
+          ? data.lastNotifiedStreak.value
+          : this.lastNotifiedStreak,
+      lastWeeklySummaryTimestamp: data.lastWeeklySummaryTimestamp.present
+          ? data.lastWeeklySummaryTimestamp.value
+          : this.lastWeeklySummaryTimestamp,
     );
   }
 
@@ -1111,7 +1196,9 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('showNotePreview: $showNotePreview, ')
           ..write('showTags: $showTags, ')
           ..write('showReminderIndicator: $showReminderIndicator, ')
-          ..write('showAttachmentCount: $showAttachmentCount')
+          ..write('showAttachmentCount: $showAttachmentCount, ')
+          ..write('lastNotifiedStreak: $lastNotifiedStreak, ')
+          ..write('lastWeeklySummaryTimestamp: $lastWeeklySummaryTimestamp')
           ..write(')'))
         .toString();
   }
@@ -1133,6 +1220,8 @@ class Setting extends DataClass implements Insertable<Setting> {
     showTags,
     showReminderIndicator,
     showAttachmentCount,
+    lastNotifiedStreak,
+    lastWeeklySummaryTimestamp,
   );
   @override
   bool operator ==(Object other) =>
@@ -1152,7 +1241,9 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.showNotePreview == this.showNotePreview &&
           other.showTags == this.showTags &&
           other.showReminderIndicator == this.showReminderIndicator &&
-          other.showAttachmentCount == this.showAttachmentCount);
+          other.showAttachmentCount == this.showAttachmentCount &&
+          other.lastNotifiedStreak == this.lastNotifiedStreak &&
+          other.lastWeeklySummaryTimestamp == this.lastWeeklySummaryTimestamp);
 }
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
@@ -1171,6 +1262,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<bool> showTags;
   final Value<bool> showReminderIndicator;
   final Value<bool> showAttachmentCount;
+  final Value<int> lastNotifiedStreak;
+  final Value<int?> lastWeeklySummaryTimestamp;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.syncEnabled = const Value.absent(),
@@ -1187,6 +1280,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.showTags = const Value.absent(),
     this.showReminderIndicator = const Value.absent(),
     this.showAttachmentCount = const Value.absent(),
+    this.lastNotifiedStreak = const Value.absent(),
+    this.lastWeeklySummaryTimestamp = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1204,6 +1299,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.showTags = const Value.absent(),
     this.showReminderIndicator = const Value.absent(),
     this.showAttachmentCount = const Value.absent(),
+    this.lastNotifiedStreak = const Value.absent(),
+    this.lastWeeklySummaryTimestamp = const Value.absent(),
   });
   static Insertable<Setting> custom({
     Expression<int>? id,
@@ -1221,6 +1318,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<bool>? showTags,
     Expression<bool>? showReminderIndicator,
     Expression<bool>? showAttachmentCount,
+    Expression<int>? lastNotifiedStreak,
+    Expression<int>? lastWeeklySummaryTimestamp,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1240,6 +1339,10 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
         'show_reminder_indicator': showReminderIndicator,
       if (showAttachmentCount != null)
         'show_attachment_count': showAttachmentCount,
+      if (lastNotifiedStreak != null)
+        'last_notified_streak': lastNotifiedStreak,
+      if (lastWeeklySummaryTimestamp != null)
+        'last_weekly_summary_timestamp': lastWeeklySummaryTimestamp,
     });
   }
 
@@ -1259,6 +1362,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Value<bool>? showTags,
     Value<bool>? showReminderIndicator,
     Value<bool>? showAttachmentCount,
+    Value<int>? lastNotifiedStreak,
+    Value<int?>? lastWeeklySummaryTimestamp,
   }) {
     return SettingsCompanion(
       id: id ?? this.id,
@@ -1277,6 +1382,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       showReminderIndicator:
           showReminderIndicator ?? this.showReminderIndicator,
       showAttachmentCount: showAttachmentCount ?? this.showAttachmentCount,
+      lastNotifiedStreak: lastNotifiedStreak ?? this.lastNotifiedStreak,
+      lastWeeklySummaryTimestamp:
+          lastWeeklySummaryTimestamp ?? this.lastWeeklySummaryTimestamp,
     );
   }
 
@@ -1330,6 +1438,14 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (showAttachmentCount.present) {
       map['show_attachment_count'] = Variable<bool>(showAttachmentCount.value);
     }
+    if (lastNotifiedStreak.present) {
+      map['last_notified_streak'] = Variable<int>(lastNotifiedStreak.value);
+    }
+    if (lastWeeklySummaryTimestamp.present) {
+      map['last_weekly_summary_timestamp'] = Variable<int>(
+        lastWeeklySummaryTimestamp.value,
+      );
+    }
     return map;
   }
 
@@ -1350,7 +1466,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('showNotePreview: $showNotePreview, ')
           ..write('showTags: $showTags, ')
           ..write('showReminderIndicator: $showReminderIndicator, ')
-          ..write('showAttachmentCount: $showAttachmentCount')
+          ..write('showAttachmentCount: $showAttachmentCount, ')
+          ..write('lastNotifiedStreak: $lastNotifiedStreak, ')
+          ..write('lastWeeklySummaryTimestamp: $lastWeeklySummaryTimestamp')
           ..write(')'))
         .toString();
   }
@@ -4700,6 +4818,8 @@ typedef $$SettingsTableCreateCompanionBuilder =
       Value<bool> showTags,
       Value<bool> showReminderIndicator,
       Value<bool> showAttachmentCount,
+      Value<int> lastNotifiedStreak,
+      Value<int?> lastWeeklySummaryTimestamp,
     });
 typedef $$SettingsTableUpdateCompanionBuilder =
     SettingsCompanion Function({
@@ -4718,6 +4838,8 @@ typedef $$SettingsTableUpdateCompanionBuilder =
       Value<bool> showTags,
       Value<bool> showReminderIndicator,
       Value<bool> showAttachmentCount,
+      Value<int> lastNotifiedStreak,
+      Value<int?> lastWeeklySummaryTimestamp,
     });
 
 class $$SettingsTableFilterComposer
@@ -4801,6 +4923,16 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<bool> get showAttachmentCount => $composableBuilder(
     column: $table.showAttachmentCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastNotifiedStreak => $composableBuilder(
+    column: $table.lastNotifiedStreak,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastWeeklySummaryTimestamp => $composableBuilder(
+    column: $table.lastWeeklySummaryTimestamp,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4888,6 +5020,16 @@ class $$SettingsTableOrderingComposer
     column: $table.showAttachmentCount,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get lastNotifiedStreak => $composableBuilder(
+    column: $table.lastNotifiedStreak,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastWeeklySummaryTimestamp => $composableBuilder(
+    column: $table.lastWeeklySummaryTimestamp,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsTableAnnotationComposer
@@ -4961,6 +5103,16 @@ class $$SettingsTableAnnotationComposer
     column: $table.showAttachmentCount,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get lastNotifiedStreak => $composableBuilder(
+    column: $table.lastNotifiedStreak,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastWeeklySummaryTimestamp => $composableBuilder(
+    column: $table.lastWeeklySummaryTimestamp,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsTableTableManager
@@ -5006,6 +5158,8 @@ class $$SettingsTableTableManager
                 Value<bool> showTags = const Value.absent(),
                 Value<bool> showReminderIndicator = const Value.absent(),
                 Value<bool> showAttachmentCount = const Value.absent(),
+                Value<int> lastNotifiedStreak = const Value.absent(),
+                Value<int?> lastWeeklySummaryTimestamp = const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
                 syncEnabled: syncEnabled,
@@ -5022,6 +5176,8 @@ class $$SettingsTableTableManager
                 showTags: showTags,
                 showReminderIndicator: showReminderIndicator,
                 showAttachmentCount: showAttachmentCount,
+                lastNotifiedStreak: lastNotifiedStreak,
+                lastWeeklySummaryTimestamp: lastWeeklySummaryTimestamp,
               ),
           createCompanionCallback:
               ({
@@ -5040,6 +5196,8 @@ class $$SettingsTableTableManager
                 Value<bool> showTags = const Value.absent(),
                 Value<bool> showReminderIndicator = const Value.absent(),
                 Value<bool> showAttachmentCount = const Value.absent(),
+                Value<int> lastNotifiedStreak = const Value.absent(),
+                Value<int?> lastWeeklySummaryTimestamp = const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
                 syncEnabled: syncEnabled,
@@ -5056,6 +5214,8 @@ class $$SettingsTableTableManager
                 showTags: showTags,
                 showReminderIndicator: showReminderIndicator,
                 showAttachmentCount: showAttachmentCount,
+                lastNotifiedStreak: lastNotifiedStreak,
+                lastWeeklySummaryTimestamp: lastWeeklySummaryTimestamp,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

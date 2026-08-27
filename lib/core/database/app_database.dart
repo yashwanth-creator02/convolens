@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration {
@@ -110,6 +110,11 @@ class AppDatabase extends _$AppDatabase {
 
         if (from < 14) {
           await m.addColumn(settings, settings.theme);
+        }
+
+        if (from < 15) {
+          await m.addColumn(settings, settings.lastNotifiedStreak);
+          await m.addColumn(settings, settings.lastWeeklySummaryTimestamp);
         }
       },
 
@@ -291,6 +296,33 @@ class AppDatabase extends _$AppDatabase {
     )..where((s) => s.id.equals(0))).getSingle();
 
     return row.archiveMode;
+  }
+
+  Future<int> getLastNotifiedStreak() async {
+    final row =
+        await (select(settings)..where((s) => s.id.equals(0))).getSingle();
+    return row.lastNotifiedStreak;
+  }
+
+  Future<void> setLastNotifiedStreak(int streak) async {
+    await (update(settings)..where((s) => s.id.equals(0))).write(
+      SettingsCompanion(lastNotifiedStreak: Value(streak)),
+    );
+  }
+
+  Future<DateTime?> getLastWeeklySummaryDate() async {
+    final row =
+        await (select(settings)..where((s) => s.id.equals(0))).getSingle();
+    final ts = row.lastWeeklySummaryTimestamp;
+    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
+  }
+
+  Future<void> setLastWeeklySummaryDate(DateTime date) async {
+    await (update(settings)..where((s) => s.id.equals(0))).write(
+      SettingsCompanion(
+        lastWeeklySummaryTimestamp: Value(date.millisecondsSinceEpoch),
+      ),
+    );
   }
 
   // ============================================================

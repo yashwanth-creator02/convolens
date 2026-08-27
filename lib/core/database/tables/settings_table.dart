@@ -36,6 +36,11 @@ class Settings extends Table {
   BoolColumn get showAttachmentCount =>
       boolean().withDefault(const Constant(true))();
 
+  IntColumn get lastNotifiedStreak =>
+      integer().withDefault(const Constant(0))();
+
+  IntColumn get lastWeeklySummaryTimestamp => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

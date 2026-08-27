@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
+import '../features/analytics/repository/insight_checker.dart';
 import '../features/analytics/screens/analytics_screen.dart';
 import '../features/contacts/screens/contacts_screen.dart';
 import '../features/contacts/widgets/add_contact_screen.dart';
@@ -53,6 +54,8 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     NotificationService.init();
+    InsightChecker(_db).checkStreakRecord();
+    InsightChecker(_db).checkWeeklySummary();
   }
 
   // ---------------------------------------------------------------------------

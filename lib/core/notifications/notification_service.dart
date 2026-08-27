@@ -83,6 +83,26 @@ class NotificationService {
     await _plugin.cancel(callId);
   }
 
+  static Future<void> showInsight({
+    required String title,
+    required String body,
+  }) async {
+    await _plugin.show(
+      DateTime.now().millisecondsSinceEpoch.remainder(100000),
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'analytics_insights',
+          'Analytics Insights',
+          channelDescription: 'Occasional highlights about your calling activity',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+      ),
+    );
+  }
+
   static Future<bool> canScheduleExactAlarms() async {
     final androidPlugin = _plugin
         .resolvePlatformSpecificImplementation<
