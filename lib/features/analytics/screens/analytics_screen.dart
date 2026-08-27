@@ -7,9 +7,11 @@ import '../../contacts/models/contact_summary.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../models/analytics_filters.dart';
 import '../models/analytics_summary.dart';
+import '../models/comparison_config.dart';
 import '../repository/analytics_repository.dart';
 import '../widgets/contribution_heatmap.dart';
 import '../widgets/relationship_web.dart';
+import 'comparison_screen.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -168,6 +170,112 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
   }
 
+  Future<void> _showComparisonOptions(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('This Month vs Last Month'),
+              onTap: () => Navigator.pop(context, 'month'),
+            ),
+            ListTile(
+              title: const Text('This Year vs Last Year'),
+              onTap: () => Navigator.pop(context, 'year'),
+            ),
+            ListTile(
+              title: const Text('Contact vs Contact'),
+              onTap: () => Navigator.pop(context, 'contact'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (choice == null || !mounted) return;
+
+    if (choice == 'month') {
+      _openComparison(ComparisonConfig.thisMonthVsLast());
+    } else if (choice == 'year') {
+      _openComparison(ComparisonConfig.thisYearVsLast());
+    } else if (choice == 'contact') {
+      _pickTwoContactsForComparison();
+    }
+  }
+
+  void _openComparison(ComparisonConfig config) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ComparisonScreen(
+          db: widget.db,
+          deviceContacts: _deviceContacts,
+          config: config,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickTwoContactsForComparison() async {
+    final allSummaries = await _repository
+        .watchSummary(_deviceContacts, const AnalyticsFilters())
+        .first;
+    final candidates = allSummaries.mostContacted;
+
+    if (!mounted || candidates.length < 2) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Need at least 2 contacts with calls.')),
+        );
+      }
+      return;
+    }
+
+    final first = await showDialog<ContactSummary>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('First contact'),
+        children: candidates
+            .map(
+              (c) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, c),
+                child: Text(c.displayName),
+              ),
+            )
+            .toList(),
+      ),
+    );
+    if (first == null || !mounted) return;
+
+    final second = await showDialog<ContactSummary>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('Second contact'),
+        children: candidates
+            .where((c) => c.normalizedNumber != first.normalizedNumber)
+            .map(
+              (c) => SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, c),
+                child: Text(c.displayName),
+              ),
+            )
+            .toList(),
+      ),
+    );
+    if (second == null) return;
+
+    _openComparison(
+      ComparisonConfig.contacts(
+        first.normalizedNumber,
+        first.displayName,
+        second.normalizedNumber,
+        second.displayName,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -186,6 +294,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         return ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _showComparisonOptions(context),
+                icon: const Icon(Icons.compare_arrows, size: 18),
+                label: const Text('Compare'),
+              ),
+            ),
+
             _buildFilterBar(context),
 
             const SizedBox(height: 16),
