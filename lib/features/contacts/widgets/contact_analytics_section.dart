@@ -6,6 +6,7 @@ import '../../analytics/widgets/hour_histogram.dart';
 import '../../analytics/widgets/talk_ratio_bar.dart';
 import '../../analytics/widgets/weekday_chart.dart';
 import '../utils/communication_strength.dart';
+import '../utils/relationship_vitals.dart';
 
 class ContactAnalyticsSection extends StatelessWidget {
   final String normalizedNumber;
@@ -52,6 +53,9 @@ class ContactAnalyticsSection extends StatelessWidget {
           contactNumberSuffix: normalizedNumber,
         );
 
+        final timestamps = await db.getCallTimestampsForNumber(normalizedNumber);
+        final vitals = computeVitals(timestamps);
+
         return {
           ...stats,
           'firstCallTs': firstCallTs,
@@ -59,6 +63,7 @@ class ContactAnalyticsSection extends StatelessWidget {
           'hourCounts': hourCounts,
           'weekdayCounts': weekdayCounts,
           'typeCounts': typeCounts,
+          'vitals': vitals,
         };
       }(),
       builder: (context, snapshot) {
@@ -105,6 +110,16 @@ class ContactAnalyticsSection extends StatelessWidget {
         final totalMinutes = (totalDuration / 60).round();
         final avgSeconds = avgDuration.round();
 
+        final vitals = stats['vitals'] as RelationshipVitals;
+
+        final firstCallDate = stats['firstCallTs'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(stats['firstCallTs'] as int)
+            : null;
+
+        final firstCallDateStr = firstCallDate != null
+            ? '${firstCallDate.day}/${firstCallDate.month}/${firstCallDate.year}'
+            : null;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -148,6 +163,27 @@ class ContactAnalyticsSection extends StatelessWidget {
                 _stat('Avg Duration', '${avgSeconds}s'),
                 _stat('Incoming', '$incoming'),
                 _stat('Outgoing', '$outgoing'),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+            const Text(
+              'Relationship',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                _stat(
+                  'Relationship Age',
+                  '${(vitals.relationshipDays / 30).round()}mo',
+                ),
+                _stat('Avg Gap', '${vitals.averageGapDays.toStringAsFixed(1)}d'),
+                _stat('Longest Gap', '${vitals.longestGapDays}d'),
+                if (firstCallDateStr != null)
+                  _stat('First Called', firstCallDateStr),
               ],
             ),
 

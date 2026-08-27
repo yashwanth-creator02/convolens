@@ -1316,6 +1316,18 @@ class AppDatabase extends _$AppDatabase {
     final row = await query.getSingle();
     return row.readNullable<int>('first_ts');
   }
+
+  Future<List<int>> getCallTimestampsForNumber(
+    String normalizedNumberSuffix,
+  ) async {
+    final query = customSelect(
+      'SELECT timestamp FROM calls WHERE number LIKE ? ORDER BY timestamp ASC',
+      variables: [Variable.withString('%$normalizedNumberSuffix')],
+      readsFrom: {calls},
+    );
+    final rows = await query.get();
+    return rows.map((r) => r.read<int>('timestamp')).toList();
+  }
 }
 
 // ============================================================
