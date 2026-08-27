@@ -1328,6 +1328,100 @@ class AppDatabase extends _$AppDatabase {
     final rows = await query.get();
     return rows.map((r) => r.read<int>('timestamp')).toList();
   }
+
+  Future<Map<String, int>> getCallDurationDistribution(
+    DateTime since,
+    DateTime until, {
+    String? contactNumberSuffix,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT
+        SUM(CASE WHEN duration < 30 THEN 1 ELSE 0 END) AS quick,
+        SUM(CASE WHEN duration >= 30 AND duration < 180 THEN 1 ELSE 0 END) AS short,
+        SUM(CASE WHEN duration >= 180 AND duration < 600 THEN 1 ELSE 0 END) AS medium,
+        SUM(CASE WHEN duration >= 600 THEN 1 ELSE 0 END) AS long
+      FROM calls
+      WHERE timestamp >= ? AND timestamp <= ?
+    ''');
+    final variables = <Variable>[
+      Variable.withInt(since.millisecondsSinceEpoch),
+      Variable.withInt(until.millisecondsSinceEpoch),
+    ];
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+
+    final row =
+        await customSelect(
+          buffer.toString(),
+          variables: variables,
+          readsFrom: {calls},
+        ).getSingle();
+    return {
+      'Quick (<30s)': row.readNullable<int>('quick') ?? 0,
+      'Short (30s–3m)': row.readNullable<int>('short') ?? 0,
+      'Medium (3–10m)': row.readNullable<int>('medium') ?? 0,
+      'Long (10m+)': row.readNullable<int>('long') ?? 0,
+    };
+  }
+
+  Future<Map<String, dynamic>?> getLongestCallWithNumber(
+    DateTime since,
+    DateTime until,
+  ) async {
+    final query = customSelect(
+      '''
+      SELECT number, name, duration, timestamp FROM calls
+      WHERE timestamp >= ? AND timestamp <= ?
+      ORDER BY duration DESC LIMIT 1
+      ''',
+      variables: [
+        Variable.withInt(since.millisecondsSinceEpoch),
+        Variable.withInt(until.millisecondsSinceEpoch),
+      ],
+      readsFrom: {calls},
+    );
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+
+    return {
+      'number': row.read<String>('number'),
+      'name': row.readNullable<String>('name'),
+      'duration': row.read<int>('duration'),
+      'timestamp': row.read<int>('timestamp'),
+    };
+  }
+
+  Future<Map<String, int>> getNewContactsByMonth(
+    DateTime since,
+    DateTime until,
+  ) async {
+    final query = customSelect(
+      '''
+      SELECT strftime('%Y-%m', first_call / 1000, 'unixepoch', 'localtime') AS month,
+             COUNT(*) AS new_contacts
+      FROM (
+        SELECT number, MIN(timestamp) AS first_call
+        FROM calls
+        WHERE number IS NOT NULL
+        GROUP BY number
+      )
+      WHERE first_call >= ? AND first_call <= ?
+      GROUP BY month
+      ''',
+      variables: [
+        Variable.withInt(since.millisecondsSinceEpoch),
+        Variable.withInt(until.millisecondsSinceEpoch),
+      ],
+      readsFrom: {calls},
+    );
+    final rows = await query.get();
+    return {
+      for (final row in rows)
+        row.read<String>('month'): row.read<int>('new_contacts'),
+    };
+  }
 }
 
 // ============================================================

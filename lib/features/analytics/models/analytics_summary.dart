@@ -26,6 +26,10 @@ class AnalyticsSummary {
   final int favoriteContactCount;
   final int otherContactCount;
 
+  final Map<String, int> durationDistribution;
+  final Map<String, dynamic>? longestCallWith;
+  final Map<String, int> newContactsByMonth;
+
   const AnalyticsSummary({
     required this.totalCalls,
     required this.totalContacts,
@@ -50,5 +54,8 @@ class AnalyticsSummary {
     required this.avgCallsPerOther,
     required this.favoriteContactCount,
     required this.otherContactCount,
+    required this.durationDistribution,
+    this.longestCallWith,
+    required this.newContactsByMonth,
   });
 }

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -10,7 +11,9 @@ import '../models/analytics_summary.dart';
 import '../models/comparison_config.dart';
 import '../repository/analytics_repository.dart';
 import '../widgets/answered_missed_declined_bars.dart';
+import '../widgets/calendar_grid_heatmap.dart';
 import '../widgets/contribution_heatmap.dart';
+import '../widgets/hour_clock_face.dart';
 import '../widgets/hour_histogram.dart';
 import '../widgets/relationship_web.dart';
 import '../widgets/talk_ratio_bar.dart';
@@ -37,6 +40,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   bool _showDuration = false;
   bool _rankByDuration = false;
+  bool _showClockFace = false;
+  bool _showCalendarGrid = false;
 
   String? _selectedContactName;
   String? _selectedTagName;
@@ -409,34 +414,60 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               },
             ),
 
+            if (_showCalendarGrid) ...[
+              const SizedBox(height: 16),
+              CalendarGridHeatmap(
+                countsByDate: summary.heatmapData,
+                month: DateTime.now().month,
+                year: DateTime.now().year,
+              ),
+            ],
+
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _showCalendarGrid = !_showCalendarGrid;
+                  });
+                },
+                child: Text(
+                  _showCalendarGrid ? 'Hide Calendar' : 'Show Calendar View',
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ),
+
             const SizedBox(height: 24),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Trend',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _showDuration = !_showDuration;
-                    });
-                  },
-                  child: Text(_showDuration ? 'Show Count' : 'Show Duration'),
-                ),
-              ],
+            const Text(
+              'Trend',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
             _buildBarChart(
-              _showDuration
-                  ? summary.durationTrend.map((s) => (s / 60).round()).toList()
-                  : summary.callsPerDay,
+              summary.callsPerDay,
               summary.dayLabels,
+              color: Theme.of(context).colorScheme.primary,
             ),
+
+            if (summary.newContactsByMonth.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                'New Relationships',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 8),
+              _buildBarChart(
+                summary.newContactsByMonth.values.toList(),
+                summary.newContactsByMonth.keys
+                    .map((k) => k.split('-')[1])
+                    .toList(),
+                color: Theme.of(context).colorScheme.tertiary,
+              ),
+            ],
 
             const SizedBox(height: 24),
 
@@ -473,14 +504,60 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
             const SizedBox(height: 24),
 
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Busiest Hours',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: Icon(_showClockFace ? Icons.bar_chart : Icons.access_time),
+                  onPressed: () {
+                    setState(() {
+                      _showClockFace = !_showClockFace;
+                    });
+                  },
+                  tooltip: _showClockFace ? 'Histogram' : 'Clock Face',
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            _showClockFace
+                ? HourClockFace(hourCounts: summary.hourCounts)
+                : HourHistogram(hourCounts: summary.hourCounts),
+
+            const SizedBox(height: 24),
+
             const Text(
-              'Busiest Hours',
+              'Call Length Distribution',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 8),
 
-            HourHistogram(hourCounts: summary.hourCounts),
+            ..._buildDurationDistribution(summary.durationDistribution),
+
+            if (summary.longestCallWith != null) ...[
+              const SizedBox(height: 16),
+              _buildLongestCallCard(summary.longestCallWith!),
+            ],
+
+            const SizedBox(height: 24),
+
+            const Text(
+              'Anomaly Days',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const Text(
+              'Unusual activity levels (±2 std dev)',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+
+            ..._buildAnomalyList(summary.heatmapData),
 
             const SizedBox(height: 24),
 
@@ -870,6 +947,108 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return DateTime.now().difference(date).inDays;
   }
 
+  List<Widget> _buildAnomalyList(Map<String, int> heatmapCounts) {
+    final anomalies = _findAnomalyDays(heatmapCounts);
+
+    if (anomalies.isEmpty) {
+      return [
+        const Text(
+          'No significant anomalies detected.',
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+      ];
+    }
+
+    return anomalies.map((e) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(e.key, style: const TextStyle(fontSize: 12)),
+            Text(
+              '${e.value} calls',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  List<MapEntry<String, int>> _findAnomalyDays(Map<String, int> heatmapCounts) {
+    if (heatmapCounts.length < 7) return [];
+
+    final values = heatmapCounts.values.where((v) => v > 0).toList();
+    if (values.isEmpty) return [];
+
+    final mean = values.reduce((a, b) => a + b) / values.length;
+    final variance =
+        values.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) /
+        values.length;
+    final stdDev = variance > 0 ? sqrt(variance) : 0;
+
+    if (stdDev == 0) return [];
+
+    return heatmapCounts.entries
+        .where((e) => (e.value - mean).abs() > stdDev * 2)
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+  }
+
+  List<Widget> _buildDurationDistribution(Map<String, int> dist) {
+    final total = dist.values.fold<int>(0, (a, b) => a + b);
+    if (total == 0) {
+      return [
+        const Text('No calls yet.', style: TextStyle(color: Colors.grey)),
+      ];
+    }
+
+    return dist.entries.map((entry) {
+      final fraction = entry.value / total;
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${entry.key} — ${entry.value} (${(fraction * 100).round()}%)',
+              style: const TextStyle(fontSize: 12),
+            ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: fraction,
+                minHeight: 6,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildLongestCallCard(Map<String, dynamic> longest) {
+    final name = longest['name'] as String?;
+    final number = longest['number'] as String;
+    final duration = longest['duration'] as int;
+    final displayName = (name != null && name.isNotEmpty) ? name : number;
+
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.emoji_events, color: Colors.amber),
+        title: Text('Longest call: ${(duration / 60).toStringAsFixed(1)} min'),
+        subtitle: Text('with $displayName'),
+      ),
+    );
+  }
+
   Widget _statCard(String label, String value) {
     return Expanded(
       child: Card(
@@ -896,12 +1075,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildBarChart(List<int> values, List<String> labels) {
+  Widget _buildBarChart(
+    List<int> values,
+    List<String> labels, {
+    Color? color,
+  }) {
     if (values.isEmpty) {
       return const Text('No data.', style: TextStyle(color: Colors.grey));
     }
 
     final maxValue = values.reduce((a, b) => a > b ? a : b).clamp(1, 999999);
+    final barColor = color ?? Theme.of(context).colorScheme.primary;
 
     return SizedBox(
       height: 110,
@@ -930,7 +1114,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   Container(
                     height: 60 * heightFraction,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: barColor,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),

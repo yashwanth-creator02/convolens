@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
@@ -300,6 +302,24 @@ class AnalyticsRepository {
           otherContactCount > 0 ? otherCallCount / otherContactCount : 0.0;
 
       // ============================================================
+      // DURATION DISTRIBUTION
+      // ============================================================
+
+      final durationDist = await _db.getCallDurationDistribution(
+        start,
+        end,
+        contactNumberSuffix: contact,
+      );
+
+      final longestCallWith = await _db.getLongestCallWithNumber(start, end);
+
+      // ============================================================
+      // NEW CONTACTS BY MONTH
+      // ============================================================
+
+      final newContactsByMonth = await _db.getNewContactsByMonth(start, end);
+
+      // ============================================================
       // RESULT
       // ============================================================
 
@@ -336,6 +356,10 @@ class AnalyticsRepository {
         avgCallsPerOther: avgCallsPerOther,
         favoriteContactCount: favoriteContactCount,
         otherContactCount: otherContactCount,
+
+        durationDistribution: durationDist,
+        longestCallWith: longestCallWith,
+        newContactsByMonth: newContactsByMonth,
       );
     });
   }
