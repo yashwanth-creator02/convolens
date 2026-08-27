@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../analytics/widgets/contribution_heatmap.dart';
+import '../../analytics/widgets/hour_histogram.dart';
+import '../../analytics/widgets/talk_ratio_bar.dart';
+import '../../analytics/widgets/weekday_chart.dart';
 import '../utils/communication_strength.dart';
 
 class ContactAnalyticsSection extends StatelessWidget {
@@ -20,7 +24,42 @@ class ContactAnalyticsSection extends StatelessWidget {
         final stats = await db.getContactCallStats(normalizedNumber);
         final firstCallTs = await db.getFirstCallTimestamp(normalizedNumber);
 
-        return {...stats, 'firstCallTs': firstCallTs};
+        final now = DateTime.now();
+        final yearAgo = now.subtract(const Duration(days: 364));
+
+        final heatmap = await db.getCallCountsByPeriod(
+          yearAgo,
+          now,
+          '%Y-%m-%d',
+          contactNumberSuffix: normalizedNumber,
+        );
+
+        final hourCounts = await db.getCallCountsByHour(
+          since: yearAgo,
+          until: now,
+          contactNumberSuffix: normalizedNumber,
+        );
+
+        final weekdayCounts = await db.getCallCountsByWeekday(
+          since: yearAgo,
+          until: now,
+          contactNumberSuffix: normalizedNumber,
+        );
+
+        final typeCounts = await db.getCallCountsByType(
+          since: yearAgo,
+          until: now,
+          contactNumberSuffix: normalizedNumber,
+        );
+
+        return {
+          ...stats,
+          'firstCallTs': firstCallTs,
+          'heatmap': heatmap,
+          'hourCounts': hourCounts,
+          'weekdayCounts': weekdayCounts,
+          'typeCounts': typeCounts,
+        };
       }(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -28,7 +67,6 @@ class ContactAnalyticsSection extends StatelessWidget {
         }
 
         final stats = snapshot.data!;
-
         final total = stats['total'] as int;
 
         if (total == 0) {
@@ -112,6 +150,39 @@ class ContactAnalyticsSection extends StatelessWidget {
                 _stat('Outgoing', '$outgoing'),
               ],
             ),
+
+            const SizedBox(height: 24),
+
+            const Text(
+              'Activity',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            ContributionHeatmap(countsByDate: stats['heatmap'] as Map<String, int>),
+
+            const SizedBox(height: 16),
+            const Text(
+              'Talk Ratio',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            TalkRatioBar(callTypeCounts: stats['typeCounts'] as Map<int, int>),
+
+            const SizedBox(height: 16),
+            const Text(
+              'By Hour',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            HourHistogram(hourCounts: stats['hourCounts'] as Map<int, int>),
+
+            const SizedBox(height: 16),
+            const Text(
+              'By Weekday',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            WeekdayChart(weekdayCounts: stats['weekdayCounts'] as Map<int, int>),
           ],
         );
       },

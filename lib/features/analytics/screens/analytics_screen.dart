@@ -9,8 +9,12 @@ import '../models/analytics_filters.dart';
 import '../models/analytics_summary.dart';
 import '../models/comparison_config.dart';
 import '../repository/analytics_repository.dart';
+import '../widgets/answered_missed_declined_bars.dart';
 import '../widgets/contribution_heatmap.dart';
+import '../widgets/hour_histogram.dart';
 import '../widgets/relationship_web.dart';
+import '../widgets/talk_ratio_bar.dart';
+import '../widgets/weekday_chart.dart';
 import 'comparison_screen.dart';
 import 'yearly_recap_screen.dart';
 
@@ -443,7 +447,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
             const SizedBox(height: 8),
 
-            _buildTalkRatio(summary.callTypeCounts),
+            TalkRatioBar(callTypeCounts: summary.callTypeCounts),
 
             const SizedBox(height: 24),
 
@@ -454,7 +458,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
             const SizedBox(height: 8),
 
-            _buildAnsweredMissedDeclined(summary.callTypeCounts),
+            AnsweredMissedDeclinedBars(callTypeCounts: summary.callTypeCounts),
 
             const SizedBox(height: 24),
 
@@ -465,7 +469,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
             const SizedBox(height: 8),
 
-            _buildWeekdayChart(summary.weekdayCounts),
+            WeekdayChart(weekdayCounts: summary.weekdayCounts),
 
             const SizedBox(height: 24),
 
@@ -476,7 +480,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
             const SizedBox(height: 8),
 
-            _buildHourHistogram(summary.hourCounts),
+            HourHistogram(hourCounts: summary.hourCounts),
 
             const SizedBox(height: 24),
 
@@ -858,194 +862,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildTalkRatio(Map<int, int> counts) {
-    final outgoing = counts[2] ?? 0;
-    final incoming = counts[1] ?? 0;
-
-    final total = outgoing + incoming;
-
-    if (total == 0) {
-      return const Text('No calls yet.', style: TextStyle(color: Colors.grey));
-    }
-
-    final youFraction = outgoing / total;
-
-    final youFlex = (youFraction * 100).round().clamp(1, 99);
-
-    final themFlex = 100 - youFlex;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: Row(
-            children: [
-              Expanded(
-                flex: youFlex,
-                child: Container(
-                  height: 20,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-              Expanded(
-                flex: themFlex,
-                child: Container(height: 20, color: Colors.grey.shade400),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 4),
-
-        Text(
-          'You initiated '
-          '${(youFraction * 100).round()}% • '
-          'They initiated '
-          '${(100 - youFraction * 100).round()}%',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAnsweredMissedDeclined(Map<int, int> counts) {
-    final answered = (counts[1] ?? 0) + (counts[2] ?? 0);
-
-    final missed = counts[3] ?? 0;
-
-    final declined = (counts[5] ?? 0) + (counts[6] ?? 0);
-
-    final total = answered + missed + declined;
-
-    if (total == 0) {
-      return const Text('No calls yet.', style: TextStyle(color: Colors.grey));
-    }
-
-    Widget bar(String label, int value, Color color) {
-      final fraction = value / total;
-
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('$label — $value', style: const TextStyle(fontSize: 12)),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: fraction,
-                minHeight: 8,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        bar('Answered', answered, Colors.green),
-        bar('Missed', missed, Colors.orange),
-        bar('Declined', declined, Colors.red),
-      ],
-    );
-  }
-
-  Widget _buildWeekdayChart(Map<int, int> weekdayCounts) {
-    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    const sqliteOrder = [1, 2, 3, 4, 5, 6, 0];
-
-    final maxCount = weekdayCounts.values.isEmpty
-        ? 1
-        : weekdayCounts.values.reduce((a, b) => a > b ? a : b).clamp(1, 999999);
-
-    return SizedBox(
-      height: 100,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(7, (i) {
-          final count = weekdayCounts[sqliteOrder[i]] ?? 0;
-
-          final heightFraction = (count / maxCount).clamp(0.0, 1.0);
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    '$count',
-                    style: const TextStyle(fontSize: 9),
-                    maxLines: 1,
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  Container(
-                    height: 50 * heightFraction,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primary,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  Text(
-                    labels[i],
-                    style: const TextStyle(fontSize: 9),
-                    maxLines: 1,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildHourHistogram(Map<int, int> hourCounts) {
-    final maxCount = hourCounts.values.isEmpty
-        ? 1
-        : hourCounts.values.reduce((a, b) => a > b ? a : b).clamp(1, 999999);
-
-    return SizedBox(
-      height: 60,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(24, (hour) {
-          final count = hourCounts[hour] ?? 0;
-
-          final heightFraction = (count / maxCount).clamp(0.0, 1.0);
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 0.5),
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Container(
-                  height: 50 * heightFraction,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary,
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
               ),
             ),
           );
