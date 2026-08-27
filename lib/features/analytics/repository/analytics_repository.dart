@@ -268,6 +268,38 @@ class AnalyticsRepository {
       );
 
       // ============================================================
+      // FAVORITE COMPARISON
+      // ============================================================
+
+      final favoriteRows =
+          await (_db.select(_db.contactDetails)
+                ..where((c) => c.isFavorite.equals(true)))
+              .get();
+      final favoriteNumbers =
+          favoriteRows.map((r) => r.normalizedNumber).toSet();
+
+      int favoriteCallCount = 0;
+      int otherCallCount = 0;
+
+      for (final summary in includedSummaries) {
+        if (favoriteNumbers.contains(summary.normalizedNumber)) {
+          favoriteCallCount += summary.callCount;
+        } else {
+          otherCallCount += summary.callCount;
+        }
+      }
+
+      final favoriteContactCount = favoriteNumbers.length;
+      final otherContactCount = includedSummaries.length - favoriteContactCount;
+
+      final avgCallsPerFavorite =
+          favoriteContactCount > 0
+              ? favoriteCallCount / favoriteContactCount
+              : 0.0;
+      final avgCallsPerOther =
+          otherContactCount > 0 ? otherCallCount / otherContactCount : 0.0;
+
+      // ============================================================
       // RESULT
       // ============================================================
 
@@ -299,6 +331,11 @@ class AnalyticsRepository {
         busiestDayCount: busiestDayEntry?.value ?? 0,
 
         missedCallRate: missedRate,
+
+        avgCallsPerFavorite: avgCallsPerFavorite,
+        avgCallsPerOther: avgCallsPerOther,
+        favoriteContactCount: favoriteContactCount,
+        otherContactCount: otherContactCount,
       );
     });
   }

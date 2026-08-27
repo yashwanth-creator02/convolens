@@ -21,6 +21,11 @@ class AnalyticsSummary {
   final int busiestDayCount;
   final double missedCallRate;
 
+  final double avgCallsPerFavorite;
+  final double avgCallsPerOther;
+  final int favoriteContactCount;
+  final int otherContactCount;
+
   const AnalyticsSummary({
     required this.totalCalls,
     required this.totalContacts,
@@ -41,5 +46,9 @@ class AnalyticsSummary {
     this.busiestDayDate,
     required this.busiestDayCount,
     required this.missedCallRate,
+    required this.avgCallsPerFavorite,
+    required this.avgCallsPerOther,
+    required this.favoriteContactCount,
+    required this.otherContactCount,
   });
 }

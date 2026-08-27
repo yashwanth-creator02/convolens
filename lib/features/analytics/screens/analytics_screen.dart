@@ -484,6 +484,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
             const SizedBox(height: 24),
 
+            const Text(
+              'Favorites vs Everyone Else',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 8),
+
+            _buildFavoritesComparison(summary),
+
+            const SizedBox(height: 24),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -627,6 +638,77 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildFavoritesComparison(AnalyticsSummary summary) {
+    if (summary.favoriteContactCount == 0) {
+      return const Text(
+        'Star some contacts as Favorites to see this comparison.',
+        style: TextStyle(color: Colors.grey, fontSize: 12),
+      );
+    }
+
+    final ratio =
+        summary.avgCallsPerOther > 0
+            ? summary.avgCallsPerFavorite / summary.avgCallsPerOther
+            : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                children: [
+                  Text(
+                    summary.avgCallsPerFavorite.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'avg calls per Favorite (${summary.favoriteContactCount})',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Column(
+                children: [
+                  Text(
+                    summary.avgCallsPerOther.toStringAsFixed(1),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'avg calls per other contact (${summary.otherContactCount})',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (ratio > 0)
+          Center(
+            child: Text(
+              ratio >= 1
+                  ? 'You call your Favorites ${ratio.toStringAsFixed(1)}x more than others.'
+                  : 'You actually call your Favorites less than everyone else.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ),
+      ],
     );
   }
 
