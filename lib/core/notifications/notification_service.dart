@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -109,6 +110,15 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >();
     return await androidPlugin?.canScheduleExactNotifications() ?? false;
+  }
+
+  static Future<bool> isIgnoringBatteryOptimizations() async {
+    return await Permission.ignoreBatteryOptimizations.isGranted;
+  }
+
+  static Future<bool> requestIgnoreBatteryOptimizations() async {
+    final status = await Permission.ignoreBatteryOptimizations.request();
+    return status.isGranted;
   }
 
   static Future<void> showTestNotification() async {

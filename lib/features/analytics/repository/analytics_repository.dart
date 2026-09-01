@@ -320,6 +320,12 @@ class AnalyticsRepository {
       final newContactsByMonth = await _db.getNewContactsByMonth(start, end);
 
       // ============================================================
+      // ANOMALY DAYS
+      // ============================================================
+
+      final anomalyDays = _findAnomalyDays(heatmapCounts);
+
+      // ============================================================
       // RESULT
       // ============================================================
 
@@ -360,8 +366,29 @@ class AnalyticsRepository {
         durationDistribution: durationDist,
         longestCallWith: longestCallWith,
         newContactsByMonth: newContactsByMonth,
+        anomalyDays: anomalyDays,
       );
     });
+  }
+
+  List<MapEntry<String, int>> _findAnomalyDays(Map<String, int> heatmapCounts) {
+    if (heatmapCounts.length < 7) return [];
+
+    final values = heatmapCounts.values.where((v) => v > 0).toList();
+    if (values.isEmpty) return [];
+
+    final mean = values.reduce((a, b) => a + b) / values.length;
+    final variance =
+        values.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) /
+        values.length;
+    final stdDev = variance > 0 ? sqrt(variance) : 0;
+
+    if (stdDev == 0) return [];
+
+    return heatmapCounts.entries
+        .where((e) => (e.value - mean).abs() > stdDev * 2)
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
   }
 
   Map<String, int> _computeStreaks(

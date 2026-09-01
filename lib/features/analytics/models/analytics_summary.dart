@@ -29,6 +29,7 @@ class AnalyticsSummary {
   final Map<String, int> durationDistribution;
   final Map<String, dynamic>? longestCallWith;
   final Map<String, int> newContactsByMonth;
+  final List<MapEntry<String, int>> anomalyDays;
 
   const AnalyticsSummary({
     required this.totalCalls,
@@ -57,5 +58,6 @@ class AnalyticsSummary {
     required this.durationDistribution,
     this.longestCallWith,
     required this.newContactsByMonth,
+    required this.anomalyDays,
   });
 }

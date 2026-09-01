@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/notifications/notification_service.dart';
+import 'notification_troubleshooting_screen.dart';
 
 class PermissionsScreen extends StatefulWidget {
   const PermissionsScreen({super.key});
@@ -17,6 +18,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
   bool _exactAlarmGranted = false;
   bool _contactsGranted = false;
   bool _microphoneGranted = false;
+  bool _batteryOptimizationExempt = false;
 
   bool _isRefreshing = false;
 
@@ -62,6 +64,9 @@ class _PermissionsScreenState extends State<PermissionsScreen>
 
       final microphoneStatus = await Permission.microphone.status;
 
+      final batteryExempt =
+          await NotificationService.isIgnoringBatteryOptimizations();
+
       if (!mounted) {
         return;
       }
@@ -72,6 +77,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
         _exactAlarmGranted = exactAlarmGranted;
         _contactsGranted = contactsStatus.isGranted;
         _microphoneGranted = microphoneStatus.isGranted;
+        _batteryOptimizationExempt = batteryExempt;
       });
     } finally {
       _isRefreshing = false;
@@ -184,6 +190,38 @@ class _PermissionsScreenState extends State<PermissionsScreen>
             subtitle: 'Required to record voice notes attachments',
             granted: _microphoneGranted,
             onTap: _requestMicrophonePermission,
+          ),
+          _PermissionTile(
+            title: 'Ignore Battery Optimization',
+            subtitle:
+                'Helps reminders fire reliably. Some devices restrict this further — '
+                'see notification troubleshooting below if reminders still don\'t fire.',
+            granted: _batteryOptimizationExempt,
+            onTap: () async {
+              final granted =
+                  await NotificationService.requestIgnoreBatteryOptimizations();
+              if (!granted && mounted) {
+                await openAppSettings();
+              }
+              _refreshStatuses();
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('Notification Troubleshooting'),
+            subtitle: const Text(
+              'Manual steps for devices that still block reminders',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationTroubleshootingScreen(),
+                ),
+              );
+            },
           ),
         ],
       ),
