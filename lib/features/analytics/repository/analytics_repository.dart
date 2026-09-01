@@ -164,17 +164,6 @@ class AnalyticsRepository {
       }).toList();
 
       // ============================================================
-      // CONTACT STATS
-      // ============================================================
-
-      final stats = await _db.getCallStatsByNumber(
-        since: start,
-        until: end,
-        callType: type,
-        tagId: filters.tagId,
-      );
-
-      // ============================================================
       // CONTACT SUMMARIES
       // ============================================================
 
