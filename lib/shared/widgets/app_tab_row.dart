@@ -16,7 +16,7 @@ class AppTabItem {
   });
 }
 
-class AppTabRow extends StatelessWidget {
+class AppTabRow extends StatefulWidget {
   final List<AppTabItem> tabs;
   final int selectedIndex;
   final ValueChanged<int> onTabSelected;
@@ -45,174 +45,149 @@ class AppTabRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (tabs.isEmpty) {
-      return const SizedBox.shrink();
-    }
+  State<AppTabRow> createState() => _AppTabRowState();
+}
 
-    if (scrollable) {
-      return _buildScrollable(context);
-    }
+class _AppTabRowState extends State<AppTabRow> with TickerProviderStateMixin {
+  late TabController _tabController;
 
-    return Padding(
-      padding: padding,
-      child: SizedBox(
-        height: height,
-        child: Row(
-          children: [
-            for (int index = 0; index < tabs.length; index++)
-              Expanded(
-                child: _AppTab(
-                  tab: tabs[index],
-                  selected: index == selectedIndex,
-                  onTap: () => onTabSelected(index),
-                  isScrollable: false,
-                  indicator: indicator,
-                  indicatorThickness: indicatorThickness,
-                  indicatorRadius: indicatorRadius,
-                  indicatorPadding: indicatorPadding,
-                ),
-              ),
-          ],
-        ),
-      ),
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: widget.tabs.length,
+      vsync: this,
+      initialIndex: widget.selectedIndex,
     );
   }
 
-  Widget _buildScrollable(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: padding,
-      child: SizedBox(
-        height: height,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (int index = 0; index < tabs.length; index++)
-              _AppTab(
-                tab: tabs[index],
-                selected: index == selectedIndex,
-                onTap: () => onTabSelected(index),
-                isScrollable: true,
-                indicator: indicator,
-                indicatorThickness: indicatorThickness,
-                indicatorRadius: indicatorRadius,
-                indicatorPadding: indicatorPadding,
-              ),
-          ],
+  @override
+  void didUpdateWidget(AppTabRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tabs.length != widget.tabs.length) {
+      _tabController.dispose();
+      _tabController = TabController(
+        length: widget.tabs.length,
+        vsync: this,
+        initialIndex: widget.selectedIndex.clamp(0, widget.tabs.length - 1),
+      );
+    } else if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _tabController.animateTo(widget.selectedIndex);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.tabs.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+
+    Decoration? indicator;
+    if (widget.indicator == AppTabIndicator.underline) {
+      indicator = UnderlineTabIndicator(
+        borderSide: BorderSide(
+          color: theme.colorScheme.primary,
+          width: widget.indicatorThickness,
+        ),
+        insets: widget.indicatorPadding,
+      );
+    } else if (widget.indicator == AppTabIndicator.pill) {
+      indicator = _PillTabIndicator(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(widget.indicatorRadius),
+        padding: widget.indicatorPadding,
+      );
+    }
+
+    return Container(
+      height: widget.height,
+      padding: widget.padding,
+      child: Theme(
+        data: theme.copyWith(
+          splashFactory: NoSplash.splashFactory,
+          highlightColor: Colors.transparent,
+        ),
+        child: TabBar(
+          controller: _tabController,
+          isScrollable: widget.scrollable,
+          onTap: widget.onTabSelected,
+          indicator: indicator,
+          indicatorSize: widget.indicator == AppTabIndicator.pill
+              ? TabBarIndicatorSize.tab
+              : TabBarIndicatorSize.label,
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+          labelStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+          dividerColor: Colors.transparent,
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+          tabAlignment: widget.scrollable ? TabAlignment.start : null,
+          tabs: widget.tabs.map((tab) => Tab(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (tab.icon != null) ...[
+                  Icon(tab.icon, size: 18),
+                  const SizedBox(width: 6),
+                ],
+                Text(tab.label),
+              ],
+            ),
+          )).toList(),
         ),
       ),
     );
   }
 }
 
-class _AppTab extends StatelessWidget {
-  final AppTabItem tab;
-  final bool selected;
-  final VoidCallback onTap;
-  final bool isScrollable;
+class _PillTabIndicator extends Decoration {
+  final Color color;
+  final BorderRadius borderRadius;
+  final EdgeInsetsGeometry padding;
 
-  final AppTabIndicator indicator;
-  final double indicatorThickness;
-  final double indicatorRadius;
-  final EdgeInsetsGeometry indicatorPadding;
-
-  const _AppTab({
-    required this.tab,
-    required this.selected,
-    required this.onTap,
-    required this.isScrollable,
-    required this.indicator,
-    required this.indicatorThickness,
-    required this.indicatorRadius,
-    required this.indicatorPadding,
+  const _PillTabIndicator({
+    required this.color,
+    required this.borderRadius,
+    required this.padding,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final textStyle = Theme.of(context).textTheme.labelLarge;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            SizedBox(
-              height: double.infinity,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: isScrollable ? MainAxisSize.min : MainAxisSize.max,
-                  children: [
-                    if (tab.icon != null) ...[
-                      Icon(
-                        tab.icon,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 6),
-                    ],
-                    Flexible(
-                      child: Text(
-                        tab.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textStyle?.copyWith(
-                          fontWeight: selected
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (selected && indicator != AppTabIndicator.none)
-              _buildIndicator(context),
-          ],
-        ),
-      ),
-    );
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) {
+    return _PillPainter(this, onChanged);
   }
+}
 
-  Widget _buildIndicator(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+class _PillPainter extends BoxPainter {
+  final _PillTabIndicator decoration;
 
-    switch (indicator) {
-      case AppTabIndicator.underline:
-        return Padding(
-          padding: indicatorPadding,
-          child: Container(
-            height: indicatorThickness,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(
-                indicatorRadius,
-              ),
-              color: colorScheme.primary,
-            ),
-          ),
-        );
+  _PillPainter(this.decoration, VoidCallback? onChanged) : super(onChanged);
 
-      case AppTabIndicator.pill:
-        return Padding(
-          padding: indicatorPadding,
-          child: Container(
-            height: indicatorThickness + 8,
-            margin: const EdgeInsets.only(bottom: 4),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(
-                indicatorRadius + 8,
-              ),
-              color: colorScheme.primaryContainer,
-            ),
-          ),
-        );
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final rect = offset & configuration.size!;
+    final paint = Paint()
+      ..color = decoration.color
+      ..style = PaintingStyle.fill;
 
-      case AppTabIndicator.none:
-        return const SizedBox.shrink();
-    }
+    final paddedRect = decoration.padding
+        .resolve(configuration.textDirection)
+        .deflateRect(rect);
+
+    canvas.drawRRect(
+      decoration.borderRadius.toRRect(paddedRect),
+      paint,
+    );
   }
 }

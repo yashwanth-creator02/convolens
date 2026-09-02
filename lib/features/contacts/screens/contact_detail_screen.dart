@@ -160,32 +160,14 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
               const Divider(height: 1),
 
               Expanded(
-                child: IndexedStack(
-                  index: _selectedTab,
-                  children: [
-                    ContactOverviewTab(
-                      normalizedNumber: widget.normalizedNumber,
-                      displayNumber: widget.displayNumber,
-                      deviceContact: widget.deviceContact,
-                      detail: detail,
-                      db: widget.db,
-                    ),
-                    ContactActivityTab(
-                      normalizedNumber: widget.normalizedNumber,
-                      db: widget.db,
-                    ),
-                    ContactAnalyticsTab(
-                      normalizedNumber: widget.normalizedNumber,
-                      db: widget.db,
-                    ),
-                    ContactMoreTab(
-                      normalizedNumber: widget.normalizedNumber,
-                      displayName: widget.displayName,
-                      displayNumber: widget.displayNumber,
-                      detail: detail,
-                      db: widget.db,
-                    ),
-                  ],
+                child: _ContactTabView(
+                  selectedIndex: _selectedTab,
+                  detail: detail,
+                  normalizedNumber: widget.normalizedNumber,
+                  displayName: widget.displayName,
+                  displayNumber: widget.displayNumber,
+                  deviceContact: widget.deviceContact,
+                  db: widget.db,
                 ),
               ),
             ],
@@ -195,3 +177,120 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     );
   }
 }
+
+class _ContactTabView extends StatefulWidget {
+  final int selectedIndex;
+  final ContactDetail? detail;
+  final String normalizedNumber;
+  final String displayName;
+  final String displayNumber;
+  final Contact? deviceContact;
+  final AppDatabase db;
+
+  const _ContactTabView({
+    required this.selectedIndex,
+    required this.detail,
+    required this.normalizedNumber,
+    required this.displayName,
+    required this.displayNumber,
+    required this.deviceContact,
+    required this.db,
+  });
+
+  @override
+  State<_ContactTabView> createState() => _ContactTabViewState();
+}
+
+class _ContactTabViewState extends State<_ContactTabView> {
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _pages = [
+      ContactOverviewTab(
+        normalizedNumber: widget.normalizedNumber,
+        displayNumber: widget.displayNumber,
+        deviceContact: widget.deviceContact,
+        detail: widget.detail,
+        db: widget.db,
+      ),
+      ContactActivityTab(
+        normalizedNumber: widget.normalizedNumber,
+        db: widget.db,
+      ),
+      ContactAnalyticsTab(
+        normalizedNumber: widget.normalizedNumber,
+        db: widget.db,
+      ),
+      ContactMoreTab(
+        normalizedNumber: widget.normalizedNumber,
+        displayName: widget.displayName,
+        displayNumber: widget.displayNumber,
+        detail: widget.detail,
+        db: widget.db,
+      ),
+    ];
+  }
+
+  @override
+  void didUpdateWidget(covariant _ContactTabView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.detail != widget.detail) {
+      _pages[0] = ContactOverviewTab(
+        normalizedNumber: widget.normalizedNumber,
+        displayNumber: widget.displayNumber,
+        deviceContact: widget.deviceContact,
+        detail: widget.detail,
+        db: widget.db,
+      );
+
+      _pages[3] = ContactMoreTab(
+        normalizedNumber: widget.normalizedNumber,
+        displayName: widget.displayName,
+        displayNumber: widget.displayNumber,
+        detail: widget.detail,
+        db: widget.db,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Offstage(
+          offstage: widget.selectedIndex != 0,
+          child: TickerMode(
+            enabled: widget.selectedIndex == 0,
+            child: _pages[0],
+          ),
+        ),
+        Offstage(
+          offstage: widget.selectedIndex != 1,
+          child: TickerMode(
+            enabled: widget.selectedIndex == 1,
+            child: _pages[1],
+          ),
+        ),
+        Offstage(
+          offstage: widget.selectedIndex != 2,
+          child: TickerMode(
+            enabled: widget.selectedIndex == 2,
+            child: _pages[2],
+          ),
+        ),
+        Offstage(
+          offstage: widget.selectedIndex != 3,
+          child: TickerMode(
+            enabled: widget.selectedIndex == 3,
+            child: _pages[3],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
