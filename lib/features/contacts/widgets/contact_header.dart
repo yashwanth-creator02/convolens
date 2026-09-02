@@ -1,8 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ContactHeader extends StatelessWidget {
+class ContactHeader extends StatefulWidget {
   final String displayName;
   final String displayNumber;
   final Contact? deviceContact;
@@ -20,89 +22,215 @@ class ContactHeader extends StatelessWidget {
     this.colorValue,
   });
 
+  @override
+  State<ContactHeader> createState() => _ContactHeaderState();
+}
+
+class _ContactHeaderState extends State<ContactHeader>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _orbitController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _orbitController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 14),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _orbitController.dispose();
+    super.dispose();
+  }
+
   Future<void> _call() async {
-    final uri = Uri(scheme: 'tel', path: displayNumber);
+    if (widget.displayNumber.isEmpty) return;
+
+    final uri = Uri(
+      scheme: 'tel',
+      path: widget.displayNumber,
+    );
+
     await launchUrl(uri);
   }
 
   Future<void> _message() async {
-    final uri = Uri(scheme: 'sms', path: displayNumber);
+    if (widget.displayNumber.isEmpty) return;
+
+    final uri = Uri(
+      scheme: 'sms',
+      path: widget.displayNumber,
+    );
+
     await launchUrl(uri);
   }
 
   @override
   Widget build(BuildContext context) {
-    final organization = deviceContact?.organizations.isNotEmpty == true
-        ? deviceContact!.organizations.first
-        : null;
-    final email = deviceContact?.emails.isNotEmpty == true
-        ? deviceContact!.emails.first.address
+    final organization = widget.deviceContact?.organizations.isNotEmpty == true
+        ? widget.deviceContact!.organizations.first
         : null;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _buildAvatar(),
-            const SizedBox(width: 12),
-            Expanded(child: _buildContactInfo(organization, email)),
-            _buildFavoriteButton(),
-          ],
-        ),
-        if (displayNumber.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Row(
+    final email = widget.deviceContact?.emails.isNotEmpty == true
+        ? widget.deviceContact!.emails.first.address
+        : null;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+      child: Column(
+        children: [
+          Stack(
             children: [
-              OutlinedButton.icon(
-                onPressed: _call,
-                icon: const Icon(Icons.call, size: 18),
-                label: const Text('Call'),
+              Align(
+                alignment: Alignment.center,
+                child: Column(
+                  children: [
+                    _buildAvatar(radius: 42),
+                    const SizedBox(height: 16),
+                    _buildContactInfo(organization, email),
+                  ],
+                ),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: _message,
-                icon: const Icon(Icons.message_outlined, size: 18),
-                label: const Text('Message'),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: _buildFavoriteButton(),
               ),
             ],
           ),
+
+          if (widget.displayNumber.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _buildCallActions(),
+          ],
         ],
-      ],
+      ),
     );
   }
 
-  Widget _buildAvatar() {
-    final thumbnail = deviceContact?.thumbnail;
-    final color = colorValue != null ? Color(colorValue!) : null;
+  Widget _buildCallActions() {
+    return SizedBox(
+      height: 138,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _SideActionButton(
+            icon: Icons.message_outlined,
+            tooltip: 'Message',
+            onPressed: _message,
+          ),
+
+          const SizedBox(width: 12),
+
+          SizedBox(
+            width: 140,
+            height: 138,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                AnimatedBuilder(
+                  animation: _orbitController,
+                  builder: (context, child) {
+                    return Transform.rotate(
+                      angle: _orbitController.value * math.pi * 2,
+                      child: CircularPhoneNumber(
+                        text: widget.displayNumber,
+                        radius: 52,
+                        startAngle: math.pi * 1.08,
+                        sweepAngle: math.pi * 0.84,
+                        textStyle: Theme.of(context)
+                            .textTheme
+                            .labelMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    );
+                  },
+                ),
+
+                Material(
+                  shape: const CircleBorder(),
+                  elevation: 2,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _call,
+                    child: const SizedBox(
+                      width: 68,
+                      height: 68,
+                      child: Icon(
+                        Icons.call_rounded,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          _SideActionButton(
+            icon: Icons.videocam_outlined,
+            tooltip: 'Video',
+            onPressed: _call,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar({double radius = 28}) {
+    final thumbnail = widget.deviceContact?.thumbnail;
+    final color =
+        widget.colorValue != null ? Color(widget.colorValue!) : null;
 
     return CircleAvatar(
-      radius: 28,
+      radius: radius,
       backgroundColor: color,
-      backgroundImage: thumbnail != null ? MemoryImage(thumbnail) : null,
+      backgroundImage: thumbnail != null
+          ? MemoryImage(thumbnail)
+          : null,
       child: thumbnail == null
           ? Text(
-              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-              style: const TextStyle(fontSize: 22),
+              widget.displayName.isNotEmpty
+                  ? widget.displayName[0].toUpperCase()
+                  : '?',
+              style: TextStyle(
+                fontSize: (radius * 0.8).roundToDouble(),
+                fontWeight: FontWeight.w600,
+              ),
             )
           : null,
     );
   }
 
-  Widget _buildContactInfo(Organization? organization, String? email) {
+  Widget _buildContactInfo(
+    Organization? organization,
+    String? email,
+  ) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          displayName,
+          widget.displayName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+          ),
         ),
-        if (displayNumber.isNotEmpty)
-          Text(displayNumber, maxLines: 1, overflow: TextOverflow.ellipsis),
+
+        const SizedBox(height: 4),
+
         if (organization != null &&
-            (organization.company.isNotEmpty || organization.title.isNotEmpty))
+            (organization.company.isNotEmpty ||
+                organization.title.isNotEmpty))
           Text(
             [
               organization.title,
@@ -110,14 +238,21 @@ class ContactHeader extends StatelessWidget {
             ].where((s) => s.isNotEmpty).join(' • '),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+            ),
           ),
+
         if (email != null && email.isNotEmpty)
           Text(
             email,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+            ),
           ),
       ],
     );
@@ -125,13 +260,111 @@ class ContactHeader extends StatelessWidget {
 
   Widget _buildFavoriteButton() {
     return IconButton(
-      tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+      tooltip: widget.isFavorite
+          ? 'Remove from favorites'
+          : 'Add to favorites',
       icon: Icon(
-        isFavorite ? Icons.star : Icons.star_border,
-        color: isFavorite ? Colors.amber : Colors.grey,
+        widget.isFavorite
+            ? Icons.star
+            : Icons.star_border,
         size: 28,
       ),
-      onPressed: onFavoritePressed,
+      onPressed: widget.onFavoritePressed,
+    );
+  }
+}
+
+class _SideActionButton extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _SideActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      shape: const CircleBorder(),
+      elevation: 1,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon),
+        iconSize: 21,
+        padding: const EdgeInsets.all(11),
+      ),
+    );
+  }
+}
+
+class CircularPhoneNumber extends StatelessWidget {
+  final String text;
+  final double radius;
+  final double startAngle;
+  final double sweepAngle;
+  final TextStyle? textStyle;
+
+  const CircularPhoneNumber({
+    super.key,
+    required this.text,
+    required this.radius,
+    required this.startAngle,
+    required this.sweepAngle,
+    this.textStyle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final characters = text.characters.toList();
+
+    if (characters.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      width: radius * 2 + 20,
+      height: radius * 2 + 20,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          for (int index = 0; index < characters.length; index++)
+            _buildCharacter(
+              characters[index],
+              index,
+              characters.length,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCharacter(
+    String character,
+    int index,
+    int count,
+  ) {
+    final progress = count <= 1
+        ? 0.5
+        : index / (count - 1);
+
+    final angle = startAngle + (sweepAngle * progress);
+
+    final x = math.cos(angle) * radius;
+    final y = math.sin(angle) * radius;
+
+    return Transform.translate(
+      offset: Offset(x, y),
+      child: Transform.rotate(
+        angle: angle + (math.pi / 2),
+        child: Text(
+          character,
+          style: textStyle,
+        ),
+      ),
     );
   }
 }
