@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../shared/widgets/app_tab_row.dart';
 import '../tabs/contact_activity_tab.dart';
 import '../tabs/contact_analytics_tab.dart';
 import '../tabs/contact_more_tab.dart';
 import '../tabs/contact_overview_tab.dart';
 import '../widgets/contact_header.dart';
 
-class ContactDetailScreen extends StatelessWidget {
+class ContactDetailScreen extends StatefulWidget {
   final String normalizedNumber;
   final String displayName;
   final String displayNumber;
@@ -24,108 +25,110 @@ class ContactDetailScreen extends StatelessWidget {
     required this.db,
   });
 
+  @override
+  State<ContactDetailScreen> createState() => _ContactDetailScreenState();
+}
+
+class _ContactDetailScreenState extends State<ContactDetailScreen> {
+  int _selectedTab = 0;
+
+  static const _tabs = [
+    AppTabItem(
+      label: 'Overview',
+      icon: Icons.person_outline,
+    ),
+    AppTabItem(
+      label: 'Activity',
+      icon: Icons.history,
+    ),
+    AppTabItem(
+      label: 'Analytics',
+      icon: Icons.analytics_outlined,
+    ),
+    AppTabItem(
+      label: 'More',
+      icon: Icons.more_horiz,
+    ),
+  ];
+
   Future<void> _toggleFavorite(bool isFavorite) async {
-    await db.toggleContactFavorite(
-      normalizedNumber,
+    await widget.db.toggleContactFavorite(
+      widget.normalizedNumber,
       !isFavorite,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Contact'),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Contact'),
+      ),
+      body: StreamBuilder<ContactDetail?>(
+        stream: widget.db.watchContactDetails(
+          widget.normalizedNumber,
         ),
-        body: StreamBuilder<ContactDetail?>(
-          stream: db.watchContactDetails(normalizedNumber),
-          builder: (context, snapshot) {
-            final detail = snapshot.data;
+        builder: (context, snapshot) {
+          final detail = snapshot.data;
 
-            return Column(
-              children: [
-                // ----------------------------------------------------------
-                // Contact header
-                // ----------------------------------------------------------
-
-                ContactHeader(
-                  displayName: displayName,
-                  displayNumber: displayNumber,
-                  deviceContact: deviceContact,
-                  isFavorite: detail?.isFavorite ?? false,
-                  onFavoritePressed: () => _toggleFavorite(
-                    detail?.isFavorite ?? false,
-                  ),
-                  colorValue: detail?.colorValue,
+          return Column(
+            children: [
+              ContactHeader(
+                displayName: widget.displayName,
+                displayNumber: widget.displayNumber,
+                deviceContact: widget.deviceContact,
+                isFavorite: detail?.isFavorite ?? false,
+                onFavoritePressed: () => _toggleFavorite(
+                  detail?.isFavorite ?? false,
                 ),
+                colorValue: detail?.colorValue,
+              ),
 
-                // ----------------------------------------------------------
-                // Tabs
-                // ----------------------------------------------------------
+              AppTabRow(
+                tabs: _tabs,
+                scrollable: true,
+                selectedIndex: _selectedTab,
+                onTabSelected: (index) {
+                  setState(() {
+                    _selectedTab = index;
+                  });
+                },
+              ),
 
-                const TabBar(
-                  isScrollable: true,
-                  tabs: [
-                    Tab(
-                      icon: Icon(Icons.person_outline),
-                      text: 'Overview',
+              const Divider(height: 1),
+
+              Expanded(
+                child: IndexedStack(
+                  index: _selectedTab,
+                  children: [
+                    ContactOverviewTab(
+                      normalizedNumber: widget.normalizedNumber,
+                      displayNumber: widget.displayNumber,
+                      deviceContact: widget.deviceContact,
+                      detail: detail,
+                      db: widget.db,
                     ),
-                    Tab(
-                      icon: Icon(Icons.history),
-                      text: 'Activity',
+                    ContactActivityTab(
+                      normalizedNumber: widget.normalizedNumber,
+                      db: widget.db,
                     ),
-                    Tab(
-                      icon: Icon(Icons.analytics_outlined),
-                      text: 'Analytics',
+                    ContactAnalyticsTab(
+                      normalizedNumber: widget.normalizedNumber,
+                      db: widget.db,
                     ),
-                    Tab(
-                      icon: Icon(Icons.more_horiz),
-                      text: 'More',
+                    ContactMoreTab(
+                      normalizedNumber: widget.normalizedNumber,
+                      displayName: widget.displayName,
+                      displayNumber: widget.displayNumber,
+                      detail: detail,
+                      db: widget.db,
                     ),
                   ],
                 ),
-
-                // ----------------------------------------------------------
-                // Tab content
-                // ----------------------------------------------------------
-
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      ContactOverviewTab(
-                        normalizedNumber: normalizedNumber,
-                        displayNumber: displayNumber,
-                        deviceContact: deviceContact,
-                        detail: detail,
-                        db: db,
-                      ),
-
-                      ContactActivityTab(
-                        normalizedNumber: normalizedNumber,
-                        db: db,
-                      ),
-
-                      ContactAnalyticsTab(
-                        normalizedNumber: normalizedNumber,
-                        db: db,
-                      ),
-
-                      ContactMoreTab(
-                        normalizedNumber: normalizedNumber,
-                        displayName: displayName,
-                        displayNumber: displayNumber,
-                        detail: detail,
-                        db: db,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
