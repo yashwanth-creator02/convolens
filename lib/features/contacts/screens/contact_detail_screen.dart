@@ -1,7 +1,9 @@
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/toast/toast_service.dart';
 import '../../../shared/widgets/app_tab_row.dart';
 import '../tabs/contact_activity_tab.dart';
 import '../tabs/contact_analytics_tab.dart';
@@ -58,26 +60,82 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     );
   }
 
+  void _showContactMenu(ContactDetail? detail) {
+    final isArchived = detail?.isArchived ?? false;
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit contact'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: Open edit contact screen.
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                ),
+                title: Text(isArchived ? 'Unarchive contact' : 'Archive contact'),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  await widget.db.setContactFields(
+                    widget.normalizedNumber,
+                    ContactDetailsCompanion(
+                      isArchived: drift.Value(!isArchived),
+                    ),
+                  );
+
+                  if (mounted) {
+                    ToastService.success(
+                      context,
+                      isArchived ? 'Contact unarchived' : 'Contact archived',
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Contact'),
+    return StreamBuilder<ContactDetail?>(
+      stream: widget.db.watchContactDetails(
+        widget.normalizedNumber,
       ),
-      body: StreamBuilder<ContactDetail?>(
-        stream: widget.db.watchContactDetails(
-          widget.normalizedNumber,
-        ),
-        builder: (context, snapshot) {
-          final detail = snapshot.data;
+      builder: (context, snapshot) {
+        final detail = snapshot.data;
 
-          return Column(
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Contact'),
+            actions: [
+              IconButton(
+                tooltip: 'More',
+                icon: const Icon(Icons.more_vert),
+                onPressed: () => _showContactMenu(detail),
+              ),
+            ],
+          ),
+          body: Column(
             children: [
               ContactHeader(
                 displayName: widget.displayName,
                 displayNumber: widget.displayNumber,
                 deviceContact: widget.deviceContact,
                 isFavorite: detail?.isFavorite ?? false,
+                isArchived: detail?.isArchived ?? false,
                 onFavoritePressed: () => _toggleFavorite(
                   detail?.isFavorite ?? false,
                 ),
@@ -89,6 +147,10 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                 scrollable: true,
                 selectedIndex: _selectedTab,
                 onTabSelected: (index) {
+                  if (_selectedTab == index) {
+                    return;
+                  }
+
                   setState(() {
                     _selectedTab = index;
                   });
@@ -127,9 +189,9 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                 ),
               ),
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

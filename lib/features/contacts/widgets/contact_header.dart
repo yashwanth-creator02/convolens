@@ -9,6 +9,7 @@ class ContactHeader extends StatefulWidget {
   final String displayNumber;
   final Contact? deviceContact;
   final bool isFavorite;
+  final bool isArchived;
   final VoidCallback? onFavoritePressed;
   final int? colorValue;
 
@@ -18,6 +19,7 @@ class ContactHeader extends StatefulWidget {
     required this.displayNumber,
     this.deviceContact,
     required this.isFavorite,
+    this.isArchived = false,
     this.onFavoritePressed,
     this.colorValue,
   });
@@ -216,15 +218,41 @@ class _ContactHeaderState extends State<ContactHeader>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          widget.displayName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                widget.displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+            if (widget.isArchived) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'ARCHIVED',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
 
         if (widget.displayNumber.isNotEmpty)

@@ -91,16 +91,6 @@ Total calls: ${calls.length}
       children: [
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Archive Contact'),
-          subtitle: const Text('Hide from the main Contacts list'),
-          value: detail?.isArchived ?? false,
-          onChanged: (value) => db.setContactFields(
-            normalizedNumber,
-            ContactDetailsCompanion(isArchived: drift.Value(value)),
-          ),
-        ),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
           title: const Text('Ignore from Analytics'),
           value: detail?.ignoreFromAnalytics ?? false,
           onChanged: (value) => db.setContactFields(
