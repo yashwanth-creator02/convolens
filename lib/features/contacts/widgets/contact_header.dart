@@ -79,33 +79,32 @@ class _ContactHeaderState extends State<ContactHeader>
         : null;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+      child: Stack(
         children: [
-          Stack(
+          Column(
             children: [
-              Align(
-                alignment: Alignment.center,
-                child: Column(
-                  children: [
-                    _buildAvatar(radius: 42),
-                    const SizedBox(height: 16),
-                    _buildContactInfo(organization, email),
-                  ],
-                ),
+              _buildAvatar(),
+
+              const SizedBox(height: 8),
+
+              _buildContactInfo(
+                organization,
+                email,
               ),
-              Positioned(
-                right: 0,
-                top: 0,
-                child: _buildFavoriteButton(),
-              ),
+
+              if (widget.displayNumber.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                _buildCallActions(),
+              ],
             ],
           ),
 
-          if (widget.displayNumber.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _buildCallActions(),
-          ],
+          Positioned(
+            top: 0,
+            right: 0,
+            child: _buildFavoriteButton(),
+          ),
         ],
       ),
     );
@@ -113,7 +112,7 @@ class _ContactHeaderState extends State<ContactHeader>
 
   Widget _buildCallActions() {
     return SizedBox(
-      height: 138,
+      height: 132,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -123,11 +122,11 @@ class _ContactHeaderState extends State<ContactHeader>
             onPressed: _message,
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
 
           SizedBox(
-            width: 140,
-            height: 138,
+            width: 136,
+            height: 132,
             child: Stack(
               alignment: Alignment.center,
               children: [
@@ -138,7 +137,7 @@ class _ContactHeaderState extends State<ContactHeader>
                       angle: _orbitController.value * math.pi * 2,
                       child: CircularPhoneNumber(
                         text: widget.displayNumber,
-                        radius: 52,
+                        radius: 50,
                         startAngle: math.pi * 1.08,
                         sweepAngle: math.pi * 0.84,
                         textStyle: Theme.of(context)
@@ -159,11 +158,11 @@ class _ContactHeaderState extends State<ContactHeader>
                     customBorder: const CircleBorder(),
                     onTap: _call,
                     child: const SizedBox(
-                      width: 68,
-                      height: 68,
+                      width: 66,
+                      height: 66,
                       child: Icon(
                         Icons.call_rounded,
-                        size: 28,
+                        size: 27,
                       ),
                     ),
                   ),
@@ -172,25 +171,27 @@ class _ContactHeaderState extends State<ContactHeader>
             ),
           ),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
 
           _SideActionButton(
-            icon: Icons.videocam_outlined,
-            tooltip: 'Video',
-            onPressed: _call,
+            icon: Icons.sms_outlined,
+            tooltip: 'SMS',
+            onPressed: _message,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAvatar({double radius = 28}) {
+  Widget _buildAvatar() {
     final thumbnail = widget.deviceContact?.thumbnail;
-    final color =
-        widget.colorValue != null ? Color(widget.colorValue!) : null;
+
+    final color = widget.colorValue != null
+        ? Color(widget.colorValue!)
+        : null;
 
     return CircleAvatar(
-      radius: radius,
+      radius: 30,
       backgroundColor: color,
       backgroundImage: thumbnail != null
           ? MemoryImage(thumbnail)
@@ -200,9 +201,8 @@ class _ContactHeaderState extends State<ContactHeader>
               widget.displayName.isNotEmpty
                   ? widget.displayName[0].toUpperCase()
                   : '?',
-              style: TextStyle(
-                fontSize: (radius * 0.8).roundToDouble(),
-                fontWeight: FontWeight.w600,
+              style: const TextStyle(
+                fontSize: 22,
               ),
             )
           : null,
@@ -214,6 +214,7 @@ class _ContactHeaderState extends State<ContactHeader>
     String? email,
   ) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           widget.displayName,
@@ -222,11 +223,17 @@ class _ContactHeaderState extends State<ContactHeader>
           textAlign: TextAlign.center,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 22,
+            fontSize: 20,
           ),
         ),
 
-        const SizedBox(height: 4),
+        if (widget.displayNumber.isNotEmpty)
+          Text(
+            widget.displayNumber,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
 
         if (organization != null &&
             (organization.company.isNotEmpty ||
@@ -267,7 +274,7 @@ class _ContactHeaderState extends State<ContactHeader>
         widget.isFavorite
             ? Icons.star
             : Icons.star_border,
-        size: 28,
+        size: 26,
       ),
       onPressed: widget.onFavoritePressed,
     );
@@ -294,8 +301,8 @@ class _SideActionButton extends StatelessWidget {
         tooltip: tooltip,
         onPressed: onPressed,
         icon: Icon(icon),
-        iconSize: 21,
-        padding: const EdgeInsets.all(11),
+        iconSize: 20,
+        padding: const EdgeInsets.all(10),
       ),
     );
   }
