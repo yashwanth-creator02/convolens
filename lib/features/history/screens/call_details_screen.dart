@@ -129,8 +129,10 @@ class CallDetailScreen extends StatelessWidget {
         ? call.name!
         : (call.number ?? 'Unknown');
 
-    final reminderTitle = label.isNotEmpty
-        ? label
+    // Use the user's note if provided.
+    // Otherwise, create a sensible default title.
+    final reminderTitle = label.trim().isNotEmpty
+        ? label.trim()
         : 'Call reminder: $displayName';
 
     await NotificationService.scheduleReminder(
@@ -143,12 +145,36 @@ class CallDetailScreen extends StatelessWidget {
     await db.saveReminder(
       call.id,
       reminderTime,
-      label.isNotEmpty ? label : null,
+      label.trim().isNotEmpty ? label.trim() : null,
     );
 
     if (!context.mounted) return;
 
-    ToastService.success(context, 'Reminder set.');
+    // Calculate how much time is left until the reminder.
+    final remaining = reminderTime.difference(DateTime.now());
+
+    String remainingText;
+
+    if (remaining.inDays > 0) {
+      final days = remaining.inDays;
+      remainingText = '$days ${days == 1 ? 'day' : 'days'}';
+    } else if (remaining.inHours > 0) {
+      final hours = remaining.inHours;
+      remainingText = '$hours ${hours == 1 ? 'hour' : 'hours'}';
+    } else {
+      final minutes = remaining.inMinutes;
+
+      if (minutes <= 1) {
+        remainingText = '1 minute';
+      } else {
+        remainingText = '$minutes minutes';
+      }
+    }
+
+    ToastService.success(
+      context,
+      'Reminder set. You’ll be notified in $remainingText.',
+    );
   }
 
   Future<void> _clearReminder(BuildContext context) async {
