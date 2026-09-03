@@ -261,35 +261,38 @@ class _ContactTabViewState extends State<_ContactTabView> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Offstage(
-          offstage: widget.selectedIndex != 0,
-          child: TickerMode(
-            enabled: widget.selectedIndex == 0,
-            child: _pages[0],
-          ),
-        ),
-        Offstage(
-          offstage: widget.selectedIndex != 1,
-          child: TickerMode(
-            enabled: widget.selectedIndex == 1,
-            child: _pages[1],
-          ),
-        ),
-        Offstage(
-          offstage: widget.selectedIndex != 2,
-          child: TickerMode(
-            enabled: widget.selectedIndex == 2,
-            child: _pages[2],
-          ),
-        ),
-        Offstage(
-          offstage: widget.selectedIndex != 3,
-          child: TickerMode(
-            enabled: widget.selectedIndex == 3,
-            child: _pages[3],
-          ),
-        ),
+        for (int index = 0; index < _pages.length; index++)
+          _buildPage(index),
       ],
+    );
+  }
+
+  Widget _buildPage(int index) {
+    final isSelected = index == widget.selectedIndex;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !isSelected,
+        child: TickerMode(
+          enabled: isSelected,
+          child: AnimatedOpacity(
+            opacity: isSelected ? 1 : 0,
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+            child: AnimatedSlide(
+              offset: isSelected
+                  ? Offset.zero
+                  : const Offset(0, 0.015),
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              child: Offstage(
+                offstage: !isSelected,
+                child: _pages[index],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

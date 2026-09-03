@@ -51,10 +51,7 @@ class _ContactHeaderState extends State<ContactHeader>
   Future<void> _call() async {
     if (widget.displayNumber.isEmpty) return;
 
-    final uri = Uri(
-      scheme: 'tel',
-      path: widget.displayNumber,
-    );
+    final uri = Uri(scheme: 'tel', path: widget.displayNumber);
 
     await launchUrl(uri);
   }
@@ -62,10 +59,7 @@ class _ContactHeaderState extends State<ContactHeader>
   Future<void> _message() async {
     if (widget.displayNumber.isEmpty) return;
 
-    final uri = Uri(
-      scheme: 'sms',
-      path: widget.displayNumber,
-    );
+    final uri = Uri(scheme: 'sms', path: widget.displayNumber);
 
     await launchUrl(uri);
   }
@@ -90,10 +84,7 @@ class _ContactHeaderState extends State<ContactHeader>
 
               const SizedBox(height: 8),
 
-              _buildContactInfo(
-                organization,
-                email,
-              ),
+              _buildContactInfo(organization, email),
 
               if (widget.displayNumber.isNotEmpty) ...[
                 const SizedBox(height: 6),
@@ -102,11 +93,7 @@ class _ContactHeaderState extends State<ContactHeader>
             ],
           ),
 
-          Positioned(
-            top: 0,
-            right: 0,
-            child: _buildFavoriteButton(),
-          ),
+          Positioned(top: 0, right: 0, child: _buildFavoriteButton()),
         ],
       ),
     );
@@ -136,18 +123,14 @@ class _ContactHeaderState extends State<ContactHeader>
                   animation: _orbitController,
                   builder: (context, child) {
                     return Transform.rotate(
-                      angle: _orbitController.value * math.pi * 2,
+                      angle: -_orbitController.value * math.pi * 2,
                       child: CircularPhoneNumber(
                         text: widget.displayNumber,
                         radius: 50,
                         startAngle: math.pi * 1.08,
                         sweepAngle: math.pi * 0.84,
-                        textStyle: Theme.of(context)
-                            .textTheme
-                            .labelMedium
-                            ?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                        textStyle: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
                       ),
                     );
                   },
@@ -162,10 +145,7 @@ class _ContactHeaderState extends State<ContactHeader>
                     child: const SizedBox(
                       width: 66,
                       height: 66,
-                      child: Icon(
-                        Icons.call_rounded,
-                        size: 27,
-                      ),
+                      child: Icon(Icons.call_rounded, size: 27),
                     ),
                   ),
                 ),
@@ -188,33 +168,24 @@ class _ContactHeaderState extends State<ContactHeader>
   Widget _buildAvatar() {
     final thumbnail = widget.deviceContact?.thumbnail;
 
-    final color = widget.colorValue != null
-        ? Color(widget.colorValue!)
-        : null;
+    final color = widget.colorValue != null ? Color(widget.colorValue!) : null;
 
     return CircleAvatar(
       radius: 30,
       backgroundColor: color,
-      backgroundImage: thumbnail != null
-          ? MemoryImage(thumbnail)
-          : null,
+      backgroundImage: thumbnail != null ? MemoryImage(thumbnail) : null,
       child: thumbnail == null
           ? Text(
               widget.displayName.isNotEmpty
                   ? widget.displayName[0].toUpperCase()
                   : '?',
-              style: const TextStyle(
-                fontSize: 22,
-              ),
+              style: const TextStyle(fontSize: 22),
             )
           : null,
     );
   }
 
-  Widget _buildContactInfo(
-    Organization? organization,
-    String? email,
-  ) {
+  Widget _buildContactInfo(Organization? organization, String? email) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -264,8 +235,7 @@ class _ContactHeaderState extends State<ContactHeader>
           ),
 
         if (organization != null &&
-            (organization.company.isNotEmpty ||
-                organization.title.isNotEmpty))
+            (organization.company.isNotEmpty || organization.title.isNotEmpty))
           Text(
             [
               organization.title,
@@ -274,9 +244,7 @@ class _ContactHeaderState extends State<ContactHeader>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-            ),
+            style: const TextStyle(fontSize: 13),
           ),
 
         if (email != null && email.isNotEmpty)
@@ -285,9 +253,7 @@ class _ContactHeaderState extends State<ContactHeader>
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13,
-            ),
+            style: const TextStyle(fontSize: 13),
           ),
       ],
     );
@@ -295,15 +261,8 @@ class _ContactHeaderState extends State<ContactHeader>
 
   Widget _buildFavoriteButton() {
     return IconButton(
-      tooltip: widget.isFavorite
-          ? 'Remove from favorites'
-          : 'Add to favorites',
-      icon: Icon(
-        widget.isFavorite
-            ? Icons.star
-            : Icons.star_border,
-        size: 26,
-      ),
+      tooltip: widget.isFavorite ? 'Remove from favorites' : 'Add to favorites',
+      icon: Icon(widget.isFavorite ? Icons.star : Icons.star_border, size: 26),
       onPressed: widget.onFavoritePressed,
     );
   }
@@ -367,24 +326,14 @@ class CircularPhoneNumber extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           for (int index = 0; index < characters.length; index++)
-            _buildCharacter(
-              characters[index],
-              index,
-              characters.length,
-            ),
+            _buildCharacter(characters[index], index, characters.length),
         ],
       ),
     );
   }
 
-  Widget _buildCharacter(
-    String character,
-    int index,
-    int count,
-  ) {
-    final progress = count <= 1
-        ? 0.5
-        : index / (count - 1);
+  Widget _buildCharacter(String character, int index, int count) {
+    final progress = count <= 1 ? 0.5 : index / (count - 1);
 
     final angle = startAngle + (sweepAngle * progress);
 
@@ -395,10 +344,7 @@ class CircularPhoneNumber extends StatelessWidget {
       offset: Offset(x, y),
       child: Transform.rotate(
         angle: angle + (math.pi / 2),
-        child: Text(
-          character,
-          style: textStyle,
-        ),
+        child: Text(character, style: textStyle),
       ),
     );
   }

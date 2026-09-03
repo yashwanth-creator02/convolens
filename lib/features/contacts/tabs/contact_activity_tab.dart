@@ -63,9 +63,14 @@ class ContactActivityTab extends StatelessWidget {
         _Section(
           title: 'Timeline',
           icon: Icons.timeline_outlined,
-          child: ContactTimelineSection(
-            normalizedNumber: normalizedNumber,
-            db: db,
+          child: SizedBox(
+            height: 300,
+            child: SingleChildScrollView(
+              child: ContactTimelineSection(
+                normalizedNumber: normalizedNumber,
+                db: db,
+              ),
+            ),
           ),
         ),
 
@@ -77,7 +82,7 @@ class ContactActivityTab extends StatelessWidget {
           title: 'Call History',
           icon: Icons.call_outlined,
           child: SizedBox(
-            height: 400,
+            height: 300,
             child: ContactCallHistoryList(
               normalizedNumber: normalizedNumber,
               db: db,
