@@ -110,6 +110,8 @@ ContactSummary _buildDeviceContactSummaryStatic(
       .toSet();
 
   int totalCount = 0;
+  int incoming = 0;
+  int outgoing = 0;
   int? latestTimestamp;
   int totalDuration = 0;
 
@@ -120,6 +122,8 @@ ContactSummary _buildDeviceContactSummaryStatic(
     matchedNumbers.add(number);
     for (final stat in matches) {
       totalCount += stat.count;
+      incoming += stat.incoming;
+      outgoing += stat.outgoing;
       totalDuration += stat.totalDuration;
       if (latestTimestamp == null || stat.lastTimestamp > latestTimestamp) {
         latestTimestamp = stat.lastTimestamp;
@@ -141,6 +145,8 @@ ContactSummary _buildDeviceContactSummaryStatic(
     displayName: displayName,
     displayNumber: displayNumber,
     callCount: totalCount,
+    incoming: incoming,
+    outgoing: outgoing,
     lastCallAt: latestTimestamp,
     totalDuration: totalDuration,
   );
@@ -156,12 +162,16 @@ List<ContactSummary> _buildUnknownContactSummariesStatic(
     if (matchedNumbers.contains(entry.key)) continue;
 
     int totalCount = 0;
+    int incoming = 0;
+    int outgoing = 0;
     int latestTimestamp = 0;
     String? name;
     int totalDuration = 0;
 
     for (final stat in entry.value) {
       totalCount += stat.count;
+      incoming += stat.incoming;
+      outgoing += stat.outgoing;
       totalDuration += stat.totalDuration;
       if (stat.lastTimestamp > latestTimestamp) {
         latestTimestamp = stat.lastTimestamp;
@@ -178,6 +188,8 @@ List<ContactSummary> _buildUnknownContactSummariesStatic(
             : entry.value.first.number,
         displayNumber: entry.value.first.number,
         callCount: totalCount,
+        incoming: incoming,
+        outgoing: outgoing,
         lastCallAt: latestTimestamp,
         totalDuration: totalDuration,
       ),

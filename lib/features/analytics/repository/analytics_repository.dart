@@ -203,6 +203,18 @@ class AnalyticsRepository {
           .take(10)
           .toList();
 
+      final withInitiationData = includedSummaries.where(
+        (s) => (s.incoming + s.outgoing) > 0,
+      );
+
+      final theyInitiateMore =
+          withInitiationData.where((s) => s.incoming > s.outgoing).toList()
+            ..sort((a, b) => b.incoming.compareTo(a.incoming));
+
+      final youInitiateMore =
+          withInitiationData.where((s) => s.outgoing > s.incoming).toList()
+            ..sort((a, b) => b.outgoing.compareTo(a.outgoing));
+
       // ============================================================
       // SILENT CONTACTS
       // ============================================================
@@ -262,12 +274,12 @@ class AnalyticsRepository {
       // FAVORITE COMPARISON
       // ============================================================
 
-      final favoriteRows =
-          await (_db.select(_db.contactDetails)
-                ..where((c) => c.isFavorite.equals(true)))
-              .get();
-      final favoriteNumbers =
-          favoriteRows.map((r) => r.normalizedNumber).toSet();
+      final favoriteRows = await (_db.select(
+        _db.contactDetails,
+      )..where((c) => c.isFavorite.equals(true))).get();
+      final favoriteNumbers = favoriteRows
+          .map((r) => r.normalizedNumber)
+          .toSet();
 
       int favoriteCallCount = 0;
       int otherCallCount = 0;
@@ -283,12 +295,12 @@ class AnalyticsRepository {
       final favoriteContactCount = favoriteNumbers.length;
       final otherContactCount = includedSummaries.length - favoriteContactCount;
 
-      final avgCallsPerFavorite =
-          favoriteContactCount > 0
-              ? favoriteCallCount / favoriteContactCount
-              : 0.0;
-      final avgCallsPerOther =
-          otherContactCount > 0 ? otherCallCount / otherContactCount : 0.0;
+      final avgCallsPerFavorite = favoriteContactCount > 0
+          ? favoriteCallCount / favoriteContactCount
+          : 0.0;
+      final avgCallsPerOther = otherContactCount > 0
+          ? otherCallCount / otherContactCount
+          : 0.0;
 
       // ============================================================
       // DURATION DISTRIBUTION
@@ -356,6 +368,8 @@ class AnalyticsRepository {
         longestCallWith: longestCallWith,
         newContactsByMonth: newContactsByMonth,
         anomalyDays: anomalyDays,
+        theyInitiateMore: theyInitiateMore.take(10).toList(),
+        youInitiateMore: youInitiateMore.take(10).toList(),
       );
     });
   }

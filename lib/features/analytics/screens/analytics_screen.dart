@@ -424,9 +424,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Activity', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(
+              'Activity',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             TextButton(
-              onPressed: () => setState(() => _useCalendarGrid = !_useCalendarGrid),
+              onPressed: () =>
+                  setState(() => _useCalendarGrid = !_useCalendarGrid),
               child: Text(_useCalendarGrid ? 'Heatmap View' : 'Calendar View'),
             ),
           ],
@@ -513,7 +517,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         AnsweredMissedDeclinedBars(callTypeCounts: summary.callTypeCounts),
 
         const SizedBox(height: 24),
-        const Text('Day of Week', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Day of Week',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
         WeekdayChart(weekdayCounts: summary.weekdayCounts),
 
@@ -546,26 +553,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
         if (summary.anomalyDays.isNotEmpty) ...[
           const SizedBox(height: 24),
-          const Text('Unusual Days', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            'Unusual Days',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 4),
           const Text(
             'Days that stood out from your normal pattern',
             style: TextStyle(color: Colors.grey, fontSize: 12),
           ),
           const SizedBox(height: 8),
-          ...summary.anomalyDays.map((e) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(e.key, style: const TextStyle(fontSize: 12)),
-                Text(
-                  '${e.value} calls',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-              ],
+          ...summary.anomalyDays.map(
+            (e) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(e.key, style: const TextStyle(fontSize: 12)),
+                  Text(
+                    '${e.value} calls',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          )),
+          ),
         ],
       ],
     );
@@ -575,14 +590,66 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Text('Your Network', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Your Network',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 4),
         const Text(
           'Line thickness reflects how often you talk',
           style: TextStyle(color: Colors.grey, fontSize: 12),
         ),
         const SizedBox(height: 12),
-        RelationshipWeb(contacts: summary.mostContacted, onContactTap: _openContact),
+        RelationshipWeb(
+          contacts: summary.mostContacted,
+          onContactTap: _openContact,
+        ),
+
+        const SizedBox(height: 24),
+        const Text(
+          'People Who Call You',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Contacts who initiate more often than you do',
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        if (summary.theyInitiateMore.isEmpty)
+          const Text('No one yet.', style: TextStyle(color: Colors.grey))
+        else
+          ...summary.theyInitiateMore.map(
+            (c) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(c.displayName),
+              trailing: Text('${c.incoming} calls from them'),
+              onTap: () => _openContact(c),
+            ),
+          ),
+
+        const SizedBox(height: 24),
+        const Text(
+          'People You Call',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Contacts you initiate more often than they do',
+          style: TextStyle(color: Colors.grey, fontSize: 12),
+        ),
+        const SizedBox(height: 8),
+        if (summary.youInitiateMore.isEmpty)
+          const Text('No one yet.', style: TextStyle(color: Colors.grey))
+        else
+          ...summary.youInitiateMore.map(
+            (c) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(c.displayName),
+              trailing: Text('${c.outgoing} calls from you'),
+              onTap: () => _openContact(c),
+            ),
+          ),
 
         const SizedBox(height: 24),
         Row(
@@ -593,7 +660,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             TextButton(
-              onPressed: () => setState(() => _rankByDuration = !_rankByDuration),
+              onPressed: () =>
+                  setState(() => _rankByDuration = !_rankByDuration),
               child: Text(_rankByDuration ? 'By Calls' : 'By Talk Time'),
             ),
           ],
@@ -665,7 +733,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             style: TextStyle(color: Colors.grey),
           )
         else
-          ...summary.silentContacts.take(10).map(
+          ...summary.silentContacts
+              .take(10)
+              .map(
                 (c) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(c.displayName),
@@ -699,9 +769,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         const SizedBox(height: 8),
         _buildBarChart(
           summary.newContactsByMonth.values.toList(),
-          summary.newContactsByMonth.keys
-              .map((k) => k.split('-')[1])
-              .toList(),
+          summary.newContactsByMonth.keys.map((k) => k.split('-')[1]).toList(),
           color: Theme.of(context).colorScheme.tertiary,
         ),
       ],
@@ -716,10 +784,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       );
     }
 
-    final ratio =
-        summary.avgCallsPerOther > 0
-            ? summary.avgCallsPerFavorite / summary.avgCallsPerOther
-            : 0.0;
+    final ratio = summary.avgCallsPerOther > 0
+        ? summary.avgCallsPerFavorite / summary.avgCallsPerOther
+        : 0.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -992,16 +1059,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
             ],
           ),
-          ),
+        ),
       ),
     );
   }
 
-  Widget _buildBarChart(
-    List<int> values,
-    List<String> labels, {
-    Color? color,
-  }) {
+  Widget _buildBarChart(List<int> values, List<String> labels, {Color? color}) {
     if (values.isEmpty) {
       return const Text('No data.', style: TextStyle(color: Colors.grey));
     }

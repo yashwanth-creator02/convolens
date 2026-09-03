@@ -769,6 +769,8 @@ class AppDatabase extends _$AppDatabase {
       SELECT
         number,
         COUNT(*) AS count,
+        SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) AS incoming,
+        SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END) AS outgoing,
         MAX(timestamp) AS last_timestamp,
         SUM(duration) AS total_duration,
         name
@@ -819,6 +821,8 @@ class AppDatabase extends _$AppDatabase {
       return CallNumberStat(
         number: row.read<String>('number'),
         count: row.read<int>('count'),
+        incoming: row.read<int>('incoming'),
+        outgoing: row.read<int>('outgoing'),
         lastTimestamp: row.read<int>('last_timestamp'),
         totalDuration: row.readNullable<int>('total_duration') ?? 0,
         name: row.readNullable<String>('name'),

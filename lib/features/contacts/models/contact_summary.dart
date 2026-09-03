@@ -7,6 +7,8 @@ class ContactSummary {
   final String displayName;
   final String displayNumber;
   final int callCount;
+  final int incoming;
+  final int outgoing;
   final int? lastCallAt;
   final int totalDuration;
 
@@ -17,6 +19,8 @@ class ContactSummary {
     required this.displayName,
     required this.displayNumber,
     required this.callCount,
+    required this.incoming,
+    required this.outgoing,
     this.lastCallAt,
     required this.totalDuration,
   });
