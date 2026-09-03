@@ -3,19 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
-import '../widgets/contact_analytics_section.dart';
-import '../widgets/contact_call_history_list.dart';
-import '../widgets/contact_color_section.dart';
+import '../../../core/toast/toast_service.dart';
+import '../../../shared/widgets/app_tab_row.dart';
+import '../tabs/contact_activity_tab.dart';
+import '../tabs/contact_analytics_tab.dart';
+import '../tabs/contact_more_tab.dart';
+import '../tabs/contact_overview_tab.dart';
 import '../widgets/contact_header.dart';
-import '../widgets/contact_links_section.dart';
-import '../widgets/contact_note_section.dart';
-import '../widgets/contact_preferences_section.dart';
-import '../widgets/contact_settings_section.dart';
-import '../widgets/contact_tags_section.dart';
-import '../widgets/contact_phone_numbers_section.dart';
-import '../widgets/contact_timeline_section.dart';
 
-class ContactDetailScreen extends StatelessWidget {
+class ContactDetailScreen extends StatefulWidget {
   final String normalizedNumber;
   final String displayName;
   final String displayNumber;
@@ -31,156 +27,273 @@ class ContactDetailScreen extends StatelessWidget {
     required this.db,
   });
 
+  @override
+  State<ContactDetailScreen> createState() => _ContactDetailScreenState();
+}
+
+class _ContactDetailScreenState extends State<ContactDetailScreen> {
+  int _selectedTab = 0;
+
+  static const _tabs = [
+    AppTabItem(
+      label: 'Overview',
+      icon: Icons.person_outline,
+    ),
+    AppTabItem(
+      label: 'Activity',
+      icon: Icons.history,
+    ),
+    AppTabItem(
+      label: 'Analytics',
+      icon: Icons.analytics_outlined,
+    ),
+    AppTabItem(
+      label: 'More',
+      icon: Icons.more_horiz,
+    ),
+  ];
+
   Future<void> _toggleFavorite(bool isFavorite) async {
-    await db.toggleContactFavorite(normalizedNumber, !isFavorite);
+    await widget.db.toggleContactFavorite(
+      widget.normalizedNumber,
+      !isFavorite,
+    );
+  }
+
+  void _showContactMenu(ContactDetail? detail) {
+    final isArchived = detail?.isArchived ?? false;
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit contact'),
+                onTap: () {
+                  Navigator.pop(context);
+                  // TODO: Open edit contact screen.
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                ),
+                title: Text(isArchived ? 'Unarchive contact' : 'Archive contact'),
+                onTap: () async {
+                  Navigator.pop(context);
+
+                  await widget.db.setContactFields(
+                    widget.normalizedNumber,
+                    ContactDetailsCompanion(
+                      isArchived: drift.Value(!isArchived),
+                    ),
+                  );
+
+                  if (mounted) {
+                    ToastService.success(
+                      context,
+                      isArchived ? 'Contact unarchived' : 'Contact archived',
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Contact')),
-      body: StreamBuilder<ContactDetail?>(
-        stream: db.watchContactDetails(normalizedNumber),
-        builder: (context, snapshot) {
-          final detail = snapshot.data;
+    return StreamBuilder<ContactDetail?>(
+      stream: widget.db.watchContactDetails(
+        widget.normalizedNumber,
+      ),
+      builder: (context, snapshot) {
+        final detail = snapshot.data;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ContactHeader(
-                  displayName: displayName,
-                  displayNumber: displayNumber,
-                  deviceContact: deviceContact,
-                  isFavorite: detail?.isFavorite ?? false,
-                  onFavoritePressed: () =>
-                      _toggleFavorite(detail?.isFavorite ?? false),
-                  colorValue: detail?.colorValue,
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Contact'),
+            actions: [
+              IconButton(
+                tooltip: 'More',
+                icon: const Icon(Icons.more_vert),
+                onPressed: () => _showContactMenu(detail),
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              ContactHeader(
+                displayName: widget.displayName,
+                displayNumber: widget.displayNumber,
+                deviceContact: widget.deviceContact,
+                isFavorite: detail?.isFavorite ?? false,
+                isArchived: detail?.isArchived ?? false,
+                onFavoritePressed: () => _toggleFavorite(
+                  detail?.isFavorite ?? false,
                 ),
+                colorValue: detail?.colorValue,
+              ),
 
-                const Divider(height: 32),
+              AppTabRow(
+                tabs: _tabs,
+                scrollable: true,
+                selectedIndex: _selectedTab,
+                onTabSelected: (index) {
+                  if (_selectedTab == index) {
+                    return;
+                  }
 
-                const Text(
-                  'Phone Numbers',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ContactPhoneNumbersSection(
-                  deviceContact: deviceContact,
-                  fallbackNumber: displayNumber,
-                ),
+                  setState(() {
+                    _selectedTab = index;
+                  });
+                },
+              ),
 
-                const Divider(height: 32),
-                const Text(
-                  'Links',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ContactLinksSection(normalizedNumber: normalizedNumber, db: db),
+              const Divider(height: 1),
 
-                const Divider(height: 32),
-
-                ContactNoteSection(
-                  note: detail?.generalNote,
-                  onSave: (note) async {
-                    await db.saveContactNote(normalizedNumber, note);
-                  },
-                ),
-
-                const Divider(height: 32),
-
-                ContactTagsSection(normalizedNumber: normalizedNumber, db: db),
-                const Divider(height: 32),
-                const Text(
-                  'Color',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ContactColorSection(
-                  colorValue: detail?.colorValue,
-                  onColorSelected: (value) => db.setContactFields(
-                    normalizedNumber,
-                    ContactDetailsCompanion(colorValue: drift.Value(value)),
-                  ),
-                ),
-
-                const Divider(height: 32),
-                const Text(
-                  'Preferences',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ContactPreferencesSection(
-                  normalizedNumber: normalizedNumber,
+              Expanded(
+                child: _ContactTabView(
+                  selectedIndex: _selectedTab,
                   detail: detail,
-                  db: db,
+                  normalizedNumber: widget.normalizedNumber,
+                  displayName: widget.displayName,
+                  displayNumber: widget.displayNumber,
+                  deviceContact: widget.deviceContact,
+                  db: widget.db,
                 ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
 
-                const Divider(height: 32),
-                const Text(
-                  'Analytics',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ContactAnalyticsSection(
-                  normalizedNumber: normalizedNumber,
-                  db: db,
-                ),
+class _ContactTabView extends StatefulWidget {
+  final int selectedIndex;
+  final ContactDetail? detail;
+  final String normalizedNumber;
+  final String displayName;
+  final String displayNumber;
+  final Contact? deviceContact;
+  final AppDatabase db;
 
-                const Divider(height: 32),
-                const Text(
-                  'Timeline',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 400),
-                  child: SingleChildScrollView(
-                    child: ContactTimelineSection(
-                      normalizedNumber: normalizedNumber,
-                      db: db,
-                    ),
-                  ),
-                ),
-                const Divider(height: 32),
-                const Text(
-                  'Settings',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ContactSettingsSection(
-                  normalizedNumber: normalizedNumber,
-                  displayName: displayName,
-                  displayNumber: displayNumber,
-                  detail: detail,
-                  db: db,
-                ),
+  const _ContactTabView({
+    required this.selectedIndex,
+    required this.detail,
+    required this.normalizedNumber,
+    required this.displayName,
+    required this.displayNumber,
+    required this.deviceContact,
+    required this.db,
+  });
 
-                const Divider(height: 32),
+  @override
+  State<_ContactTabView> createState() => _ContactTabViewState();
+}
 
-                const Text(
-                  'Call History',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
+class _ContactTabViewState extends State<_ContactTabView> {
+  late final List<Widget> _pages;
 
-                Container(
-                  height: 260,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: ContactCallHistoryList(
-                    normalizedNumber: normalizedNumber,
-                    db: db,
-                  ),
-                ),
-              ],
+  @override
+  void initState() {
+    super.initState();
+
+    _pages = [
+      ContactOverviewTab(
+        normalizedNumber: widget.normalizedNumber,
+        displayNumber: widget.displayNumber,
+        deviceContact: widget.deviceContact,
+        detail: widget.detail,
+        db: widget.db,
+      ),
+      ContactActivityTab(
+        normalizedNumber: widget.normalizedNumber,
+        db: widget.db,
+      ),
+      ContactAnalyticsTab(
+        normalizedNumber: widget.normalizedNumber,
+        db: widget.db,
+      ),
+      ContactMoreTab(
+        normalizedNumber: widget.normalizedNumber,
+        displayName: widget.displayName,
+        displayNumber: widget.displayNumber,
+        detail: widget.detail,
+        db: widget.db,
+      ),
+    ];
+  }
+
+  @override
+  void didUpdateWidget(covariant _ContactTabView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.detail != widget.detail) {
+      _pages[0] = ContactOverviewTab(
+        normalizedNumber: widget.normalizedNumber,
+        displayNumber: widget.displayNumber,
+        deviceContact: widget.deviceContact,
+        detail: widget.detail,
+        db: widget.db,
+      );
+
+      _pages[3] = ContactMoreTab(
+        normalizedNumber: widget.normalizedNumber,
+        displayName: widget.displayName,
+        displayNumber: widget.displayNumber,
+        detail: widget.detail,
+        db: widget.db,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        for (int index = 0; index < _pages.length; index++)
+          _buildPage(index),
+      ],
+    );
+  }
+
+  Widget _buildPage(int index) {
+    final isSelected = index == widget.selectedIndex;
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !isSelected,
+        child: TickerMode(
+          enabled: isSelected,
+          child: AnimatedOpacity(
+            opacity: isSelected ? 1 : 0,
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+            child: AnimatedSlide(
+              offset: isSelected
+                  ? Offset.zero
+                  : const Offset(0, 0.015),
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              child: Offstage(
+                offstage: !isSelected,
+                child: _pages[index],
+              ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
 }
+

@@ -3,6 +3,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../shared/widgets/app_tab_row.dart';
 import '../../contacts/models/contact_summary.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../models/analytics_filters.dart';
@@ -36,6 +37,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   bool _loading = true;
 
   AnalyticsFilters _filters = const AnalyticsFilters();
+
+  int _selectedTab = 0;
+
+  static const _tabs = [
+    AppTabItem(label: 'Overview'),
+    AppTabItem(label: 'Activity'),
+    AppTabItem(label: 'People'),
+    AppTabItem(label: 'Records'),
+  ];
 
   bool _showDuration = false;
   bool _rankByDuration = false;
@@ -329,46 +339,46 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return DefaultTabController(
-      length: 4,
-      child: StreamBuilder<AnalyticsSummary>(
-        stream: _repository.watchSummary(_deviceContacts, _filters),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return StreamBuilder<AnalyticsSummary>(
+      stream: _repository.watchSummary(_deviceContacts, _filters),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-          final summary = snapshot.data!;
+        final summary = snapshot.data!;
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: _buildFilterBar(context),
-              ),
-              const TabBar(
-                isScrollable: true,
-                tabs: [
-                  Tab(text: 'Overview'),
-                  Tab(text: 'Activity'),
-                  Tab(text: 'People'),
-                  Tab(text: 'Records'),
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: _buildFilterBar(context),
+            ),
+            AppTabRow(
+              tabs: _tabs,
+              scrollable: true,
+              selectedIndex: _selectedTab,
+              onTabSelected: (index) {
+                setState(() {
+                  _selectedTab = index;
+                });
+              },
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: IndexedStack(
+                index: _selectedTab,
+                children: [
+                  _buildOverviewTab(summary),
+                  _buildActivityTab(summary),
+                  _buildPeopleTab(summary),
+                  _buildRecordsTab(summary),
                 ],
               ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _buildOverviewTab(summary),
-                    _buildActivityTab(summary),
-                    _buildPeopleTab(summary),
-                    _buildRecordsTab(summary),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 
