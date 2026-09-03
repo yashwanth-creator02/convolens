@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
@@ -87,20 +88,15 @@ class _MainShellState extends State<MainShell> {
   }
 
   // ---------------------------------------------------------------------------
-  // App Bar
+  // App Bar Actions
   // ---------------------------------------------------------------------------
 
   List<Widget> _buildAppBarActions() {
     return [
       if (_selectedIndex == 0)
-        IconButton(
-          icon: const Icon(Icons.search),
-          tooltip: 'Search',
-          onPressed: _openSearch,
-        ),
-      IconButton(
+        GlassIconButton(icon: const Icon(Icons.search), onPressed: _openSearch),
+      GlassIconButton(
         icon: const Icon(Icons.settings),
-        tooltip: 'Settings',
         onPressed: _openSettings,
       ),
     ];
@@ -112,8 +108,8 @@ class _MainShellState extends State<MainShell> {
 
   Widget? _buildFloatingActionButton() {
     if (_selectedIndex == 0) {
-      return FloatingActionButton(
-        tooltip: 'Dial number',
+      return GlassIconButton(
+        icon: const Icon(Icons.dialpad),
         onPressed: () async {
           final number = await showNumberPadSheet(context);
           if (!mounted || number == null || number.isEmpty) return;
@@ -125,20 +121,18 @@ class _MainShellState extends State<MainShell> {
             ),
           );
         },
-        child: const Icon(Icons.dialpad),
       );
     }
 
     if (_selectedIndex == 2) {
-      return FloatingActionButton(
-        tooltip: 'Add contact',
+      return GlassIconButton(
+        icon: const Icon(Icons.person_add),
         onPressed: () async {
           final added = await showAddContactScreen(context);
           if (added) {
             await _contactsScreenKey.currentState?.refreshDeviceContacts();
           }
         },
-        child: const Icon(Icons.person_add),
       );
     }
 
@@ -150,22 +144,14 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   Widget _buildBottomNavigationBar() {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: _selectedIndex,
-      onTap: _onNavigationItemSelected,
-
-      selectedItemColor: Theme.of(context).colorScheme.primary,
-      unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
-
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart),
-          label: 'Analytics',
-        ),
-        BottomNavigationBarItem(icon: Icon(Icons.contacts), label: 'Contacts'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+    return GlassTabBar.bottom(
+      selectedIndex: _selectedIndex,
+      onTabSelected: _onNavigationItemSelected,
+      tabs: const [
+        GlassTab(icon: Icon(Icons.history), label: 'History'),
+        GlassTab(icon: Icon(Icons.bar_chart), label: 'Analytics'),
+        GlassTab(icon: Icon(Icons.contacts), label: 'Contacts'),
+        GlassTab(icon: Icon(Icons.person), label: 'Profile'),
       ],
     );
   }
@@ -176,14 +162,21 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    final fab = _buildFloatingActionButton();
+
+    return GlassScaffold(
+      statusBarStyle: GlassStatusBarStyle.auto,
+      appBar: GlassAppBar(
         title: Text(_titles[_selectedIndex]),
         actions: _buildAppBarActions(),
       ),
-      body: IndexedStack(index: _selectedIndex, children: _screens),
-      floatingActionButton: _buildFloatingActionButton(),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      body: Stack(
+        children: [
+          IndexedStack(index: _selectedIndex, children: _screens),
+          if (fab != null) Positioned(bottom: 96, right: 16, child: fab),
+        ],
+      ),
+      bottomBar: _buildBottomNavigationBar(),
     );
   }
 }

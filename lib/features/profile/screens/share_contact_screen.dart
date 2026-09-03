@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/database/app_database.dart';
@@ -30,7 +31,7 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: Text(_titleFor(widget.type))),
       body: StreamBuilder<Map<String, ProfileFieldEntry>>(
         stream: widget.db.watchProfileFields(),
@@ -128,7 +129,7 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => Scaffold(
+                          builder: (context) => GlassScaffold(
                             appBar: AppBar(title: const Text('Custom QR')),
                             body: _buildQrView(context, selectedDefs, fields),
                           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class NotificationTroubleshootingScreen extends StatelessWidget {
@@ -6,7 +7,7 @@ class NotificationTroubleshootingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: const Text('Notification Troubleshooting')),
       body: ListView(
         padding: const EdgeInsets.all(16),

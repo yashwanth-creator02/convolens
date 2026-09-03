@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/analytics_summary.dart';
@@ -22,7 +23,7 @@ class ComparisonScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repository = AnalyticsRepository(db);
 
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: const Text('Compare')),
       body: StreamBuilder<AnalyticsSummary>(
         stream: repository.watchSummary(deviceContacts, config.left),

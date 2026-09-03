@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/notifications/notification_service.dart';
@@ -148,7 +149,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(
         title: const Text('App Permissions'),
         actions: [
@@ -218,7 +219,8 @@ class _PermissionsScreenState extends State<PermissionsScreen>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const NotificationTroubleshootingScreen(),
+                  builder: (context) =>
+                      const NotificationTroubleshootingScreen(),
                 ),
               );
             },

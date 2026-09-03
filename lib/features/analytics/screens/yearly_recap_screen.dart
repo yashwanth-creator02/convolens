@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/analytics_filters.dart';
@@ -44,7 +45,7 @@ class _YearlyRecapScreenState extends State<YearlyRecapScreen> {
       customEnd: yearEnd,
     );
 
-    return Scaffold(
+    return GlassScaffold(
       backgroundColor: Colors.black,
       body: StreamBuilder(
         stream: repository.watchSummary(widget.deviceContacts, filters),

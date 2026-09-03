@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart' hide Table;
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 
@@ -42,7 +43,7 @@ class _DatabaseBrowserScreenState extends State<DatabaseBrowserScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: const Text('Database Browser')),
       body: Column(
         children: [

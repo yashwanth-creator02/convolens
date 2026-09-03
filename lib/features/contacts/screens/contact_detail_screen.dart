@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/toast/toast_service.dart';
@@ -35,29 +36,14 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
   int _selectedTab = 0;
 
   static const _tabs = [
-    AppTabItem(
-      label: 'Overview',
-      icon: Icons.person_outline,
-    ),
-    AppTabItem(
-      label: 'Activity',
-      icon: Icons.history,
-    ),
-    AppTabItem(
-      label: 'Analytics',
-      icon: Icons.analytics_outlined,
-    ),
-    AppTabItem(
-      label: 'More',
-      icon: Icons.more_horiz,
-    ),
+    AppTabItem(label: 'Overview', icon: Icons.person_outline),
+    AppTabItem(label: 'Activity', icon: Icons.history),
+    AppTabItem(label: 'Analytics', icon: Icons.analytics_outlined),
+    AppTabItem(label: 'More', icon: Icons.more_horiz),
   ];
 
   Future<void> _toggleFavorite(bool isFavorite) async {
-    await widget.db.toggleContactFavorite(
-      widget.normalizedNumber,
-      !isFavorite,
-    );
+    await widget.db.toggleContactFavorite(widget.normalizedNumber, !isFavorite);
   }
 
   void _showContactMenu(ContactDetail? detail) {
@@ -80,9 +66,13 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
               ),
               ListTile(
                 leading: Icon(
-                  isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                  isArchived
+                      ? Icons.unarchive_outlined
+                      : Icons.archive_outlined,
                 ),
-                title: Text(isArchived ? 'Unarchive contact' : 'Archive contact'),
+                title: Text(
+                  isArchived ? 'Unarchive contact' : 'Archive contact',
+                ),
                 onTap: () async {
                   Navigator.pop(context);
 
@@ -111,13 +101,11 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<ContactDetail?>(
-      stream: widget.db.watchContactDetails(
-        widget.normalizedNumber,
-      ),
+      stream: widget.db.watchContactDetails(widget.normalizedNumber),
       builder: (context, snapshot) {
         final detail = snapshot.data;
 
-        return Scaffold(
+        return GlassScaffold(
           appBar: AppBar(
             title: const Text('Contact'),
             actions: [
@@ -136,9 +124,8 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                 deviceContact: widget.deviceContact,
                 isFavorite: detail?.isFavorite ?? false,
                 isArchived: detail?.isArchived ?? false,
-                onFavoritePressed: () => _toggleFavorite(
-                  detail?.isFavorite ?? false,
-                ),
+                onFavoritePressed: () =>
+                    _toggleFavorite(detail?.isFavorite ?? false),
                 colorValue: detail?.colorValue,
               ),
 
@@ -261,8 +248,7 @@ class _ContactTabViewState extends State<_ContactTabView> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        for (int index = 0; index < _pages.length; index++)
-          _buildPage(index),
+        for (int index = 0; index < _pages.length; index++) _buildPage(index),
       ],
     );
   }
@@ -280,15 +266,10 @@ class _ContactTabViewState extends State<_ContactTabView> {
             duration: const Duration(milliseconds: 160),
             curve: Curves.easeOut,
             child: AnimatedSlide(
-              offset: isSelected
-                  ? Offset.zero
-                  : const Offset(0, 0.015),
+              offset: isSelected ? Offset.zero : const Offset(0, 0.015),
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOutCubic,
-              child: Offstage(
-                offstage: !isSelected,
-                child: _pages[index],
-              ),
+              child: Offstage(offstage: !isSelected, child: _pages[index]),
             ),
           ),
         ),
@@ -296,4 +277,3 @@ class _ContactTabViewState extends State<_ContactTabView> {
     );
   }
 }
-

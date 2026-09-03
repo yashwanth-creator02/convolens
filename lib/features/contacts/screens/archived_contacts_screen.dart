@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/contact_summary.dart';
@@ -21,7 +22,7 @@ class ArchivedContactsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final repository = ContactsRepository(db);
 
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: const Text('Archived Contacts')),
       body: StreamBuilder<List<ContactSummary>>(
         stream: repository.watchArchivedContacts(deviceContacts),

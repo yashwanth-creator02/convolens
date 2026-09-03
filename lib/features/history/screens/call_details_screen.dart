@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:open_filex/open_filex.dart';
 
 import '../../../core/database/app_database.dart';
@@ -348,7 +349,7 @@ class CallDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: const Text('Call Details')),
       body: StreamBuilder<Setting>(
         stream: db.watchSettings(),
@@ -442,7 +443,7 @@ class _ImagePreviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: Text(title)),
       backgroundColor: Colors.black,
       body: Center(child: InteractiveViewer(child: Image.file(File(filePath)))),

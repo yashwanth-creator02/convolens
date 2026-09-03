@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/profile_field_def.dart';
@@ -10,7 +11,7 @@ class EditProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return GlassScaffold(
       appBar: AppBar(title: const Text('Edit Details')),
       body: StreamBuilder<Map<String, ProfileFieldEntry>>(
         stream: db.watchProfileFields(),
