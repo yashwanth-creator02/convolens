@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/contact_summary.dart';
@@ -31,23 +30,19 @@ class ContactsScreenState extends State<ContactsScreen>
     with WidgetsBindingObserver {
   late final ContactsRepository _repository;
 
-  final ItemScrollController _itemScrollController = ItemScrollController();
-
   bool _permissionGranted = false;
   bool _loadingContacts = true;
 
   List<Contact> _deviceContacts = [];
+  final Map<String, GlobalKey> _letterKeys = {};
 
   Future<void> refreshDeviceContacts() => _loadDeviceContacts();
 
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
-
     _repository = ContactsRepository(widget.db);
-
     _loadDeviceContacts();
   }
 
@@ -133,13 +128,12 @@ class ContactsScreenState extends State<ContactsScreen>
     );
   }
 
-  void _scrollToLetter(String letter, List<Object> items) {
-    final index = items.indexOf(letter);
-
-    if (index != -1 && _itemScrollController.isAttached) {
-      _itemScrollController.scrollTo(
-        index: index,
-        duration: const Duration(milliseconds: 250),
+  void _scrollToLetter(String letter) {
+    final key = _letterKeys[letter];
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     }
@@ -226,6 +220,7 @@ class ContactsScreenState extends State<ContactsScreen>
                 }
 
                 for (final letter in orderedLetters) {
+                  _letterKeys.putIfAbsent(letter, () => GlobalKey());
                   items.add(letter);
                   items.addAll(grouped[letter]!);
                 }
@@ -234,26 +229,25 @@ class ContactsScreenState extends State<ContactsScreen>
                   items.add(_ArchivedSectionMarker(archivedCount));
                 }
 
-                return CustomScrollView(
-                  controller: widget.titleController.scrollController,
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: MediaQuery.of(context).padding.top,
-                      ),
-                    ),
-                    GlassLargeTitle(
-                      text: 'Contacts',
-                      controller: widget.titleController,
-                    ),
-                    SliverFillRemaining(
-                      child: Stack(
-                        children: [
-                          ScrollablePositionedList.builder(
-                            itemScrollController: _itemScrollController,
-                            itemCount: items.length,
-                            itemBuilder: (context, index) {
-                              final item = items[index];
+                return Stack(
+                  children: [
+                    CustomScrollView(
+                      controller: widget.titleController.scrollController,
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: MediaQuery.of(context).padding.top,
+                          ),
+                        ),
+                        GlassLargeTitle(
+                          text: 'Contacts',
+                          controller: widget.titleController,
+                        ),
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) final item = items[index];
 
                               if (item is _ArchivedSectionMarker) {
                                 return _buildArchivedTile(context, item.count);
@@ -276,19 +270,19 @@ class ContactsScreenState extends State<ContactsScreen>
                                     : () => _openContact(contact),
                               );
                             },
+                            childCount: items.length,
                           ),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: SideBarAlphabetIndex(
-                              letters: orderedLetters,
-                              onLetterSelected: (letter) {
-                                _scrollToLetter(letter, items);
-                              },
-                            ),
-                          ),
-                        ],
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                      ],
+                    ),
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: SideBarAlphabetIndex(
+                        letters: orderedLetters,
+                        onLetterSelected: _scrollToLetter,
                       ),
                     ),
                   ],
@@ -379,6 +373,7 @@ class ContactsScreenState extends State<ContactsScreen>
 
   Widget _buildLetterHeader(BuildContext context, String letter) {
     return Container(
+      key: _letterKeys[letter],
       width: double.infinity,
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

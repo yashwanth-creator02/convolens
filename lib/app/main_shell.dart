@@ -25,16 +25,31 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   AppDatabase get _db => widget.db;
 
+  // ---------------------------------------------------------------------------
+  // Keys
+  // ---------------------------------------------------------------------------
+
   final _contactsScreenKey = GlobalKey<ContactsScreenState>();
 
   // ---------------------------------------------------------------------------
-  // Large title controllers
+  // Large-title controllers
+  //
+  // Each screen owns its own scroll position.
+  // The same scrollController is also used by the minimizable tab bar.
   // ---------------------------------------------------------------------------
 
   final _historyTitleController = GlassLargeTitleController();
   final _analyticsTitleController = GlassLargeTitleController();
   final _contactsTitleController = GlassLargeTitleController();
   final _profileTitleController = GlassLargeTitleController();
+
+  // ---------------------------------------------------------------------------
+  // Bottom tab bar minimize controller
+  // ---------------------------------------------------------------------------
+
+  final _tabBarMinimizeController = GlassTabBarMinimizeController(
+    behavior: GlassBarMinimizeBehavior.onScrollDown,
+  );
 
   int _selectedIndex = 0;
 
@@ -44,6 +59,10 @@ class _MainShellState extends State<MainShell> {
     'Contacts',
     'Profile',
   ];
+
+  // ---------------------------------------------------------------------------
+  // Screens
+  // ---------------------------------------------------------------------------
 
   late final List<Widget> _screens = [
     HistoryScreen(db: _db, titleController: _historyTitleController),
@@ -57,7 +76,7 @@ class _MainShellState extends State<MainShell> {
   ];
 
   // ---------------------------------------------------------------------------
-  // Active title controller
+  // Active controllers
   // ---------------------------------------------------------------------------
 
   GlassLargeTitleController get _activeTitleController {
@@ -72,6 +91,29 @@ class _MainShellState extends State<MainShell> {
         return _profileTitleController;
       default:
         return _historyTitleController;
+    }
+  }
+
+  ScrollController get _activeScrollController {
+    return _activeTitleController.scrollController;
+  }
+
+  GlassTabBarTrailingButton? get _trailingButton {
+    switch (_selectedIndex) {
+      case 0:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.dialpad),
+          onTap: _openNumberPad,
+        );
+
+      case 2:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.person_add),
+          onTap: _addContact,
+        );
+
+      default:
+        return null;
     }
   }
 
@@ -91,6 +133,8 @@ class _MainShellState extends State<MainShell> {
 
   @override
   void dispose() {
+    _tabBarMinimizeController.dispose();
+
     _historyTitleController.dispose();
     _analyticsTitleController.dispose();
     _contactsTitleController.dispose();
@@ -105,12 +149,18 @@ class _MainShellState extends State<MainShell> {
 
   void _onNavigationItemSelected(int index) {
     if (_selectedIndex == index) {
+      // Tapping the currently selected tab while minimized should
+      // bring the tab bar back.
+      _tabBarMinimizeController.expand();
       return;
     }
 
     setState(() {
       _selectedIndex = index;
     });
+
+    // Newly selected tab starts with the tab bar visible.
+    _tabBarMinimizeController.expand();
   }
 
   // ---------------------------------------------------------------------------
@@ -156,7 +206,7 @@ class _MainShellState extends State<MainShell> {
   }
 
   // ---------------------------------------------------------------------------
-  // Contacts
+  // Add contact
   // ---------------------------------------------------------------------------
 
   Future<void> _addContact() async {
@@ -170,17 +220,11 @@ class _MainShellState extends State<MainShell> {
   }
 
   // ---------------------------------------------------------------------------
-  // Bottom navigation
+  // Bottom tab bar
   // ---------------------------------------------------------------------------
 
   Widget _buildBottomNavigationBar() {
-    return GlassTabBar.bottom(
-      selectedIndex: _selectedIndex,
-      onTabSelected: _onNavigationItemSelected,
-
-      // Keep the glass effect consistent with the package example.
-      maskingQuality: MaskingQuality.high,
-
+    return GlassTabBar.minimizable(
       tabs: const [
         GlassTab(
           label: 'History',
@@ -189,12 +233,12 @@ class _MainShellState extends State<MainShell> {
         ),
         GlassTab(
           label: 'Analytics',
-          icon: Icon(Icons.bar_chart),
+          icon: Icon(Icons.bar_chart_outlined),
           activeIcon: Icon(Icons.bar_chart),
         ),
         GlassTab(
           label: 'Contacts',
-          icon: Icon(Icons.contacts),
+          icon: Icon(Icons.contacts_outlined),
           activeIcon: Icon(Icons.contacts),
         ),
         GlassTab(
@@ -204,17 +248,59 @@ class _MainShellState extends State<MainShell> {
         ),
       ],
 
-      // Numpad lives outside the main navigation tabs.
-      extraButton: GlassTabBarExtraButton(
-        icon: const Icon(Icons.dialpad),
-        label: 'Dial',
-        onTap: _openNumberPad,
-      ),
+      selectedIndex: _selectedIndex,
+
+      onTabSelected: _onNavigationItemSelected,
+
+      // ---------------------------------------------------------
+      // Bottom bar minimization
+      // ---------------------------------------------------------
+      minimizeController: _tabBarMinimizeController,
+
+      // IMPORTANT:
+      // This must point to the same scroll controller used by
+      // the currently visible screen.
+      scrollController: _activeScrollController,
+
+      // When the compact/minimized tab is tapped, restore the bar.
+      onMinimizedTabTap: _tabBarMinimizeController.expand,
+
+      // ---------------------------------------------------------
+      // Numpad / Actions
+      // ---------------------------------------------------------
+      trailingButton: _trailingButton,
     );
   }
 
   // ---------------------------------------------------------------------------
-  // App
+  // App bar
+  // ---------------------------------------------------------------------------
+
+  Widget _buildAppBar() {
+    return GlassAppBar.pinned(
+      title: Text(_titles[_selectedIndex]),
+
+      largeTitleController: _activeTitleController,
+
+      actions: [
+        if (_selectedIndex == 0)
+          GlassBarItem.icon(
+            icon: const Icon(Icons.search),
+            label: 'Search',
+            onTap: _openSearch,
+          ),
+
+        GlassBarItem.icon(
+          icon: const Icon(Icons.settings),
+          label: 'Settings',
+          onTap: _openSettings,
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Build
   // ---------------------------------------------------------------------------
 
   @override
@@ -222,25 +308,7 @@ class _MainShellState extends State<MainShell> {
     return GlassScaffold(
       statusBarStyle: GlassStatusBarStyle.auto,
 
-      appBar: GlassAppBar.pinned(
-        title: Text(_titles[_selectedIndex]),
-        largeTitleController: _activeTitleController,
-
-        actions: [
-          if (_selectedIndex == 0)
-            GlassBarItem.icon(
-              icon: const Icon(Icons.search),
-              label: 'Search',
-              onTap: _openSearch,
-            ),
-
-          GlassBarItem.icon(
-            icon: const Icon(Icons.settings),
-            label: 'Settings',
-            onTap: _openSettings,
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
 
       body: IndexedStack(index: _selectedIndex, children: _screens),
 
