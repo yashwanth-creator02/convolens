@@ -45,12 +45,16 @@ class _MainShellState extends State<MainShell> {
   final _profileTitleController = GlassLargeTitleController();
 
   // ---------------------------------------------------------------------------
-  // Bottom tab bar minimize controller
+  // Bottom-bar minimize controller
   // ---------------------------------------------------------------------------
 
   final _tabBarMinimizeController = GlassTabBarMinimizeController(
     behavior: GlassBarMinimizeBehavior.onScrollDown,
   );
+
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
 
   int _selectedIndex = 0;
 
@@ -77,7 +81,7 @@ class _MainShellState extends State<MainShell> {
   ];
 
   // ---------------------------------------------------------------------------
-  // Active controllers
+  // Active large-title controller
   // ---------------------------------------------------------------------------
 
   GlassLargeTitleController get _activeTitleController {
@@ -95,33 +99,12 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Active scroll controller
+  // ---------------------------------------------------------------------------
+
   ScrollController get _activeScrollController {
     return _activeTitleController.scrollController;
-  }
-
-  GlassTabBarTrailingButton? get _trailingButton {
-    switch (_selectedIndex) {
-      case 0:
-        return GlassTabBarTrailingButton(
-          icon: const Icon(Icons.dialpad),
-          onTap: _openNumberPad,
-        );
-
-      case 2:
-        return GlassTabBarTrailingButton(
-          icon: const Icon(Icons.person_add),
-          onTap: _addContact,
-        );
-
-      case 3:
-        return GlassTabBarTrailingButton(
-          icon: const Icon(Icons.edit),
-          onTap: _editProfile,
-        );
-
-      default:
-        return null;
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -151,27 +134,24 @@ class _MainShellState extends State<MainShell> {
   }
 
   // ---------------------------------------------------------------------------
-  // Navigation
+  // Main-tab navigation
   // ---------------------------------------------------------------------------
 
   void _onNavigationItemSelected(int index) {
     if (_selectedIndex == index) {
-      // Tapping the currently selected tab while minimized should
-      // bring the tab bar back.
       _tabBarMinimizeController.expand();
       return;
     }
 
+    _tabBarMinimizeController.expand();
+
     setState(() {
       _selectedIndex = index;
     });
-
-    // Newly selected tab starts with the tab bar visible.
-    _tabBarMinimizeController.expand();
   }
 
   // ---------------------------------------------------------------------------
-  // Search
+  // Header actions
   // ---------------------------------------------------------------------------
 
   void _openSearch() {
@@ -181,10 +161,6 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Settings
-  // ---------------------------------------------------------------------------
-
   void _openSettings() {
     Navigator.push(
       context,
@@ -193,7 +169,7 @@ class _MainShellState extends State<MainShell> {
   }
 
   // ---------------------------------------------------------------------------
-  // Numpad
+  // Bottom-bar actions
   // ---------------------------------------------------------------------------
 
   Future<void> _openNumberPad() async {
@@ -212,10 +188,6 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Add contact
-  // ---------------------------------------------------------------------------
-
   Future<void> _addContact() async {
     final added = await showAddContactScreen(context);
 
@@ -226,10 +198,6 @@ class _MainShellState extends State<MainShell> {
     await _contactsScreenKey.currentState?.refreshDeviceContacts();
   }
 
-  // ---------------------------------------------------------------------------
-  // Edit profile
-  // ---------------------------------------------------------------------------
-
   void _editProfile() {
     Navigator.push(
       context,
@@ -238,7 +206,77 @@ class _MainShellState extends State<MainShell> {
   }
 
   // ---------------------------------------------------------------------------
-  // Bottom tab bar
+  // App-bar actions
+  //
+  // Changing this list allows the glass action capsule to morph.
+  // ---------------------------------------------------------------------------
+
+  List<GlassBarItem> _buildAppBarActions() {
+    switch (_selectedIndex) {
+      case 0:
+        return [
+          GlassBarItem.icon(
+            icon: const Icon(Icons.search),
+            id: 'search',
+            label: 'Search',
+            onTap: _openSearch,
+          ),
+          GlassBarItem.icon(
+            icon: const Icon(Icons.settings),
+            id: 'settings',
+            label: 'Settings',
+            onTap: _openSettings,
+          ),
+        ];
+
+      case 1:
+      case 2:
+      case 3:
+        return [
+          GlassBarItem.icon(
+            icon: const Icon(Icons.settings),
+            id: 'settings',
+            label: 'Settings',
+            onTap: _openSettings,
+          ),
+        ];
+
+      default:
+        return const [];
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Contextual bottom-bar trailing button
+  // ---------------------------------------------------------------------------
+
+  GlassTabBarTrailingButton? get _trailingButton {
+    switch (_selectedIndex) {
+      case 0:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.dialpad),
+          onTap: _openNumberPad,
+        );
+
+      case 2:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.person_add),
+          onTap: _addContact,
+        );
+
+      case 3:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.edit),
+          onTap: _editProfile,
+        );
+
+      default:
+        return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bottom navigation
   // ---------------------------------------------------------------------------
 
   Widget _buildBottomNavigationBar() {
@@ -267,25 +305,22 @@ class _MainShellState extends State<MainShell> {
       ],
 
       selectedIndex: _selectedIndex,
-
       onTabSelected: _onNavigationItemSelected,
 
-      // ---------------------------------------------------------
-      // Bottom bar minimization
-      // ---------------------------------------------------------
+      // -----------------------------------------------------------------------
+      // Minimization
+      // -----------------------------------------------------------------------
       minimizeController: _tabBarMinimizeController,
 
-      // IMPORTANT:
-      // This must point to the same scroll controller used by
-      // the currently visible screen.
+      // The active large-title controller and tab-bar controller are both
+      // listening to the same scroll position.
       scrollController: _activeScrollController,
 
-      // When the compact/minimized tab is tapped, restore the bar.
       onMinimizedTabTap: _tabBarMinimizeController.expand,
 
-      // ---------------------------------------------------------
-      // Numpad / Actions
-      // ---------------------------------------------------------
+      // -----------------------------------------------------------------------
+      // Contextual action
+      // -----------------------------------------------------------------------
       trailingButton: _trailingButton,
     );
   }
@@ -298,22 +333,11 @@ class _MainShellState extends State<MainShell> {
     return GlassAppBar.pinned(
       title: Text(_titles[_selectedIndex]),
 
+      // This connects the pinned title to the active screen's large title.
       largeTitleController: _activeTitleController,
 
-      actions: [
-        if (_selectedIndex == 0)
-          GlassBarItem.icon(
-            icon: const Icon(Icons.search),
-            label: 'Search',
-            onTap: _openSearch,
-          ),
-
-        GlassBarItem.icon(
-          icon: const Icon(Icons.settings),
-          label: 'Settings',
-          onTap: _openSettings,
-        ),
-      ],
+      // Changing this list allows the glass action capsule to morph.
+      actions: _buildAppBarActions(),
     );
   }
 
