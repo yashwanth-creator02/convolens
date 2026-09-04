@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
@@ -85,9 +86,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   void _openContact(ContactSummary contact) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+    Navigator.of(context).push(
+      CupertinoPageRoute(
         builder: (context) => ContactDetailScreen(
           normalizedNumber: contact.normalizedNumber,
           displayName: contact.displayName,
@@ -267,9 +267,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   void _openComparison(ComparisonConfig config) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+    Navigator.of(context).push(
+      CupertinoPageRoute(
         builder: (context) => ComparisonScreen(
           db: widget.db,
           deviceContacts: _deviceContacts,
@@ -503,9 +502,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
                         builder: (context) => YearlyRecapScreen(
                           db: widget.db,
                           deviceContacts: _deviceContacts,

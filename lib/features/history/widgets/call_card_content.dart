@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
@@ -76,9 +77,8 @@ class CallCardContent extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
+          Navigator.of(context).push(
+            CupertinoPageRoute(
               builder: (context) => CallDetailScreen(call: call, db: db),
             ),
           );

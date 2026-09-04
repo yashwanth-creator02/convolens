@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/database/app_database.dart';
@@ -36,9 +37,8 @@ class CallInfoSection extends StatelessWidget {
         if (phoneNumber?.isNotEmpty == true)
           OutlinedButton.icon(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
+              Navigator.of(context).push(
+                CupertinoPageRoute(
                   builder: (context) => ContactDetailScreen(
                     normalizedNumber: normalizePhoneNumber(phoneNumber),
                     displayName: displayName,

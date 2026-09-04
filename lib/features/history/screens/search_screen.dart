@@ -18,6 +18,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  final _titleController = GlassLargeTitleController();
   SearchFilters _filters = const SearchFilters();
   Timer? _debounce;
 
@@ -40,6 +41,7 @@ class _SearchScreenState extends State<SearchScreen> {
     _contactController.dispose();
     _noteController.dispose();
     _tagController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -55,14 +57,21 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return GlassScaffold(
-      appBar: AppBar(title: const Text('Search')),
+      appBar: GlassAppBar.pinned(
+        title: const Text('Search'),
+        largeTitleController: _titleController,
+      ),
       body: Material(
         type: MaterialType.transparency,
-        child: Padding(
-          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-          child: Column(
-            children: [
-              Padding(
+        child: CustomScrollView(
+          controller: _titleController.scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(height: MediaQuery.of(context).padding.top),
+            ),
+            GlassLargeTitle(text: 'Search', controller: _titleController),
+            SliverToBoxAdapter(
+              child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
@@ -121,42 +130,45 @@ class _SearchScreenState extends State<SearchScreen> {
                   ],
                 ),
               ),
-              const Divider(height: 1),
-              Expanded(
-                child: _filters.isEmpty
-                    ? const Center(
-                        child: Text('Start typing or pick a filter to search.'),
-                      )
-                    : StreamBuilder<List<Call>>(
-                        stream: widget.db.searchCalls(
-                          contactQuery: _filters.contactQuery,
-                          noteQuery: _filters.noteQuery,
-                          tagQuery: _filters.tagQuery,
-                          hasAttachment: _filters.hasAttachment,
-                          hasReminder: _filters.hasReminder,
+            ),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+            _filters.isEmpty
+                ? const SliverFillRemaining(
+                    child: Center(
+                      child: Text('Start typing or pick a filter to search.'),
+                    ),
+                  )
+                : StreamBuilder<List<Call>>(
+                    stream: widget.db.searchCalls(
+                      contactQuery: _filters.contactQuery,
+                      noteQuery: _filters.noteQuery,
+                      tagQuery: _filters.tagQuery,
+                      hasAttachment: _filters.hasAttachment,
+                      hasReminder: _filters.hasReminder,
+                    ),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const SliverFillRemaining(
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      final results = snapshot.data!;
+                      if (results.isEmpty) {
+                        return const SliverFillRemaining(
+                          child: Center(child: Text('No matching calls.')),
+                        );
+                      }
+                      return SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) =>
+                              CallCard(call: results[index], db: widget.db),
+                          childCount: results.length,
                         ),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          final results = snapshot.data!;
-                          if (results.isEmpty) {
-                            return const Center(
-                              child: Text('No matching calls.'),
-                            );
-                          }
-                          return ListView.builder(
-                            itemCount: results.length,
-                            itemBuilder: (context, index) =>
-                                CallCard(call: results[index], db: widget.db),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
+                      );
+                    },
+                  ),
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          ],
         ),
       ),
     );

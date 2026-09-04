@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
@@ -114,9 +115,8 @@ class ContactsScreenState extends State<ContactsScreen>
   void _openContact(ContactSummary contact) {
     if (contact.displayNumber.isEmpty) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+    Navigator.of(context).push(
+      CupertinoPageRoute(
         builder: (context) => ContactDetailScreen(
           normalizedNumber: contact.normalizedNumber,
           displayName: contact.displayName,
@@ -302,9 +302,8 @@ class ContactsScreenState extends State<ContactsScreen>
       title: const Text('Archived'),
       trailing: Text('$count', style: const TextStyle(color: Colors.grey)),
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
+        Navigator.of(context).push(
+          CupertinoPageRoute(
             builder: (context) => ArchivedContactsScreen(
               db: widget.db,
               deviceContacts: _deviceContacts,

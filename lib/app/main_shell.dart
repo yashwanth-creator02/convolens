@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
@@ -155,17 +156,15 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   void _openSearch() {
-    Navigator.push(
+    Navigator.of(
       context,
-      MaterialPageRoute(builder: (context) => SearchScreen(db: _db)),
-    );
+    ).push(CupertinoPageRoute(builder: (context) => SearchScreen(db: _db)));
   }
 
   void _openSettings() {
-    Navigator.push(
+    Navigator.of(
       context,
-      MaterialPageRoute(builder: (context) => SettingsScreen(db: _db)),
-    );
+    ).push(CupertinoPageRoute(builder: (context) => SettingsScreen(db: _db)));
   }
 
   // ---------------------------------------------------------------------------
@@ -179,9 +178,8 @@ class _MainShellState extends State<MainShell> {
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+    Navigator.of(context).push(
+      CupertinoPageRoute(
         builder: (context) =>
             SearchScreen(db: _db, initialContactQuery: number),
       ),
@@ -199,9 +197,8 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _editProfile() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => EditProfileScreen(db: _db)),
+    Navigator.of(context).push(
+      CupertinoPageRoute(builder: (context) => EditProfileScreen(db: _db)),
     );
   }
 

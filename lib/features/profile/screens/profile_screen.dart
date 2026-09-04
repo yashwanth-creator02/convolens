@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
@@ -221,9 +222,8 @@ class ProfileScreen extends StatelessWidget {
   Widget _shareButton(BuildContext context, String label, ShareQrType type) {
     return OutlinedButton(
       onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
+        Navigator.of(context).push(
+          CupertinoPageRoute(
             builder: (context) => ShareContactScreen(db: db, type: type),
           ),
         );
