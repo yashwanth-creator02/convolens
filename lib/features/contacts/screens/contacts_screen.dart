@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
@@ -14,8 +15,13 @@ import 'contact_detail_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
   final AppDatabase db;
+  final GlassLargeTitleController titleController;
 
-  const ContactsScreen({super.key, required this.db});
+  const ContactsScreen({
+    super.key,
+    required this.db,
+    required this.titleController,
+  });
 
   @override
   State<ContactsScreen> createState() => ContactsScreenState();
@@ -228,45 +234,61 @@ class ContactsScreenState extends State<ContactsScreen>
                   items.add(_ArchivedSectionMarker(archivedCount));
                 }
 
-                return Stack(
-                  children: [
-                    ScrollablePositionedList.builder(
-                      itemScrollController: _itemScrollController,
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
-
-                        if (item is _ArchivedSectionMarker) {
-                          return _buildArchivedTile(context, item.count);
-                        }
-
-                        if (item is _FavoritesSectionMarker) {
-                          return _buildFavoritesHeader(context);
-                        }
-
-                        if (item is String) {
-                          return _buildLetterHeader(context, item);
-                        }
-
-                        final contact = item as ContactSummary;
-
-                        return ContactCard(
-                          contact: contact,
-                          onTap: contact.displayNumber.isEmpty
-                              ? null
-                              : () => _openContact(contact),
-                        );
-                      },
+                return CustomScrollView(
+                  controller: widget.titleController.scrollController,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: MediaQuery.of(context).padding.top,
+                      ),
                     ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: SideBarAlphabetIndex(
-                        letters: orderedLetters,
-                        onLetterSelected: (letter) {
-                          _scrollToLetter(letter, items);
-                        },
+                    GlassLargeTitle(
+                      text: 'Contacts',
+                      controller: widget.titleController,
+                    ),
+                    SliverFillRemaining(
+                      child: Stack(
+                        children: [
+                          ScrollablePositionedList.builder(
+                            itemScrollController: _itemScrollController,
+                            itemCount: items.length,
+                            itemBuilder: (context, index) {
+                              final item = items[index];
+
+                              if (item is _ArchivedSectionMarker) {
+                                return _buildArchivedTile(context, item.count);
+                              }
+
+                              if (item is _FavoritesSectionMarker) {
+                                return _buildFavoritesHeader(context);
+                              }
+
+                              if (item is String) {
+                                return _buildLetterHeader(context, item);
+                              }
+
+                              final contact = item as ContactSummary;
+
+                              return ContactCard(
+                                contact: contact,
+                                onTap: contact.displayNumber.isEmpty
+                                    ? null
+                                    : () => _openContact(contact),
+                              );
+                            },
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            child: SideBarAlphabetIndex(
+                              letters: orderedLetters,
+                              onLetterSelected: (letter) {
+                                _scrollToLetter(letter, items);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

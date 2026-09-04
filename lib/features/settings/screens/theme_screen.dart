@@ -23,7 +23,12 @@ class ThemeScreen extends StatelessWidget {
           final settings = snapshot.data!;
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              20 + MediaQuery.of(context).padding.top,
+              16,
+              32,
+            ),
             children: [
               Text(
                 'Appearance',

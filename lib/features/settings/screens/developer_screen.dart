@@ -17,6 +17,7 @@ class DeveloperScreen extends StatelessWidget {
     return GlassScaffold(
       appBar: AppBar(title: const Text('Developer Tools')),
       body: ListView(
+        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
         children: [
           ListTile(
             leading: const Icon(Icons.add_circle_outline),

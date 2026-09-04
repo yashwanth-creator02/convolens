@@ -19,7 +19,12 @@ class EditProfileScreen extends StatelessWidget {
           final fields = snapshot.data ?? {};
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16 + MediaQuery.of(context).padding.top,
+              16,
+              16,
+            ),
             children: profileSectionOrder.map((section) {
               final sectionDefs = profileFieldDefs
                   .where((def) => def.section == section)

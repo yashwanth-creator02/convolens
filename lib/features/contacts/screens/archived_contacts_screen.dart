@@ -34,6 +34,7 @@ class ArchivedContactsScreen extends StatelessWidget {
           }
 
           return ListView.builder(
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
             itemCount: contacts.length,
             itemBuilder: (context, index) {
               final contact = contacts[index];

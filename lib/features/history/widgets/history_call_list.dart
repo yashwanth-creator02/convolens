@@ -1,19 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../utils/group_calls_by_day.dart';
 import 'call_card.dart';
 
-class HistoryCallList extends StatelessWidget {
+class SliverHistoryCallList extends StatelessWidget {
   final List<Call> calls;
   final AppDatabase db;
 
-  const HistoryCallList({super.key, required this.calls, required this.db});
+  const SliverHistoryCallList({
+    super.key,
+    required this.calls,
+    required this.db,
+  });
 
   @override
   Widget build(BuildContext context) {
     if (calls.isEmpty) {
-      return const Center(child: Text('No calls yet.'));
+      return const SliverFillRemaining(
+        child: Center(child: Text('No calls yet.')),
+      );
     }
 
     final grouped = groupCallsByDay(calls);
@@ -25,9 +32,8 @@ class HistoryCallList extends StatelessWidget {
       items.addAll(callsInGroup);
     });
 
-    return ListView.builder(
-      itemCount: items.length,
-      itemBuilder: (context, index) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
         final item = items[index];
 
         if (item is String) {
@@ -43,7 +49,7 @@ class HistoryCallList extends StatelessWidget {
         final call = item as Call;
 
         return CallCard(call: call, db: db);
-      },
+      }, childCount: items.length),
     );
   }
 }

@@ -161,6 +161,7 @@ class _PermissionsScreenState extends State<PermissionsScreen>
         ],
       ),
       body: ListView(
+        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
         children: [
           _PermissionTile(
             title: 'Call Log',

@@ -35,6 +35,7 @@ class CallCardSettingsScreen extends StatelessWidget {
           }
 
           return ListView(
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
             children: [
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 4),

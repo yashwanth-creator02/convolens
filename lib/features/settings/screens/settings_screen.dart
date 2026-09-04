@@ -29,6 +29,10 @@ class SettingsScreen extends StatelessWidget {
           final settings = snapshot.data!;
 
           return ListView(
+            padding: EdgeInsets.only(top: MediaQuery
+                .of(context)
+                .padding
+                .top),
             children: [
               ListTile(
                 leading: const Icon(Icons.security),
@@ -71,7 +75,7 @@ class SettingsScreen extends StatelessWidget {
                     context: context,
                     title: 'Turn off Archive Mode?',
                     message:
-                        'Calls that are removed from your phone\'s call log '
+                    'Calls that are removed from your phone\'s call log '
                         'will also be permanently deleted from Convolens the '
                         'next time it syncs. This cannot be undone.',
                     confirmLabel: 'Turn Off',

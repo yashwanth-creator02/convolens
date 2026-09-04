@@ -362,22 +362,23 @@ class CallDetailScreen extends StatelessWidget {
               final detail = detailSnapshot.data;
 
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16 + MediaQuery.of(context).padding.top,
+                  16,
+                  16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     CallInfoSection(call: call, db: db),
-
                     const Divider(height: 32),
-
                     CallNoteSection(
                       note: detail?.note,
                       onAdd: () => _editNote(context, detail?.note),
                       onEdit: () => _editNote(context, detail?.note),
                     ),
-
                     const Divider(height: 32),
-
                     StreamBuilder<List<Tag>>(
                       stream: db.watchTagsForCall(call.id),
                       builder: (context, tagSnapshot) {
@@ -390,9 +391,7 @@ class CallDetailScreen extends StatelessWidget {
                         );
                       },
                     ),
-
                     const Divider(height: 32),
-
                     StreamBuilder<CallDetail?>(
                       stream: db.watchReminderForCall(call.id),
                       builder: (context, reminderSnapshot) {
@@ -403,9 +402,7 @@ class CallDetailScreen extends StatelessWidget {
                         );
                       },
                     ),
-
                     const Divider(height: 32),
-
                     StreamBuilder<List<CallAttachment>>(
                       stream: db.watchAttachmentsForCall(call.id),
                       builder: (context, attachmentSnapshot) {
@@ -419,7 +416,6 @@ class CallDetailScreen extends StatelessWidget {
                         );
                       },
                     ),
-
                     if (devMode) ...[
                       const Divider(height: 32),
                       CallDeveloperInfo(call: call),
