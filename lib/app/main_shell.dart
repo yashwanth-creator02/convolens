@@ -27,6 +27,10 @@ class _MainShellState extends State<MainShell> {
 
   final _contactsScreenKey = GlobalKey<ContactsScreenState>();
 
+  // ---------------------------------------------------------------------------
+  // Large title controllers
+  // ---------------------------------------------------------------------------
+
   final _historyTitleController = GlassLargeTitleController();
   final _analyticsTitleController = GlassLargeTitleController();
   final _contactsTitleController = GlassLargeTitleController();
@@ -52,6 +56,10 @@ class _MainShellState extends State<MainShell> {
     ProfileScreen(db: _db, titleController: _profileTitleController),
   ];
 
+  // ---------------------------------------------------------------------------
+  // Active title controller
+  // ---------------------------------------------------------------------------
+
   GlassLargeTitleController get _activeTitleController {
     switch (_selectedIndex) {
       case 0:
@@ -66,6 +74,10 @@ class _MainShellState extends State<MainShell> {
         return _historyTitleController;
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
 
   @override
   void initState() {
@@ -87,6 +99,10 @@ class _MainShellState extends State<MainShell> {
     super.dispose();
   }
 
+  // ---------------------------------------------------------------------------
+  // Navigation
+  // ---------------------------------------------------------------------------
+
   void _onNavigationItemSelected(int index) {
     if (_selectedIndex == index) {
       return;
@@ -97,12 +113,20 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Search
+  // ---------------------------------------------------------------------------
+
   void _openSearch() {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => SearchScreen(db: _db)),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Settings
+  // ---------------------------------------------------------------------------
 
   void _openSettings() {
     Navigator.push(
@@ -111,69 +135,97 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
-  Widget? _buildFloatingActionButton() {
-    if (_selectedIndex == 0) {
-      return GlassIconButton(
-        icon: const Icon(Icons.dialpad),
-        onPressed: () async {
-          final number = await showNumberPadSheet(context);
+  // ---------------------------------------------------------------------------
+  // Numpad
+  // ---------------------------------------------------------------------------
 
-          if (!mounted || number == null || number.isEmpty) {
-            return;
-          }
+  Future<void> _openNumberPad() async {
+    final number = await showNumberPadSheet(context);
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  SearchScreen(db: _db, initialContactQuery: number),
-            ),
-          );
-        },
-      );
+    if (!mounted || number == null || number.isEmpty) {
+      return;
     }
 
-    if (_selectedIndex == 2) {
-      return GlassIconButton(
-        icon: const Icon(Icons.person_add),
-        onPressed: () async {
-          final added = await showAddContactScreen(context);
-
-          if (!mounted || !added) {
-            return;
-          }
-
-          await _contactsScreenKey.currentState?.refreshDeviceContacts();
-        },
-      );
-    }
-
-    return null;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            SearchScreen(db: _db, initialContactQuery: number),
+      ),
+    );
   }
+
+  // ---------------------------------------------------------------------------
+  // Contacts
+  // ---------------------------------------------------------------------------
+
+  Future<void> _addContact() async {
+    final added = await showAddContactScreen(context);
+
+    if (!mounted || !added) {
+      return;
+    }
+
+    await _contactsScreenKey.currentState?.refreshDeviceContacts();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bottom navigation
+  // ---------------------------------------------------------------------------
 
   Widget _buildBottomNavigationBar() {
     return GlassTabBar.bottom(
       selectedIndex: _selectedIndex,
       onTabSelected: _onNavigationItemSelected,
+
+      // Keep the glass effect consistent with the package example.
+      maskingQuality: MaskingQuality.high,
+
       tabs: const [
-        GlassTab(icon: Icon(Icons.history), label: 'History'),
-        GlassTab(icon: Icon(Icons.bar_chart), label: 'Analytics'),
-        GlassTab(icon: Icon(Icons.contacts), label: 'Contacts'),
-        GlassTab(icon: Icon(Icons.person), label: 'Profile'),
+        GlassTab(
+          label: 'History',
+          icon: Icon(Icons.history),
+          activeIcon: Icon(Icons.history),
+        ),
+        GlassTab(
+          label: 'Analytics',
+          icon: Icon(Icons.bar_chart),
+          activeIcon: Icon(Icons.bar_chart),
+        ),
+        GlassTab(
+          label: 'Contacts',
+          icon: Icon(Icons.contacts),
+          activeIcon: Icon(Icons.contacts),
+        ),
+        GlassTab(
+          label: 'Profile',
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+        ),
       ],
+
+      // Numpad lives outside the main navigation tabs.
+      extraButton: GlassTabBarExtraButton(
+        icon: const Icon(Icons.dialpad),
+        label: 'Dial',
+        onTap: _openNumberPad,
+      ),
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // App
+  // ---------------------------------------------------------------------------
+
   @override
   Widget build(BuildContext context) {
-    final fab = _buildFloatingActionButton();
-
     return GlassScaffold(
       statusBarStyle: GlassStatusBarStyle.auto,
 
       appBar: GlassAppBar.pinned(
         title: Text(_titles[_selectedIndex]),
         largeTitleController: _activeTitleController,
+
         actions: [
           if (_selectedIndex == 0)
             GlassBarItem.icon(
@@ -181,6 +233,7 @@ class _MainShellState extends State<MainShell> {
               label: 'Search',
               onTap: _openSearch,
             ),
+
           GlassBarItem.icon(
             icon: const Icon(Icons.settings),
             label: 'Settings',
@@ -189,13 +242,7 @@ class _MainShellState extends State<MainShell> {
         ],
       ),
 
-      body: Stack(
-        children: [
-          IndexedStack(index: _selectedIndex, children: _screens),
-
-          if (fab != null) Positioned(right: 16, bottom: 96, child: fab),
-        ],
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
 
       bottomBar: _buildBottomNavigationBar(),
     );
