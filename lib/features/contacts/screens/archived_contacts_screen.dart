@@ -33,29 +33,32 @@ class ArchivedContactsScreen extends StatelessWidget {
             return const Center(child: Text('No archived contacts.'));
           }
 
-          return ListView.builder(
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-            itemCount: contacts.length,
-            itemBuilder: (context, index) {
-              final contact = contacts[index];
-              return ContactCard(
-                contact: contact,
-                onTap: contact.displayNumber.isEmpty
-                    ? null
-                    : () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ContactDetailScreen(
-                            normalizedNumber: contact.normalizedNumber,
-                            displayName: contact.displayName,
-                            displayNumber: contact.displayNumber,
-                            deviceContact: contact.deviceContact,
-                            db: db,
+          return Material(
+            type: MaterialType.transparency,
+            child: ListView.builder(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              itemCount: contacts.length,
+              itemBuilder: (context, index) {
+                final contact = contacts[index];
+                return ContactCard(
+                  contact: contact,
+                  onTap: contact.displayNumber.isEmpty
+                      ? null
+                      : () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ContactDetailScreen(
+                              normalizedNumber: contact.normalizedNumber,
+                              displayName: contact.displayName,
+                              displayNumber: contact.displayNumber,
+                              deviceContact: contact.deviceContact,
+                              db: db,
+                            ),
                           ),
                         ),
-                      ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),

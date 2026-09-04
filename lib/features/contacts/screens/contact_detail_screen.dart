@@ -116,47 +116,50 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
               ),
             ],
           ),
-          body: Padding(
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-            child: Column(
-              children: [
-                ContactHeader(
-                  displayName: widget.displayName,
-                  displayNumber: widget.displayNumber,
-                  deviceContact: widget.deviceContact,
-                  isFavorite: detail?.isFavorite ?? false,
-                  isArchived: detail?.isArchived ?? false,
-                  onFavoritePressed: () =>
-                      _toggleFavorite(detail?.isFavorite ?? false),
-                  colorValue: detail?.colorValue,
-                ),
-                AppTabRow(
-                  tabs: _tabs,
-                  scrollable: true,
-                  selectedIndex: _selectedTab,
-                  onTabSelected: (index) {
-                    if (_selectedTab == index) {
-                      return;
-                    }
-
-                    setState(() {
-                      _selectedTab = index;
-                    });
-                  },
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: _ContactTabView(
-                    selectedIndex: _selectedTab,
-                    detail: detail,
-                    normalizedNumber: widget.normalizedNumber,
+          body: Material(
+            type: MaterialType.transparency,
+            child: Padding(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              child: Column(
+                children: [
+                  ContactHeader(
                     displayName: widget.displayName,
                     displayNumber: widget.displayNumber,
                     deviceContact: widget.deviceContact,
-                    db: widget.db,
+                    isFavorite: detail?.isFavorite ?? false,
+                    isArchived: detail?.isArchived ?? false,
+                    onFavoritePressed: () =>
+                        _toggleFavorite(detail?.isFavorite ?? false),
+                    colorValue: detail?.colorValue,
                   ),
-                ),
-              ],
+                  AppTabRow(
+                    tabs: _tabs,
+                    scrollable: true,
+                    selectedIndex: _selectedTab,
+                    onTabSelected: (index) {
+                      if (_selectedTab == index) {
+                        return;
+                      }
+
+                      setState(() {
+                        _selectedTab = index;
+                      });
+                    },
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: _ContactTabView(
+                      selectedIndex: _selectedTab,
+                      detail: detail,
+                      normalizedNumber: widget.normalizedNumber,
+                      displayName: widget.displayName,
+                      displayNumber: widget.displayNumber,
+                      deviceContact: widget.deviceContact,
+                      db: widget.db,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );

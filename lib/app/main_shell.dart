@@ -10,6 +10,7 @@ import '../features/contacts/widgets/add_contact_screen.dart';
 import '../features/history/screens/history_screen.dart';
 import '../features/history/screens/search_screen.dart';
 import '../features/history/widgets/number_pad_sheet.dart';
+import '../features/profile/screens/edit_profile_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 
@@ -110,6 +111,12 @@ class _MainShellState extends State<MainShell> {
         return GlassTabBarTrailingButton(
           icon: const Icon(Icons.person_add),
           onTap: _addContact,
+        );
+
+      case 3:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.edit),
+          onTap: _editProfile,
         );
 
       default:
@@ -217,6 +224,17 @@ class _MainShellState extends State<MainShell> {
     }
 
     await _contactsScreenKey.currentState?.refreshDeviceContacts();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Edit profile
+  // ---------------------------------------------------------------------------
+
+  void _editProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditProfileScreen(db: _db)),
+    );
   }
 
   // ---------------------------------------------------------------------------

@@ -22,64 +22,67 @@ class ThemeScreen extends StatelessWidget {
 
           final settings = snapshot.data!;
 
-          return ListView(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              20 + MediaQuery.of(context).padding.top,
-              16,
-              32,
-            ),
-            children: [
-              Text(
-                'Appearance',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          return Material(
+            type: MaterialType.transparency,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                16,
+                20 + MediaQuery.of(context).padding.top,
+                16,
+                32,
               ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                'Choose how ConvoLens should look.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              children: [
+                Text(
+                  'Appearance',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 6),
 
-              _ThemeOption(
-                title: 'System Default',
-                subtitle: 'Follow your device appearance',
-                icon: Icons.brightness_auto_outlined,
-                selected: settings.theme == 'system',
-                onTap: () => _setTheme('system'),
-              ),
+                Text(
+                  'Choose how ConvoLens should look.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
 
-              _ThemeOption(
-                title: 'Light',
-                subtitle: 'Clean and bright',
-                icon: Icons.light_mode_outlined,
-                selected: settings.theme == 'light',
-                onTap: () => _setTheme('light'),
-              ),
+                const SizedBox(height: 20),
 
-              _ThemeOption(
-                title: 'Dark',
-                subtitle: 'Comfortable in low light',
-                icon: Icons.dark_mode_outlined,
-                selected: settings.theme == 'dark',
-                onTap: () => _setTheme('dark'),
-              ),
+                _ThemeOption(
+                  title: 'System Default',
+                  subtitle: 'Follow your device appearance',
+                  icon: Icons.brightness_auto_outlined,
+                  selected: settings.theme == 'system',
+                  onTap: () => _setTheme('system'),
+                ),
 
-              _ThemeOption(
-                title: 'Cosmo',
-                subtitle: 'The ConvoLens custom theme',
-                icon: Icons.auto_awesome_outlined,
-                selected: settings.theme == 'cosmo',
-                onTap: () => _setTheme('cosmo'),
-              ),
-            ],
+                _ThemeOption(
+                  title: 'Light',
+                  subtitle: 'Clean and bright',
+                  icon: Icons.light_mode_outlined,
+                  selected: settings.theme == 'light',
+                  onTap: () => _setTheme('light'),
+                ),
+
+                _ThemeOption(
+                  title: 'Dark',
+                  subtitle: 'Comfortable in low light',
+                  icon: Icons.dark_mode_outlined,
+                  selected: settings.theme == 'dark',
+                  onTap: () => _setTheme('dark'),
+                ),
+
+                _ThemeOption(
+                  title: 'Cosmo',
+                  subtitle: 'The ConvoLens custom theme',
+                  icon: Icons.auto_awesome_outlined,
+                  selected: settings.theme == 'cosmo',
+                  onTap: () => _setTheme('cosmo'),
+                ),
+              ],
+            ),
           );
         },
       ),

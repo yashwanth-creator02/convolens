@@ -45,62 +45,65 @@ class _DatabaseBrowserScreenState extends State<DatabaseBrowserScreen> {
   Widget build(BuildContext context) {
     return GlassScaffold(
       appBar: AppBar(title: const Text('Database Browser')),
-      body: Padding(
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Wrap(
-                spacing: 8,
-                children: _tables.keys.map((name) {
-                  return ChoiceChip(
-                    label: Text(name),
-                    selected: _selectedTable == name,
-                    onSelected: (_) => _loadTable(name),
-                  );
-                }).toList(),
+      body: Material(
+        type: MaterialType.transparency,
+        child: Padding(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Wrap(
+                  spacing: 8,
+                  children: _tables.keys.map((name) {
+                    return ChoiceChip(
+                      label: Text(name),
+                      selected: _selectedTable == name,
+                      onSelected: (_) => _loadTable(name),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _rows == null
-                  ? const Center(child: Text('Select a table above.'))
-                  : _rows!.isEmpty
-                  ? const Center(child: Text('No rows.'))
-                  : ListView.builder(
-                      itemCount: _rows!.length,
-                      itemBuilder: (context, index) {
-                        final row = _rows![index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: row.entries
-                                  .map(
-                                    (entry) => Text(
-                                      '${entry.key}: ${entry.value}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
+              const Divider(height: 1),
+              Expanded(
+                child: _loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _rows == null
+                    ? const Center(child: Text('Select a table above.'))
+                    : _rows!.isEmpty
+                    ? const Center(child: Text('No rows.'))
+                    : ListView.builder(
+                        itemCount: _rows!.length,
+                        itemBuilder: (context, index) {
+                          final row = _rows![index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: row.entries
+                                    .map(
+                                      (entry) => Text(
+                                        '${entry.key}: ${entry.value}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );

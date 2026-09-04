@@ -354,38 +354,41 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
         final summary = snapshot.data!;
 
-        return CustomScrollView(
-          controller: widget.titleController.scrollController,
-          slivers: [
-            SliverToBoxAdapter(
-              child: SizedBox(height: MediaQuery.of(context).padding.top),
-            ),
-            GlassLargeTitle(
-              text: 'Analytics',
-              controller: widget.titleController,
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: _buildFilterBar(context),
+        return Material(
+          type: MaterialType.transparency,
+          child: CustomScrollView(
+            controller: widget.titleController.scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(height: MediaQuery.of(context).padding.top),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: AppTabRow(
-                tabs: _tabs,
-                scrollable: true,
-                selectedIndex: _selectedTab,
-                onTabSelected: (index) {
-                  setState(() {
-                    _selectedTab = index;
-                  });
-                },
+              GlassLargeTitle(
+                text: 'Analytics',
+                controller: widget.titleController,
               ),
-            ),
-            const SliverToBoxAdapter(child: Divider(height: 1)),
-            ..._buildTabSlivers(summary),
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
-          ],
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: _buildFilterBar(context),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: AppTabRow(
+                  tabs: _tabs,
+                  scrollable: true,
+                  selectedIndex: _selectedTab,
+                  onTabSelected: (index) {
+                    setState(() {
+                      _selectedTab = index;
+                    });
+                  },
+                ),
+              ),
+              const SliverToBoxAdapter(child: Divider(height: 1)),
+              ..._buildTabSlivers(summary),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
         );
       },
     );

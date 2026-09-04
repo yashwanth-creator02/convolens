@@ -130,8 +130,6 @@ class CallDetailScreen extends StatelessWidget {
         ? call.name!
         : (call.number ?? 'Unknown');
 
-    // Use the user's note if provided.
-    // Otherwise, create a sensible default title.
     final reminderTitle = label.trim().isNotEmpty
         ? label.trim()
         : 'Call reminder: $displayName';
@@ -151,7 +149,6 @@ class CallDetailScreen extends StatelessWidget {
 
     if (!context.mounted) return;
 
-    // Calculate how much time is left until the reminder.
     final remaining = reminderTime.difference(DateTime.now());
 
     String remainingText;
@@ -351,81 +348,84 @@ class CallDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassScaffold(
       appBar: AppBar(title: const Text('Call Details')),
-      body: StreamBuilder<Setting>(
-        stream: db.watchSettings(),
-        builder: (context, settingsSnapshot) {
-          final devMode = settingsSnapshot.data?.devMode ?? false;
+      body: Material(
+        type: MaterialType.transparency,
+        child: StreamBuilder<Setting>(
+          stream: db.watchSettings(),
+          builder: (context, settingsSnapshot) {
+            final devMode = settingsSnapshot.data?.devMode ?? false;
 
-          return StreamBuilder<CallDetail?>(
-            stream: db.watchDetailsForCall(call.id),
-            builder: (context, detailSnapshot) {
-              final detail = detailSnapshot.data;
+            return StreamBuilder<CallDetail?>(
+              stream: db.watchDetailsForCall(call.id),
+              builder: (context, detailSnapshot) {
+                final detail = detailSnapshot.data;
 
-              return SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  16,
-                  16 + MediaQuery.of(context).padding.top,
-                  16,
-                  16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CallInfoSection(call: call, db: db),
-                    const Divider(height: 32),
-                    CallNoteSection(
-                      note: detail?.note,
-                      onAdd: () => _editNote(context, detail?.note),
-                      onEdit: () => _editNote(context, detail?.note),
-                    ),
-                    const Divider(height: 32),
-                    StreamBuilder<List<Tag>>(
-                      stream: db.watchTagsForCall(call.id),
-                      builder: (context, tagSnapshot) {
-                        return CallTagsSection(
-                          tags: tagSnapshot.data ?? const [],
-                          onAdd: () => _addTag(context),
-                          onRemove: (tag) {
-                            db.removeTagFromCall(call.id, tag.id);
-                          },
-                        );
-                      },
-                    ),
-                    const Divider(height: 32),
-                    StreamBuilder<CallDetail?>(
-                      stream: db.watchReminderForCall(call.id),
-                      builder: (context, reminderSnapshot) {
-                        return CallReminderSection(
-                          reminder: reminderSnapshot.data,
-                          onSet: () => _setReminder(context),
-                          onClear: () => _clearReminder(context),
-                        );
-                      },
-                    ),
-                    const Divider(height: 32),
-                    StreamBuilder<List<CallAttachment>>(
-                      stream: db.watchAttachmentsForCall(call.id),
-                      builder: (context, attachmentSnapshot) {
-                        return CallAttachmentsSection(
-                          attachments: attachmentSnapshot.data ?? const [],
-                          onAdd: () => _chooseAttachmentType(context),
-                          onView: (attachment) =>
-                              _viewAttachment(context, attachment),
-                          onDelete: (attachment) =>
-                              _deleteAttachment(context, attachment),
-                        );
-                      },
-                    ),
-                    if (devMode) ...[
+                return SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16 + MediaQuery.of(context).padding.top,
+                    16,
+                    16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CallInfoSection(call: call, db: db),
                       const Divider(height: 32),
-                      CallDeveloperInfo(call: call),
+                      CallNoteSection(
+                        note: detail?.note,
+                        onAdd: () => _editNote(context, detail?.note),
+                        onEdit: () => _editNote(context, detail?.note),
+                      ),
+                      const Divider(height: 32),
+                      StreamBuilder<List<Tag>>(
+                        stream: db.watchTagsForCall(call.id),
+                        builder: (context, tagSnapshot) {
+                          return CallTagsSection(
+                            tags: tagSnapshot.data ?? const [],
+                            onAdd: () => _addTag(context),
+                            onRemove: (tag) {
+                              db.removeTagFromCall(call.id, tag.id);
+                            },
+                          );
+                        },
+                      ),
+                      const Divider(height: 32),
+                      StreamBuilder<CallDetail?>(
+                        stream: db.watchReminderForCall(call.id),
+                        builder: (context, reminderSnapshot) {
+                          return CallReminderSection(
+                            reminder: reminderSnapshot.data,
+                            onSet: () => _setReminder(context),
+                            onClear: () => _clearReminder(context),
+                          );
+                        },
+                      ),
+                      const Divider(height: 32),
+                      StreamBuilder<List<CallAttachment>>(
+                        stream: db.watchAttachmentsForCall(call.id),
+                        builder: (context, attachmentSnapshot) {
+                          return CallAttachmentsSection(
+                            attachments: attachmentSnapshot.data ?? const [],
+                            onAdd: () => _chooseAttachmentType(context),
+                            onView: (attachment) =>
+                                _viewAttachment(context, attachment),
+                            onDelete: (attachment) =>
+                                _deleteAttachment(context, attachment),
+                          );
+                        },
+                      ),
+                      if (devMode) ...[
+                        const Divider(height: 32),
+                        CallDeveloperInfo(call: call),
+                      ],
                     ],
-                  ],
-                ),
-              );
-            },
-          );
-        },
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

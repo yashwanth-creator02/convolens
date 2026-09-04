@@ -19,134 +19,140 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassScaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: StreamBuilder<Setting>(
-        stream: db.watchSettings(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Material(
+        type: MaterialType.transparency,
+        child: StreamBuilder<Setting>(
+          stream: db.watchSettings(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          final settings = snapshot.data!;
+            final settings = snapshot.data!;
 
-          return ListView(
-            padding: EdgeInsets.only(top: MediaQuery
-                .of(context)
-                .padding
-                .top),
-            children: [
-              ListTile(
-                leading: const Icon(Icons.security),
-                title: const Text('App Permissions'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PermissionsScreen(),
-                    ),
-                  );
-                },
-              ),
-
-              const _SectionHeader('Sync'),
-              SwitchListTile(
-                title: const Text('Enable Sync'),
-                value: settings.syncEnabled,
-                onChanged: (value) {
-                  db.updateSetting(
-                    SettingsCompanion(syncEnabled: Value(value)),
-                  );
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Archive Mode'),
-                subtitle: const Text('Keep calls even if removed from device'),
-                value: settings.archiveMode,
-                onChanged: (value) async {
-                  if (value == true) {
-                    await db.updateSetting(
-                      const SettingsCompanion(archiveMode: Value(true)),
-                    );
-                    await CallsRepository(db).syncFromDevice(archiveMode: true);
-                    return;
-                  }
-
-                  final confirmed = await showConfirmDialog(
-                    context: context,
-                    title: 'Turn off Archive Mode?',
-                    message:
-                    'Calls that are removed from your phone\'s call log '
-                        'will also be permanently deleted from Convolens the '
-                        'next time it syncs. This cannot be undone.',
-                    confirmLabel: 'Turn Off',
-                    isDestructive: true,
-                  );
-
-                  if (!confirmed) return;
-
-                  await db.updateSetting(
-                    const SettingsCompanion(archiveMode: Value(false)),
-                  );
-
-                  await CallsRepository(db).syncFromDevice(archiveMode: false);
-                },
-              ),
-              const _SectionHeader('Display'),
-
-              ListTile(
-                leading: const Icon(Icons.palette_outlined),
-                title: const Text('Theme'),
-                subtitle: const Text('Choose the appearance of Convolens'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ThemeScreen(db: db),
-                    ),
-                  );
-                },
-              ),
-
-              ListTile(
-                leading: const Icon(Icons.credit_card),
-                title: const Text('Call Card Display'),
-                subtitle: const Text('Choose what appears on each call card'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CallCardSettingsScreen(db: db),
-                    ),
-                  );
-                },
-              ),
-              const _SectionHeader('Developer'),
-              SwitchListTile(
-                title: const Text('Developer Mode'),
-                value: settings.devMode,
-                onChanged: (value) {
-                  db.updateSetting(SettingsCompanion(devMode: Value(value)));
-                },
-              ),
-              if (settings.devMode)
+            return ListView(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              children: [
                 ListTile(
-                  leading: const Icon(Icons.build_outlined),
-                  title: const Text('Developer Tools'),
+                  leading: const Icon(Icons.security),
+                  title: const Text('App Permissions'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => DeveloperScreen(db: db),
+                        builder: (context) => const PermissionsScreen(),
                       ),
                     );
                   },
                 ),
-            ],
-          );
-        },
+
+                const _SectionHeader('Sync'),
+                SwitchListTile(
+                  title: const Text('Enable Sync'),
+                  value: settings.syncEnabled,
+                  onChanged: (value) {
+                    db.updateSetting(
+                      SettingsCompanion(syncEnabled: Value(value)),
+                    );
+                  },
+                ),
+                SwitchListTile(
+                  title: const Text('Archive Mode'),
+                  subtitle: const Text(
+                    'Keep calls even if removed from device',
+                  ),
+                  value: settings.archiveMode,
+                  onChanged: (value) async {
+                    if (value == true) {
+                      await db.updateSetting(
+                        const SettingsCompanion(archiveMode: Value(true)),
+                      );
+                      await CallsRepository(
+                        db,
+                      ).syncFromDevice(archiveMode: true);
+                      return;
+                    }
+
+                    final confirmed = await showConfirmDialog(
+                      context: context,
+                      title: 'Turn off Archive Mode?',
+                      message:
+                          'Calls that are removed from your phone\'s call log '
+                          'will also be permanently deleted from Convolens the '
+                          'next time it syncs. This cannot be undone.',
+                      confirmLabel: 'Turn Off',
+                      isDestructive: true,
+                    );
+
+                    if (!confirmed) return;
+
+                    await db.updateSetting(
+                      const SettingsCompanion(archiveMode: Value(false)),
+                    );
+
+                    await CallsRepository(
+                      db,
+                    ).syncFromDevice(archiveMode: false);
+                  },
+                ),
+                const _SectionHeader('Display'),
+
+                ListTile(
+                  leading: const Icon(Icons.palette_outlined),
+                  title: const Text('Theme'),
+                  subtitle: const Text('Choose the appearance of Convolens'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ThemeScreen(db: db),
+                      ),
+                    );
+                  },
+                ),
+
+                ListTile(
+                  leading: const Icon(Icons.credit_card),
+                  title: const Text('Call Card Display'),
+                  subtitle: const Text('Choose what appears on each call card'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CallCardSettingsScreen(db: db),
+                      ),
+                    );
+                  },
+                ),
+                const _SectionHeader('Developer'),
+                SwitchListTile(
+                  title: const Text('Developer Mode'),
+                  value: settings.devMode,
+                  onChanged: (value) {
+                    db.updateSetting(SettingsCompanion(devMode: Value(value)));
+                  },
+                ),
+                if (settings.devMode)
+                  ListTile(
+                    leading: const Icon(Icons.build_outlined),
+                    title: const Text('Developer Tools'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => DeveloperScreen(db: db),
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

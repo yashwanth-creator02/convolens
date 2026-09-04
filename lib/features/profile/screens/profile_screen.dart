@@ -55,165 +55,162 @@ class ProfileScreen extends StatelessWidget {
 
             final displayName =
                 valueFor('displayName') ??
-                [
-                  valueFor('firstName'),
-                  valueFor('lastName'),
-                ].whereType<String>().join(' ');
+                    [
+                      valueFor('firstName'),
+                      valueFor('lastName'),
+                    ].whereType<String>().join(' ');
             final primaryPhone = valueFor('primaryPhone');
 
-            return CustomScrollView(
-              controller: titleController.scrollController,
-              slivers: [
-                SliverToBoxAdapter(
-                  child: SizedBox(height: MediaQuery.of(context).padding.top),
-                ),
-                GlassLargeTitle(text: 'Profile', controller: titleController),
-                SliverPadding(
-                  padding: const EdgeInsets.all(16),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      Center(
-                        child: Column(
-                          children: [
-                            GestureDetector(
-                              onTap: () => _changePhoto(context),
-                              child: Stack(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 40,
-                                    backgroundImage: hasPhoto
-                                        ? FileImage(File(photoPath))
-                                        : null,
-                                    child: photoPath == null
-                                        ? const Icon(Icons.person, size: 40)
-                                        : null,
-                                  ),
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 0,
-                                    child: CircleAvatar(
-                                      radius: 12,
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      child: const Icon(
-                                        Icons.edit,
-                                        size: 14,
-                                        color: Colors.white,
+            return Material(
+              type: MaterialType.transparency,
+              child: CustomScrollView(
+                controller: titleController.scrollController,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: MediaQuery
+                        .of(context)
+                        .padding
+                        .top),
+                  ),
+                  GlassLargeTitle(text: 'Profile', controller: titleController),
+                  SliverPadding(
+                    padding: const EdgeInsets.all(16),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        Center(
+                          child: Column(
+                            children: [
+                              GestureDetector(
+                                onTap: () => _changePhoto(context),
+                                child: Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 40,
+                                      backgroundImage: hasPhoto
+                                          ? FileImage(File(photoPath))
+                                          : null,
+                                      child: photoPath == null
+                                          ? const Icon(Icons.person, size: 40)
+                                          : null,
+                                    ),
+                                    Positioned(
+                                      right: 0,
+                                      bottom: 0,
+                                      child: CircleAvatar(
+                                        radius: 12,
+                                        backgroundColor: Theme
+                                            .of(
+                                          context,
+                                        )
+                                            .colorScheme
+                                            .primary,
+                                        child: const Icon(
+                                          Icons.edit,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              displayName.isNotEmpty
-                                  ? displayName
-                                  : 'Add your name',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
+                              const SizedBox(height: 12),
+                              Text(
+                                displayName.isNotEmpty
+                                    ? displayName
+                                    : 'Add your name',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                ),
                               ),
-                            ),
-                            if (primaryPhone != null) Text(primaryPhone),
-                            const SizedBox(height: 12),
-                            OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        EditProfileScreen(db: db),
+                              if (primaryPhone != null) Text(primaryPhone),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        ...profileSectionOrder.map((section) {
+                          final sectionFields = profileFieldDefs
+                              .where((def) => def.section == section)
+                              .map((def) => MapEntry(def, valueFor(def.key)))
+                              .where((entry) => entry.value != null)
+                              .toList();
+
+                          if (sectionFields.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  section,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blueGrey,
                                   ),
-                                );
-                              },
-                              icon: const Icon(Icons.edit, size: 18),
-                              label: const Text('Edit Details'),
+                                ),
+                                const Divider(),
+                                ...sectionFields.map(
+                                      (entry) =>
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 4,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 120,
+                                              child: Text(
+                                                entry.key.label,
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(child: Text(entry.value!)),
+                                          ],
+                                        ),
+                                      ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Share Contact',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _shareButton(
+                              context,
+                              'Personal QR',
+                              ShareQrType.personal,
+                            ),
+                            _shareButton(context, 'Work QR', ShareQrType.work),
+                            _shareButton(context, 'All QR', ShareQrType.all),
+                            _shareButton(
+                              context,
+                              'Custom QR',
+                              ShareQrType.custom,
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      ...profileSectionOrder.map((section) {
-                        final sectionFields = profileFieldDefs
-                            .where((def) => def.section == section)
-                            .map((def) => MapEntry(def, valueFor(def.key)))
-                            .where((entry) => entry.value != null)
-                            .toList();
-
-                        if (sectionFields.isEmpty)
-                          return const SizedBox.shrink();
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                section,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueGrey,
-                                ),
-                              ),
-                              const Divider(),
-                              ...sectionFields.map(
-                                (entry) => Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 4,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 120,
-                                        child: Text(
-                                          entry.key.label,
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(child: Text(entry.value!)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Share Contact',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _shareButton(
-                            context,
-                            'Personal QR',
-                            ShareQrType.personal,
-                          ),
-                          _shareButton(context, 'Work QR', ShareQrType.work),
-                          _shareButton(context, 'All QR', ShareQrType.all),
-                          _shareButton(
-                            context,
-                            'Custom QR',
-                            ShareQrType.custom,
-                          ),
-                        ],
-                      ),
-                    ]),
+                      ]),
+                    ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 120)),
-              ],
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ],
+              ),
             );
           },
         );

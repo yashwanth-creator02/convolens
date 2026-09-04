@@ -149,7 +149,10 @@ class ContactsScreenState extends State<ContactsScreen>
       return _buildPermissionView();
     }
 
-    return _buildContactsList();
+    return Material(
+      type: MaterialType.transparency,
+      child: _buildContactsList(),
+    );
   }
 
   Widget _buildContactsList() {
@@ -247,31 +250,29 @@ class ContactsScreenState extends State<ContactsScreen>
                           delegate: SliverChildBuilderDelegate((
                             context,
                             index,
-                          ) final item = items[index];
+                          ) {
+                            final item = items[index];
+                            if (item is _ArchivedSectionMarker) {
+                              return _buildArchivedTile(context, item.count);
+                            }
 
-                              if (item is _ArchivedSectionMarker) {
-                                return _buildArchivedTile(context, item.count);
-                              }
+                            if (item is _FavoritesSectionMarker) {
+                              return _buildFavoritesHeader(context);
+                            }
 
-                              if (item is _FavoritesSectionMarker) {
-                                return _buildFavoritesHeader(context);
-                              }
+                            if (item is String) {
+                              return _buildLetterHeader(context, item);
+                            }
 
-                              if (item is String) {
-                                return _buildLetterHeader(context, item);
-                              }
+                            final contact = item as ContactSummary;
 
-                              final contact = item as ContactSummary;
-
-                              return ContactCard(
-                                contact: contact,
-                                onTap: contact.displayNumber.isEmpty
-                                    ? null
-                                    : () => _openContact(contact),
-                              );
-                            },
-                            childCount: items.length,
-                          ),
+                            return ContactCard(
+                              contact: contact,
+                              onTap: contact.displayNumber.isEmpty
+                                  ? null
+                                  : () => _openContact(contact),
+                            );
+                          }, childCount: items.length),
                         ),
                         const SliverToBoxAdapter(child: SizedBox(height: 120)),
                       ],

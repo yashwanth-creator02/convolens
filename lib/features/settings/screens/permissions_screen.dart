@@ -160,73 +160,76 @@ class _PermissionsScreenState extends State<PermissionsScreen>
           ),
         ],
       ),
-      body: ListView(
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-        children: [
-          _PermissionTile(
-            title: 'Call Log',
-            subtitle: 'Required to import and archive your call history',
-            granted: _callLogGranted,
-            onTap: _requestCallLogPermission,
-          ),
-          _PermissionTile(
-            title: 'Notifications',
-            subtitle: 'Required to show call reminders',
-            granted: _notificationsGranted,
-            onTap: _requestNotificationPermission,
-          ),
-          _PermissionTile(
-            title: 'Exact Alarms',
-            subtitle: 'Required for reminders to fire at the exact time set',
-            granted: _exactAlarmGranted,
-            onTap: _requestExactAlarmPermission,
-          ),
-          _PermissionTile(
-            title: 'Contacts',
-            subtitle: 'Required to show all your device contacts',
-            granted: _contactsGranted,
-            onTap: _requestContactsPermission,
-          ),
-          _PermissionTile(
-            title: 'Microphone',
-            subtitle: 'Required to record voice notes attachments',
-            granted: _microphoneGranted,
-            onTap: _requestMicrophonePermission,
-          ),
-          _PermissionTile(
-            title: 'Ignore Battery Optimization',
-            subtitle:
-                'Helps reminders fire reliably. Some devices restrict this further — '
-                'see notification troubleshooting below if reminders still don\'t fire.',
-            granted: _batteryOptimizationExempt,
-            onTap: () async {
-              final granted =
-                  await NotificationService.requestIgnoreBatteryOptimizations();
-              if (!granted && mounted) {
-                await openAppSettings();
-              }
-              _refreshStatuses();
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: const Text('Notification Troubleshooting'),
-            subtitle: const Text(
-              'Manual steps for devices that still block reminders',
+      body: Material(
+        type: MaterialType.transparency,
+        child: ListView(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          children: [
+            _PermissionTile(
+              title: 'Call Log',
+              subtitle: 'Required to import and archive your call history',
+              granted: _callLogGranted,
+              onTap: _requestCallLogPermission,
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      const NotificationTroubleshootingScreen(),
-                ),
-              );
-            },
-          ),
-        ],
+            _PermissionTile(
+              title: 'Notifications',
+              subtitle: 'Required to show call reminders',
+              granted: _notificationsGranted,
+              onTap: _requestNotificationPermission,
+            ),
+            _PermissionTile(
+              title: 'Exact Alarms',
+              subtitle: 'Required for reminders to fire at the exact time set',
+              granted: _exactAlarmGranted,
+              onTap: _requestExactAlarmPermission,
+            ),
+            _PermissionTile(
+              title: 'Contacts',
+              subtitle: 'Required to show all your device contacts',
+              granted: _contactsGranted,
+              onTap: _requestContactsPermission,
+            ),
+            _PermissionTile(
+              title: 'Microphone',
+              subtitle: 'Required to record voice notes attachments',
+              granted: _microphoneGranted,
+              onTap: _requestMicrophonePermission,
+            ),
+            _PermissionTile(
+              title: 'Ignore Battery Optimization',
+              subtitle:
+                  'Helps reminders fire reliably. Some devices restrict this further — '
+                  'see notification troubleshooting below if reminders still don\'t fire.',
+              granted: _batteryOptimizationExempt,
+              onTap: () async {
+                final granted =
+                    await NotificationService.requestIgnoreBatteryOptimizations();
+                if (!granted && mounted) {
+                  await openAppSettings();
+                }
+                _refreshStatuses();
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.help_outline),
+              title: const Text('Notification Troubleshooting'),
+              subtitle: const Text(
+                'Manual steps for devices that still block reminders',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const NotificationTroubleshootingScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

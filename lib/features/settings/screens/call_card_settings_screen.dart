@@ -34,80 +34,83 @@ class CallCardSettingsScreen extends StatelessWidget {
             );
           }
 
-          return ListView(
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                child: Text(
-                  'Core Fields',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey,
+          return Material(
+            type: MaterialType.transparency,
+            child: ListView(
+              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+              children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Text(
+                    'Core Fields',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey,
+                    ),
                   ),
                 ),
-              ),
-              toggle(
-                'Show Contact Name',
-                settings.showContactName,
-                (v) => SettingsCompanion(showContactName: Value(v)),
-              ),
-              toggle(
-                'Show Phone Number',
-                settings.showPhoneNumber,
-                (v) => SettingsCompanion(showPhoneNumber: Value(v)),
-              ),
-              toggle(
-                'Show Call Type',
-                settings.showCallType,
-                (v) => SettingsCompanion(showCallType: Value(v)),
-              ),
-              toggle(
-                'Show Duration',
-                settings.showDuration,
-                (v) => SettingsCompanion(showDuration: Value(v)),
-              ),
-              toggle(
-                'Show Date',
-                settings.showDate,
-                (v) => SettingsCompanion(showDate: Value(v)),
-              ),
-              toggle(
-                'Show Time',
-                settings.showTime,
-                (v) => SettingsCompanion(showTime: Value(v)),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
-                child: Text(
-                  'Enrichment',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey,
+                toggle(
+                  'Show Contact Name',
+                  settings.showContactName,
+                  (v) => SettingsCompanion(showContactName: Value(v)),
+                ),
+                toggle(
+                  'Show Phone Number',
+                  settings.showPhoneNumber,
+                  (v) => SettingsCompanion(showPhoneNumber: Value(v)),
+                ),
+                toggle(
+                  'Show Call Type',
+                  settings.showCallType,
+                  (v) => SettingsCompanion(showCallType: Value(v)),
+                ),
+                toggle(
+                  'Show Duration',
+                  settings.showDuration,
+                  (v) => SettingsCompanion(showDuration: Value(v)),
+                ),
+                toggle(
+                  'Show Date',
+                  settings.showDate,
+                  (v) => SettingsCompanion(showDate: Value(v)),
+                ),
+                toggle(
+                  'Show Time',
+                  settings.showTime,
+                  (v) => SettingsCompanion(showTime: Value(v)),
+                ),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
+                  child: Text(
+                    'Enrichment',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey,
+                    ),
                   ),
                 ),
-              ),
-              toggle(
-                'Show Note Preview',
-                settings.showNotePreview,
-                (v) => SettingsCompanion(showNotePreview: Value(v)),
-              ),
-              toggle(
-                'Show Tags',
-                settings.showTags,
-                (v) => SettingsCompanion(showTags: Value(v)),
-              ),
-              toggle(
-                'Show Reminder Indicator',
-                settings.showReminderIndicator,
-                (v) => SettingsCompanion(showReminderIndicator: Value(v)),
-              ),
-              toggle(
-                'Show Attachment Count',
-                settings.showAttachmentCount,
-                (v) => SettingsCompanion(showAttachmentCount: Value(v)),
-              ),
-            ],
+                toggle(
+                  'Show Note Preview',
+                  settings.showNotePreview,
+                  (v) => SettingsCompanion(showNotePreview: Value(v)),
+                ),
+                toggle(
+                  'Show Tags',
+                  settings.showTags,
+                  (v) => SettingsCompanion(showTags: Value(v)),
+                ),
+                toggle(
+                  'Show Reminder Indicator',
+                  settings.showReminderIndicator,
+                  (v) => SettingsCompanion(showReminderIndicator: Value(v)),
+                ),
+                toggle(
+                  'Show Attachment Count',
+                  settings.showAttachmentCount,
+                  (v) => SettingsCompanion(showAttachmentCount: Value(v)),
+                ),
+              ],
+            ),
           );
         },
       ),

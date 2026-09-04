@@ -56,104 +56,107 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return GlassScaffold(
       appBar: AppBar(title: const Text('Search')),
-      body: Padding(
-        padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _contactController,
-                    decoration: const InputDecoration(
-                      labelText: 'Contact name or number',
-                      prefixIcon: Icon(Icons.person_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (v) =>
-                        _onFieldChanged((f) => f.copyWith(contactQuery: v)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _noteController,
-                    decoration: const InputDecoration(
-                      labelText: 'Search notes',
-                      prefixIcon: Icon(Icons.notes),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (v) =>
-                        _onFieldChanged((f) => f.copyWith(noteQuery: v)),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _tagController,
-                    decoration: const InputDecoration(
-                      labelText: 'Search tags',
-                      prefixIcon: Icon(Icons.label_outline),
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (v) =>
-                        _onFieldChanged((f) => f.copyWith(tagQuery: v)),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      FilterChip(
-                        label: const Text('Has Attachment'),
-                        selected: _filters.hasAttachment,
-                        onSelected: (v) => setState(() {
-                          _filters = _filters.copyWith(hasAttachment: v);
-                        }),
+      body: Material(
+        type: MaterialType.transparency,
+        child: Padding(
+          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _contactController,
+                      decoration: const InputDecoration(
+                        labelText: 'Contact name or number',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(),
                       ),
-                      FilterChip(
-                        label: const Text('Has Reminder'),
-                        selected: _filters.hasReminder,
-                        onSelected: (v) => setState(() {
-                          _filters = _filters.copyWith(hasReminder: v);
-                        }),
+                      onChanged: (v) =>
+                          _onFieldChanged((f) => f.copyWith(contactQuery: v)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _noteController,
+                      decoration: const InputDecoration(
+                        labelText: 'Search notes',
+                        prefixIcon: Icon(Icons.notes),
+                        border: OutlineInputBorder(),
                       ),
-                    ],
-                  ),
-                ],
+                      onChanged: (v) =>
+                          _onFieldChanged((f) => f.copyWith(noteQuery: v)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _tagController,
+                      decoration: const InputDecoration(
+                        labelText: 'Search tags',
+                        prefixIcon: Icon(Icons.label_outline),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) =>
+                          _onFieldChanged((f) => f.copyWith(tagQuery: v)),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        FilterChip(
+                          label: const Text('Has Attachment'),
+                          selected: _filters.hasAttachment,
+                          onSelected: (v) => setState(() {
+                            _filters = _filters.copyWith(hasAttachment: v);
+                          }),
+                        ),
+                        FilterChip(
+                          label: const Text('Has Reminder'),
+                          selected: _filters.hasReminder,
+                          onSelected: (v) => setState(() {
+                            _filters = _filters.copyWith(hasReminder: v);
+                          }),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: _filters.isEmpty
-                  ? const Center(
-                      child: Text('Start typing or pick a filter to search.'),
-                    )
-                  : StreamBuilder<List<Call>>(
-                      stream: widget.db.searchCalls(
-                        contactQuery: _filters.contactQuery,
-                        noteQuery: _filters.noteQuery,
-                        tagQuery: _filters.tagQuery,
-                        hasAttachment: _filters.hasAttachment,
-                        hasReminder: _filters.hasReminder,
+              const Divider(height: 1),
+              Expanded(
+                child: _filters.isEmpty
+                    ? const Center(
+                        child: Text('Start typing or pick a filter to search.'),
+                      )
+                    : StreamBuilder<List<Call>>(
+                        stream: widget.db.searchCalls(
+                          contactQuery: _filters.contactQuery,
+                          noteQuery: _filters.noteQuery,
+                          tagQuery: _filters.tagQuery,
+                          hasAttachment: _filters.hasAttachment,
+                          hasReminder: _filters.hasReminder,
+                        ),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          final results = snapshot.data!;
+                          if (results.isEmpty) {
+                            return const Center(
+                              child: Text('No matching calls.'),
+                            );
+                          }
+                          return ListView.builder(
+                            itemCount: results.length,
+                            itemBuilder: (context, index) =>
+                                CallCard(call: results[index], db: widget.db),
+                          );
+                        },
                       ),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        final results = snapshot.data!;
-                        if (results.isEmpty) {
-                          return const Center(
-                            child: Text('No matching calls.'),
-                          );
-                        }
-                        return ListView.builder(
-                          itemCount: results.length,
-                          itemBuilder: (context, index) =>
-                              CallCard(call: results[index], db: widget.db),
-                        );
-                      },
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

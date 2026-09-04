@@ -192,19 +192,22 @@ class _HistoryScreenState extends State<HistoryScreen>
 
         final calls = snapshot.data ?? [];
 
-        return CustomScrollView(
-          controller: widget.titleController.scrollController,
-          slivers: [
-            SliverToBoxAdapter(
-              child: SizedBox(height: MediaQuery.of(context).padding.top),
-            ),
-            GlassLargeTitle(
-              text: 'History',
-              controller: widget.titleController,
-            ),
-            SliverHistoryCallList(calls: calls, db: widget.db),
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
-          ],
+        return Material(
+          type: MaterialType.transparency,
+          child: CustomScrollView(
+            controller: widget.titleController.scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(height: MediaQuery.of(context).padding.top),
+              ),
+              GlassLargeTitle(
+                text: 'History',
+                controller: widget.titleController,
+              ),
+              SliverHistoryCallList(calls: calls, db: widget.db),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
         );
       },
     );
