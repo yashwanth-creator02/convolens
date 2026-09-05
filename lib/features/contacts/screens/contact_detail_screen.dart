@@ -5,7 +5,6 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/toast/toast_service.dart';
-import '../../../shared/widgets/app_tab_row.dart';
 import '../tabs/contact_activity_tab.dart';
 import '../tabs/contact_analytics_tab.dart';
 import '../tabs/contact_more_tab.dart';
@@ -34,13 +33,6 @@ class ContactDetailScreen extends StatefulWidget {
 
 class _ContactDetailScreenState extends State<ContactDetailScreen> {
   int _selectedTab = 0;
-
-  static const _tabs = [
-    AppTabItem(label: 'Overview', icon: Icons.person_outline),
-    AppTabItem(label: 'Activity', icon: Icons.history),
-    AppTabItem(label: 'Analytics', icon: Icons.analytics_outlined),
-    AppTabItem(label: 'More', icon: Icons.more_horiz),
-  ];
 
   Future<void> _toggleFavorite(bool isFavorite) async {
     await widget.db.toggleContactFavorite(widget.normalizedNumber, !isFavorite);
@@ -136,19 +128,27 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 8.0),
-                  AppTabRow(
-                    tabs: _tabs,
-                    scrollable: true,
-                    selectedIndex: _selectedTab,
-                    onTabSelected: (index) {
-                      if (_selectedTab == index) {
-                        return;
-                      }
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: GlassSegmentedControl.scrollable(
+                      quality: GlassQuality.premium,
+                      selectedIndex: _selectedTab,
+                      onSegmentSelected: (index) {
+                        if (_selectedTab == index) {
+                          return;
+                        }
 
-                      setState(() {
-                        _selectedTab = index;
-                      });
-                    },
+                        setState(() {
+                          _selectedTab = index;
+                        });
+                      },
+                      segments: const [
+                        GlassSegment(label: 'Overview'),
+                        GlassSegment(label: 'Activity'),
+                        GlassSegment(label: 'Analytics'),
+                        GlassSegment(label: 'More'),
+                      ],
+                    ),
                   ),
                   Divider(
                     height: 1,

@@ -5,7 +5,6 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../shared/widgets/app_tab_row.dart';
 import '../../contacts/models/contact_summary.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../models/analytics_filters.dart';
@@ -47,13 +46,6 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   AnalyticsFilters _filters = const AnalyticsFilters();
 
   int _selectedTab = 0;
-
-  static const _tabs = [
-    AppTabItem(label: 'Overview'),
-    AppTabItem(label: 'Activity'),
-    AppTabItem(label: 'People'),
-    AppTabItem(label: 'Records'),
-  ];
 
   bool _showDuration = false;
   bool _rankByDuration = false;
@@ -300,18 +292,25 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 controller: widget.titleController,
               ),
               SliverToBoxAdapter(
-                child: AppTabRow(
-                  tabs: _tabs,
-                  scrollable: true,
-                  selectedIndex: _selectedTab,
-                  onTabSelected: (index) {
-                    setState(() {
-                      _selectedTab = index;
-                    });
-                  },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GlassSegmentedControl.scrollable(
+                    quality: GlassQuality.premium,
+                    selectedIndex: _selectedTab,
+                    onSegmentSelected: (index) {
+                      setState(() {
+                        _selectedTab = index;
+                      });
+                    },
+                    segments: const [
+                      GlassSegment(label: 'Overview'),
+                      GlassSegment(label: 'Activity'),
+                      GlassSegment(label: 'People'),
+                      GlassSegment(label: 'Records'),
+                    ],
+                  ),
                 ),
               ),
-              const SliverToBoxAdapter(child: Divider(height: 1)),
               ..._buildTabSlivers(summary),
               const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
