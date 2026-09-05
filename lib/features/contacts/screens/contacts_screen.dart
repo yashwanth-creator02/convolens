@@ -34,6 +34,7 @@ class ContactsScreenState extends State<ContactsScreen>
 
   bool _permissionGranted = false;
   bool _loadingContacts = true;
+  bool _pullSearchTriggered = false;
 
   List<Contact> _deviceContacts = [];
   final Map<String, GlobalKey> _letterKeys = {};
@@ -127,10 +128,46 @@ class ContactsScreenState extends State<ContactsScreen>
     }
   }
 
+  bool _handleScrollNotification(ScrollNotification notification) {
+    final metrics = notification.metrics;
+
+    // Overscrolling at the top shows as negative pixels.
+    if (metrics.pixels < -80 && !_pullSearchTriggered) {
+      _pullSearchTriggered = true;
+      _openContactSearch();
+    }
+
+    if (notification is ScrollEndNotification) {
+      _pullSearchTriggered = false;
+    }
+
+    return false; // let the notification keep bubbling
+  }
+
   void _openContactSearch() {
     Navigator.of(context).push(
-      CupertinoPageRoute(
-        builder: (context) => ContactSearchScreen(db: widget.db),
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 320),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            ContactSearchScreen(db: widget.db),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, -0.06),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
       ),
     );
   }
@@ -259,59 +296,67 @@ class ContactsScreenState extends State<ContactsScreen>
 
                 return Stack(
                   children: [
-                    CustomScrollView(
-                      controller: widget.titleController.scrollController,
-                      slivers: [
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height:
-                                MediaQuery.of(context).padding.top +
-                                kToolbarHeight,
+                    NotificationListener<ScrollNotification>(
+                      onNotification: _handleScrollNotification,
+                      child: CustomScrollView(
+                        controller: widget.titleController.scrollController,
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        ),
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: SizedBox(
+                              height:
+                                  MediaQuery.of(context).padding.top +
+                                  kToolbarHeight,
+                            ),
                           ),
-                        ),
 
-                        GlassLargeTitle(
-                          text: 'Contacts',
-                          controller: widget.titleController,
-                          searchBar: GlassSearchBar(
-                            placeholder: 'Search Contacts',
-                            useOwnLayer: true,
-                            focusNode: _searchFocusNode,
+                          GlassLargeTitle(
+                            text: 'Contacts',
+                            controller: widget.titleController,
+                            searchBar: GlassSearchBar(
+                              placeholder: 'Search Contacts',
+                              useOwnLayer: true,
+                              focusNode: _searchFocusNode,
+                            ),
                           ),
-                        ),
 
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final item = items[index];
+                          SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final item = items[index];
 
-                            if (item is _ArchivedSectionMarker) {
-                              return _buildArchivedTile(context, item.count);
-                            }
+                              if (item is _ArchivedSectionMarker) {
+                                return _buildArchivedTile(context, item.count);
+                              }
 
-                            if (item is _FavoritesSectionMarker) {
-                              return _buildFavoritesHeader(context);
-                            }
+                              if (item is _FavoritesSectionMarker) {
+                                return _buildFavoritesHeader(context);
+                              }
 
-                            if (item is String) {
-                              return _buildLetterHeader(context, item);
-                            }
+                              if (item is String) {
+                                return _buildLetterHeader(context, item);
+                              }
 
-                            final contact = item as ContactSummary;
+                              final contact = item as ContactSummary;
 
-                            return ContactCard(
-                              contact: contact,
-                              onTap: contact.displayNumber.isEmpty
-                                  ? null
-                                  : () => _openContact(contact),
-                            );
-                          }, childCount: items.length),
-                        ),
+                              return ContactCard(
+                                contact: contact,
+                                onTap: contact.displayNumber.isEmpty
+                                    ? null
+                                    : () => _openContact(contact),
+                              );
+                            }, childCount: items.length),
+                          ),
 
-                        const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                      ],
+                          const SliverToBoxAdapter(
+                            child: SizedBox(height: 120),
+                          ),
+                        ],
+                      ),
                     ),
 
                     Positioned(
