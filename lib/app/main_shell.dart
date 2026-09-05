@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
@@ -10,6 +12,7 @@ import '../features/contacts/widgets/add_contact_screen.dart';
 import '../features/history/screens/history_screen.dart';
 import '../features/history/screens/search_screen.dart';
 import '../features/history/widgets/number_pad_sheet.dart';
+import '../features/profile/screens/edit_profile_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 
@@ -25,7 +28,37 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   AppDatabase get _db => widget.db;
 
+  static const String _contextActionId = 'context_action';
+
+  // ---------------------------------------------------------------------------
+  // Keys
+  // ---------------------------------------------------------------------------
+
   final _contactsScreenKey = GlobalKey<ContactsScreenState>();
+
+  // ---------------------------------------------------------------------------
+  // Large-title controllers
+  //
+  // Each screen owns its own scroll position.
+  // The same scrollController is also used by the minimizable tab bar.
+  // ---------------------------------------------------------------------------
+
+  final _historyTitleController = GlassLargeTitleController();
+  final _analyticsTitleController = GlassLargeTitleController();
+  final _contactsTitleController = GlassLargeTitleController();
+  final _profileTitleController = GlassLargeTitleController();
+
+  // ---------------------------------------------------------------------------
+  // Bottom-bar minimize controller
+  // ---------------------------------------------------------------------------
+
+  final _tabBarMinimizeController = GlassTabBarMinimizeController(
+    behavior: GlassBarMinimizeBehavior.onScrollDown,
+  );
+
+  // ---------------------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------------------
 
   int _selectedIndex = 0;
 
@@ -41,11 +74,42 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   late final List<Widget> _screens = [
-    HistoryScreen(db: _db),
-    AnalyticsScreen(db: _db),
-    ContactsScreen(key: _contactsScreenKey, db: _db),
-    ProfileScreen(db: _db),
+    HistoryScreen(db: _db, titleController: _historyTitleController),
+    AnalyticsScreen(db: _db, titleController: _analyticsTitleController),
+    ContactsScreen(
+      key: _contactsScreenKey,
+      db: _db,
+      titleController: _contactsTitleController,
+    ),
+    ProfileScreen(db: _db, titleController: _profileTitleController),
   ];
+
+  // ---------------------------------------------------------------------------
+  // Active large-title controller
+  // ---------------------------------------------------------------------------
+
+  GlassLargeTitleController get _activeTitleController {
+    switch (_selectedIndex) {
+      case 0:
+        return _historyTitleController;
+      case 1:
+        return _analyticsTitleController;
+      case 2:
+        return _contactsTitleController;
+      case 3:
+        return _profileTitleController;
+      default:
+        return _historyTitleController;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Active scroll controller
+  // ---------------------------------------------------------------------------
+
+  ScrollController get _activeScrollController {
+    return _activeTitleController.scrollController;
+  }
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -54,132 +118,249 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+
     NotificationService.init();
+
     InsightChecker(_db).checkStreakRecord();
     InsightChecker(_db).checkWeeklySummary();
   }
 
+  @override
+  void dispose() {
+    _tabBarMinimizeController.dispose();
+
+    _historyTitleController.dispose();
+    _analyticsTitleController.dispose();
+    _contactsTitleController.dispose();
+    _profileTitleController.dispose();
+
+    super.dispose();
+  }
+
   // ---------------------------------------------------------------------------
-  // Navigation Actions
+  // Main-tab navigation
   // ---------------------------------------------------------------------------
 
   void _onNavigationItemSelected(int index) {
     if (_selectedIndex == index) {
+      _tabBarMinimizeController.expand();
       return;
     }
+
+    _tabBarMinimizeController.expand();
 
     setState(() {
       _selectedIndex = index;
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Header actions
+  // ---------------------------------------------------------------------------
+
   void _openSearch() {
-    Navigator.push(
+    Navigator.of(
       context,
-      MaterialPageRoute(builder: (context) => SearchScreen(db: _db)),
+    ).push(CupertinoPageRoute(builder: (context) => SearchScreen(db: _db)));
+  }
+
+  void _openContactSearch() {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) => ContactSearchScreen(db: _db),
+      ),
     );
   }
 
   void _openSettings() {
-    Navigator.push(
+    Navigator.of(
       context,
-      MaterialPageRoute(builder: (context) => SettingsScreen(db: _db)),
+    ).push(CupertinoPageRoute(builder: (context) => SettingsScreen(db: _db)));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bottom-bar actions
+  // ---------------------------------------------------------------------------
+
+  Future<void> _openNumberPad() async {
+    final number = await showNumberPadSheet(context);
+
+    if (!mounted || number == null || number.isEmpty) {
+      return;
+    }
+
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) =>
+            SearchScreen(db: _db, initialContactQuery: number),
+      ),
+    );
+  }
+
+  Future<void> _addContact() async {
+    final added = await showAddContactScreen(context);
+
+    if (!mounted || !added) {
+      return;
+    }
+
+    await _contactsScreenKey.currentState?.refreshDeviceContacts();
+  }
+
+  void _editProfile() {
+    Navigator.of(context).push(
+      CupertinoPageRoute(builder: (context) => EditProfileScreen(db: _db)),
     );
   }
 
   // ---------------------------------------------------------------------------
-  // App Bar
+  // App-bar actions
+  //
+  // Changing this list allows the glass action capsule to morph.
   // ---------------------------------------------------------------------------
 
-  List<Widget> _buildAppBarActions() {
-    return [
-      if (_selectedIndex == 2)
-        IconButton(
-          icon: const Icon(Icons.person_search),
-          tooltip: 'Search Contacts',
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ContactSearchScreen(db: _db),
-              ),
-            );
-          },
-        ),
-      IconButton(
-        icon: const Icon(Icons.search),
-        tooltip: 'Search',
-        onPressed: _openSearch,
-      ),
-      IconButton(
-        icon: const Icon(Icons.settings),
-        tooltip: 'Settings',
-        onPressed: _openSettings,
-      ),
-    ];
+  List<GlassBarItem> _buildAppBarActions() {
+    switch (_selectedIndex) {
+      case 0:
+        return [
+          GlassBarItem.icon(
+            icon: const Icon(Icons.search),
+            id: _contextActionId,
+            label: 'Search',
+            onTap: _openSearch,
+          ),
+          GlassBarItem.icon(
+            icon: const Icon(Icons.settings),
+            id: 'settings',
+            label: 'Settings',
+            onTap: _openSettings,
+          ),
+        ];
+
+      case 2:
+        return [
+          GlassBarItem.icon(
+            icon: const Icon(Icons.person_search),
+            id: 'contact_search',
+            label: 'Search Contacts',
+            onTap: _openContactSearch,
+          ),
+          GlassBarItem.icon(
+            icon: const Icon(Icons.settings),
+            id: 'settings',
+            label: 'Settings',
+            onTap: _openSettings,
+          ),
+        ];
+
+      case 1:
+      case 3:
+        return [
+          GlassBarItem.icon(
+            icon: const Icon(Icons.settings),
+            id: 'settings',
+            label: 'Settings',
+            onTap: _openSettings,
+          ),
+        ];
+
+      default:
+        return const [];
+    }
   }
 
   // ---------------------------------------------------------------------------
-  // Floating Action Button
+  // Contextual bottom-bar trailing button
   // ---------------------------------------------------------------------------
 
-  Widget? _buildFloatingActionButton() {
-    if (_selectedIndex == 0) {
-      return FloatingActionButton(
-        tooltip: 'Dial number',
-        onPressed: () async {
-          final number = await showNumberPadSheet(context);
-          if (!mounted || number == null || number.isEmpty) return;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  SearchScreen(db: _db, initialContactQuery: number),
-            ),
-          );
-        },
-        child: const Icon(Icons.dialpad),
-      );
-    }
+  GlassTabBarTrailingButton? get _trailingButton {
+    switch (_selectedIndex) {
+      case 0:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.dialpad),
+          onTap: _openNumberPad,
+        );
 
-    if (_selectedIndex == 2) {
-      return FloatingActionButton(
-        tooltip: 'Add contact',
-        onPressed: () async {
-          final added = await showAddContactScreen(context);
-          if (added) {
-            await _contactsScreenKey.currentState?.refreshDeviceContacts();
-          }
-        },
-        child: const Icon(Icons.person_add),
-      );
-    }
+      case 2:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.person_add),
+          onTap: _addContact,
+        );
 
-    return null;
+      case 3:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.edit),
+          onTap: _editProfile,
+        );
+
+      default:
+        return null;
+    }
   }
 
   // ---------------------------------------------------------------------------
-  // Bottom Navigation
+  // Bottom navigation
   // ---------------------------------------------------------------------------
 
   Widget _buildBottomNavigationBar() {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: _selectedIndex,
-      onTap: _onNavigationItemSelected,
-
-      selectedItemColor: Theme.of(context).colorScheme.primary,
-      unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
-
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bar_chart),
-          label: 'Analytics',
+    return GlassTabBar.minimizable(
+      tabs: const [
+        GlassTab(
+          label: 'History',
+          icon: Icon(Icons.history),
+          activeIcon: Icon(Icons.history),
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.contacts), label: 'Contacts'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        GlassTab(
+          label: 'Analytics',
+          icon: Icon(Icons.bar_chart_outlined),
+          activeIcon: Icon(Icons.bar_chart),
+        ),
+        GlassTab(
+          label: 'Contacts',
+          icon: Icon(Icons.contacts_outlined),
+          activeIcon: Icon(Icons.contacts),
+        ),
+        GlassTab(
+          label: 'Profile',
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+        ),
       ],
+
+      selectedIndex: _selectedIndex,
+      onTabSelected: _onNavigationItemSelected,
+
+      // -----------------------------------------------------------------------
+      // Minimization
+      // -----------------------------------------------------------------------
+      minimizeController: _tabBarMinimizeController,
+
+      // The active large-title controller and tab-bar controller are both
+      // listening to the same scroll position.
+      scrollController: _activeScrollController,
+
+      onMinimizedTabTap: _tabBarMinimizeController.expand,
+
+      // -----------------------------------------------------------------------
+      // Contextual action
+      // -----------------------------------------------------------------------
+      trailingButton: _trailingButton,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // App bar
+  // ---------------------------------------------------------------------------
+
+  Widget _buildAppBar() {
+    return GlassAppBar.pinned(
+      title: Text(_titles[_selectedIndex]),
+
+      // This connects the pinned title to the active screen's large title.
+      largeTitleController: _activeTitleController,
+
+      // Changing this list allows the glass action capsule to morph.
+      actions: _buildAppBarActions(),
     );
   }
 
@@ -189,14 +370,14 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
-        actions: _buildAppBarActions(),
-      ),
+    return GlassScaffold(
+      statusBarStyle: GlassStatusBarStyle.auto,
+
+      appBar: _buildAppBar(),
+
       body: IndexedStack(index: _selectedIndex, children: _screens),
-      floatingActionButton: _buildFloatingActionButton(),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+
+      bottomBar: _buildBottomNavigationBar(),
     );
   }
 }

@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/notifications/notification_service.dart';
@@ -13,6 +15,8 @@ class PermissionsScreen extends StatefulWidget {
 
 class _PermissionsScreenState extends State<PermissionsScreen>
     with WidgetsBindingObserver {
+  final _titleController = GlassLargeTitleController();
+
   bool _callLogGranted = false;
   bool _notificationsGranted = false;
   bool _exactAlarmGranted = false;
@@ -25,15 +29,14 @@ class _PermissionsScreenState extends State<PermissionsScreen>
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
-
     _refreshStatuses();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -148,82 +151,103 @@ class _PermissionsScreenState extends State<PermissionsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(
         title: const Text('App Permissions'),
+        largeTitleController: _titleController,
         actions: [
-          IconButton(
+          GlassBarItem.icon(
             icon: const Icon(Icons.settings_applications),
-            tooltip: 'Open System Settings',
-            onPressed: _openSystemSettings,
+            id: 'system_settings',
+            label: 'System Settings',
+            onTap: _openSystemSettings,
           ),
         ],
       ),
-      body: ListView(
-        children: [
-          _PermissionTile(
-            title: 'Call Log',
-            subtitle: 'Required to import and archive your call history',
-            granted: _callLogGranted,
-            onTap: _requestCallLogPermission,
-          ),
-          _PermissionTile(
-            title: 'Notifications',
-            subtitle: 'Required to show call reminders',
-            granted: _notificationsGranted,
-            onTap: _requestNotificationPermission,
-          ),
-          _PermissionTile(
-            title: 'Exact Alarms',
-            subtitle: 'Required for reminders to fire at the exact time set',
-            granted: _exactAlarmGranted,
-            onTap: _requestExactAlarmPermission,
-          ),
-          _PermissionTile(
-            title: 'Contacts',
-            subtitle: 'Required to show all your device contacts',
-            granted: _contactsGranted,
-            onTap: _requestContactsPermission,
-          ),
-          _PermissionTile(
-            title: 'Microphone',
-            subtitle: 'Required to record voice notes attachments',
-            granted: _microphoneGranted,
-            onTap: _requestMicrophonePermission,
-          ),
-          _PermissionTile(
-            title: 'Ignore Battery Optimization',
-            subtitle:
-                'Helps reminders fire reliably. Some devices restrict this further — '
-                'see notification troubleshooting below if reminders still don\'t fire.',
-            granted: _batteryOptimizationExempt,
-            onTap: () async {
-              final granted =
-                  await NotificationService.requestIgnoreBatteryOptimizations();
-              if (!granted && mounted) {
-                await openAppSettings();
-              }
-              _refreshStatuses();
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: const Text('Notification Troubleshooting'),
-            subtitle: const Text(
-              'Manual steps for devices that still block reminders',
+      body: Material(
+        type: MaterialType.transparency,
+        child: CustomScrollView(
+          controller: _titleController.scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).padding.top + kToolbarHeight,
+              ),
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationTroubleshootingScreen(),
+            GlassLargeTitle(
+              text: 'App Permissions',
+              controller: _titleController,
+            ),
+            SliverList(
+              delegate: SliverChildListDelegate([
+                _PermissionTile(
+                  title: 'Call Log',
+                  subtitle: 'Required to import and archive your call history',
+                  granted: _callLogGranted,
+                  onTap: _requestCallLogPermission,
                 ),
-              );
-            },
-          ),
-        ],
+                _PermissionTile(
+                  title: 'Notifications',
+                  subtitle: 'Required to show call reminders',
+                  granted: _notificationsGranted,
+                  onTap: _requestNotificationPermission,
+                ),
+                _PermissionTile(
+                  title: 'Exact Alarms',
+                  subtitle:
+                      'Required for reminders to fire at the exact time set',
+                  granted: _exactAlarmGranted,
+                  onTap: _requestExactAlarmPermission,
+                ),
+                _PermissionTile(
+                  title: 'Contacts',
+                  subtitle: 'Required to show all your device contacts',
+                  granted: _contactsGranted,
+                  onTap: _requestContactsPermission,
+                ),
+                _PermissionTile(
+                  title: 'Microphone',
+                  subtitle: 'Required to record voice notes attachments',
+                  granted: _microphoneGranted,
+                  onTap: _requestMicrophonePermission,
+                ),
+                _PermissionTile(
+                  title: 'Ignore Battery Optimization',
+                  subtitle:
+                      'Helps reminders fire reliably. Some devices restrict this further — '
+                      'see notification troubleshooting below if reminders still don\'t fire.',
+                  granted: _batteryOptimizationExempt,
+                  onTap: () async {
+                    final granted =
+                        await NotificationService.requestIgnoreBatteryOptimizations();
+                    if (!granted && mounted) {
+                      await openAppSettings();
+                    }
+                    _refreshStatuses();
+                  },
+                ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.help_outline),
+                  title: const Text('Notification Troubleshooting'),
+                  subtitle: const Text(
+                    'Manual steps for devices that still block reminders',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) =>
+                            const NotificationTroubleshootingScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 40),
+              ]),
+            ),
+          ],
+        ),
       ),
     );
   }

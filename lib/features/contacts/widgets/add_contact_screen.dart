@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 Future<bool> showAddContactScreen(BuildContext context) async {
@@ -11,9 +13,8 @@ Future<bool> showAddContactScreen(BuildContext context) async {
 
   if (!context.mounted) return false;
 
-  final result = await Navigator.push<bool>(
-    context,
-    MaterialPageRoute(builder: (context) => const AddContactScreen()),
+  final result = await Navigator.of(context).push<bool>(
+    CupertinoPageRoute(builder: (context) => const AddContactScreen()),
   );
 
   return result ?? false;
@@ -27,6 +28,7 @@ class AddContactScreen extends StatefulWidget {
 }
 
 class _AddContactScreenState extends State<AddContactScreen> {
+  final _titleController = GlassLargeTitleController();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _companyController = TextEditingController();
@@ -48,6 +50,7 @@ class _AddContactScreenState extends State<AddContactScreen> {
     for (final c in _phoneControllers) {
       c.dispose();
     }
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -75,117 +78,153 @@ class _AddContactScreenState extends State<AddContactScreen> {
 
     setState(() => _saving = true);
 
-    final newContact = Contact()
-      ..name.first = firstName
-      ..name.last = lastName
-      ..phones = phones.map((p) => Phone(p)).toList();
+    try {
+      final newContact = Contact()
+        ..name.first = firstName
+        ..name.last = lastName
+        ..phones = phones.map((p) => Phone(p)).toList();
 
-    final company = _companyController.text.trim();
-    final jobTitle = _jobTitleController.text.trim();
-    if (company.isNotEmpty || jobTitle.isNotEmpty) {
-      newContact.organizations = [
-        Organization(company: company, title: jobTitle),
-      ];
+      final company = _companyController.text.trim();
+      final jobTitle = _jobTitleController.text.trim();
+      if (company.isNotEmpty || jobTitle.isNotEmpty) {
+        newContact.organizations = [
+          Organization(company: company, title: jobTitle),
+        ];
+      }
+
+      final email = _emailController.text.trim();
+      if (email.isNotEmpty) {
+        newContact.emails = [Email(email)];
+      }
+
+      await newContact.insert();
+
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to save contact: $e')));
+      }
     }
-
-    final email = _emailController.text.trim();
-    if (email.isNotEmpty) {
-      newContact.emails = [Email(email)];
-    }
-
-    await newContact.insert();
-
-    if (mounted) Navigator.pop(context, true);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(
         title: const Text('Add Contact'),
+        largeTitleController: _titleController,
         actions: [
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: _saving
+          GlassBarItem.icon(
+            icon: _saving
                 ? const SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : const Icon(Icons.check),
+            id: 'save',
+            label: 'Save',
+            onTap: () {
+              if (!_saving) _save();
+            },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _firstNameController,
-              autofocus: true,
-              decoration: const InputDecoration(labelText: 'First name'),
+      body: Material(
+        type: MaterialType.transparency,
+        child: CustomScrollView(
+          controller: _titleController.scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).padding.top + kToolbarHeight,
+              ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _lastNameController,
-              decoration: const InputDecoration(labelText: 'Last name'),
-            ),
-            const Divider(height: 32),
-            const Text(
-              'Phone Numbers',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ..._phoneControllers.asMap().entries.map((entry) {
-              final index = entry.key;
-              final controller = entry.value;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: controller,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Phone number',
-                        ),
+            GlassLargeTitle(text: 'Add Contact', controller: _titleController),
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  TextField(
+                    controller: _firstNameController,
+                    autofocus: true,
+                    decoration: const InputDecoration(labelText: 'First name'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _lastNameController,
+                    decoration: const InputDecoration(labelText: 'Last name'),
+                  ),
+                  const Divider(height: 32),
+                  const Text(
+                    'Phone Numbers',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._phoneControllers.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final controller = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: controller,
+                              keyboardType: TextInputType.phone,
+                              decoration: const InputDecoration(
+                                labelText: 'Phone number',
+                              ),
+                            ),
+                          ),
+                          if (_phoneControllers.length > 1)
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline),
+                              onPressed: () => _removePhoneField(index),
+                            ),
+                        ],
                       ),
+                    );
+                  }),
+                  TextButton.icon(
+                    onPressed: _addPhoneField,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add another number'),
+                  ),
+                  const Divider(height: 32),
+                  const Text(
+                    'Work',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _companyController,
+                    decoration: const InputDecoration(labelText: 'Company'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _jobTitleController,
+                    decoration: const InputDecoration(labelText: 'Job title'),
+                  ),
+                  const Divider(height: 32),
+                  const Text(
+                    'Email',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email address',
                     ),
-                    if (_phoneControllers.length > 1)
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () => _removePhoneField(index),
-                      ),
-                  ],
-                ),
-              );
-            }),
-            TextButton.icon(
-              onPressed: _addPhoneField,
-              icon: const Icon(Icons.add),
-              label: const Text('Add another number'),
-            ),
-            const Divider(height: 32),
-            const Text('Work', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _companyController,
-              decoration: const InputDecoration(labelText: 'Company'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _jobTitleController,
-              decoration: const InputDecoration(labelText: 'Job title'),
-            ),
-            const Divider(height: 32),
-            const Text('Email', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email address'),
+                  ),
+                  const SizedBox(height: 40),
+                ]),
+              ),
             ),
           ],
         ),

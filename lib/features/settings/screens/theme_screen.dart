@@ -1,19 +1,36 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 
-class ThemeScreen extends StatelessWidget {
+class ThemeScreen extends StatefulWidget {
   final AppDatabase db;
 
   const ThemeScreen({super.key, required this.db});
 
   @override
+  State<ThemeScreen> createState() => _ThemeScreenState();
+}
+
+class _ThemeScreenState extends State<ThemeScreen> {
+  final _titleController = GlassLargeTitleController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Theme')),
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(
+        title: const Text('Theme'),
+        largeTitleController: _titleController,
+      ),
       body: StreamBuilder<Setting>(
-        stream: db.watchSettings(),
+        stream: widget.db.watchSettings(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -21,59 +38,68 @@ class ThemeScreen extends StatelessWidget {
 
           final settings = snapshot.data!;
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-            children: [
-              Text(
-                'Appearance',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-              ),
-
-              const SizedBox(height: 6),
-
-              Text(
-                'Choose how ConvoLens should look.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+          return Material(
+            type: MaterialType.transparency,
+            child: CustomScrollView(
+              controller: _titleController.scrollController,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                  ),
                 ),
-              ),
-
-              const SizedBox(height: 20),
-
-              _ThemeOption(
-                title: 'System Default',
-                subtitle: 'Follow your device appearance',
-                icon: Icons.brightness_auto_outlined,
-                selected: settings.theme == 'system',
-                onTap: () => _setTheme('system'),
-              ),
-
-              _ThemeOption(
-                title: 'Light',
-                subtitle: 'Clean and bright',
-                icon: Icons.light_mode_outlined,
-                selected: settings.theme == 'light',
-                onTap: () => _setTheme('light'),
-              ),
-
-              _ThemeOption(
-                title: 'Dark',
-                subtitle: 'Comfortable in low light',
-                icon: Icons.dark_mode_outlined,
-                selected: settings.theme == 'dark',
-                onTap: () => _setTheme('dark'),
-              ),
-
-              _ThemeOption(
-                title: 'Cosmo',
-                subtitle: 'The ConvoLens custom theme',
-                icon: Icons.auto_awesome_outlined,
-                selected: settings.theme == 'cosmo',
-                onTap: () => _setTheme('cosmo'),
-              ),
-            ],
+                GlassLargeTitle(text: 'Theme', controller: _titleController),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      Text(
+                        'Appearance',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Choose how ConvoLens should look.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _ThemeOption(
+                        title: 'System Default',
+                        subtitle: 'Follow your device appearance',
+                        icon: Icons.brightness_auto_outlined,
+                        selected: settings.theme == 'system',
+                        onTap: () => _setTheme('system'),
+                      ),
+                      _ThemeOption(
+                        title: 'Light',
+                        subtitle: 'Clean and bright',
+                        icon: Icons.light_mode_outlined,
+                        selected: settings.theme == 'light',
+                        onTap: () => _setTheme('light'),
+                      ),
+                      _ThemeOption(
+                        title: 'Dark',
+                        subtitle: 'Comfortable in low light',
+                        icon: Icons.dark_mode_outlined,
+                        selected: settings.theme == 'dark',
+                        onTap: () => _setTheme('dark'),
+                      ),
+                      _ThemeOption(
+                        title: 'Cosmo',
+                        subtitle: 'The ConvoLens custom theme',
+                        icon: Icons.auto_awesome_outlined,
+                        selected: settings.theme == 'cosmo',
+                        onTap: () => _setTheme('cosmo'),
+                      ),
+                      const SizedBox(height: 40),
+                    ]),
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
@@ -81,7 +107,7 @@ class ThemeScreen extends StatelessWidget {
   }
 
   Future<void> _setTheme(String theme) {
-    return db.updateSetting(SettingsCompanion(theme: Value(theme)));
+    return widget.db.updateSetting(SettingsCompanion(theme: Value(theme)));
   }
 }
 

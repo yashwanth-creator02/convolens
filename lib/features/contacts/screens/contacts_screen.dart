@@ -1,7 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/contact_summary.dart';
@@ -14,8 +15,13 @@ import 'contact_detail_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
   final AppDatabase db;
+  final GlassLargeTitleController titleController;
 
-  const ContactsScreen({super.key, required this.db});
+  const ContactsScreen({
+    super.key,
+    required this.db,
+    required this.titleController,
+  });
 
   @override
   State<ContactsScreen> createState() => ContactsScreenState();
@@ -25,19 +31,19 @@ class ContactsScreenState extends State<ContactsScreen>
     with WidgetsBindingObserver {
   late final ContactsRepository _repository;
 
-  final ItemScrollController _itemScrollController = ItemScrollController();
-
   bool _permissionGranted = false;
   bool _loadingContacts = true;
 
   List<Contact> _deviceContacts = [];
+  final Map<String, GlobalKey> _letterKeys = {};
+
+  String _searchQuery = '';
 
   Future<void> refreshDeviceContacts() => _loadDeviceContacts();
 
   @override
   void initState() {
     super.initState();
-
     WidgetsBinding.instance.addObserver(this);
 
     _repository = ContactsRepository(widget.db);
@@ -110,12 +116,27 @@ class ContactsScreenState extends State<ContactsScreen>
     }
   }
 
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value.trim().toLowerCase();
+    });
+  }
+
+  bool _matchesSearch(ContactSummary contact) {
+    if (_searchQuery.isEmpty) {
+      return true;
+    }
+
+    return contact.displayName.toLowerCase().contains(_searchQuery) ||
+        contact.displayNumber.toLowerCase().contains(_searchQuery) ||
+        contact.normalizedNumber.toLowerCase().contains(_searchQuery);
+  }
+
   void _openContact(ContactSummary contact) {
     if (contact.displayNumber.isEmpty) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+    Navigator.of(context).push(
+      CupertinoPageRoute(
         builder: (context) => ContactDetailScreen(
           normalizedNumber: contact.normalizedNumber,
           displayName: contact.displayName,
@@ -127,13 +148,13 @@ class ContactsScreenState extends State<ContactsScreen>
     );
   }
 
-  void _scrollToLetter(String letter, List<Object> items) {
-    final index = items.indexOf(letter);
+  void _scrollToLetter(String letter) {
+    final key = _letterKeys[letter];
 
-    if (index != -1 && _itemScrollController.isAttached) {
-      _itemScrollController.scrollTo(
-        index: index,
-        duration: const Duration(milliseconds: 250),
+    if (key != null && key.currentContext != null) {
+      Scrollable.ensureVisible(
+        key.currentContext!,
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     }
@@ -149,14 +170,21 @@ class ContactsScreenState extends State<ContactsScreen>
       return _buildPermissionView();
     }
 
-    return _buildContactsList();
+    return Material(
+      type: MaterialType.transparency,
+      child: _buildContactsList(),
+    );
   }
 
   Widget _buildContactsList() {
     return StreamBuilder<List<ContactSummary>>(
       stream: _repository.watchArchivedContacts(_deviceContacts),
       builder: (context, archivedSnapshot) {
-        final archivedCount = archivedSnapshot.data?.length ?? 0;
+        final archivedContacts = archivedSnapshot.data ?? [];
+
+        final filteredArchivedContacts = archivedContacts
+            .where(_matchesSearch)
+            .toList();
 
         return StreamBuilder<Set<String>>(
           stream: widget.db.watchFavoriteNumbers(),
@@ -175,10 +203,12 @@ class ContactsScreenState extends State<ContactsScreen>
                   return _buildErrorView(snapshot.error);
                 }
 
-                final contacts = snapshot.data ?? [];
+                final allContacts = snapshot.data ?? [];
 
-                if (contacts.isEmpty) {
-                  return const Center(child: Text('No contacts found.'));
+                final contacts = allContacts.where(_matchesSearch).toList();
+
+                if (contacts.isEmpty && filteredArchivedContacts.isEmpty) {
+                  return _buildEmptySearchView();
                 }
 
                 final favorites =
@@ -220,55 +250,85 @@ class ContactsScreenState extends State<ContactsScreen>
                 }
 
                 for (final letter in orderedLetters) {
+                  _letterKeys.putIfAbsent(letter, () => GlobalKey());
+
                   items.add(letter);
                   items.addAll(grouped[letter]!);
                 }
 
-                if (archivedCount > 0) {
-                  items.add(_ArchivedSectionMarker(archivedCount));
+                if (filteredArchivedContacts.isNotEmpty) {
+                  items.add(
+                    _ArchivedSectionMarker(filteredArchivedContacts.length),
+                  );
                 }
 
                 return Stack(
                   children: [
-                    ScrollablePositionedList.builder(
-                      itemScrollController: _itemScrollController,
-                      itemCount: items.length,
-                      itemBuilder: (context, index) {
-                        final item = items[index];
+                    CustomScrollView(
+                      controller: widget.titleController.scrollController,
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height:
+                                MediaQuery.of(context).padding.top +
+                                kToolbarHeight,
+                          ),
+                        ),
 
-                        if (item is _ArchivedSectionMarker) {
-                          return _buildArchivedTile(context, item.count);
-                        }
+                        GlassLargeTitle(
+                          text: 'Contacts',
+                          controller: widget.titleController,
+                          searchBar: GlassSearchBar(
+                            placeholder: 'Search Contacts',
+                            useOwnLayer: true,
+                            onChanged: _onSearchChanged,
+                          ),
+                        ),
 
-                        if (item is _FavoritesSectionMarker) {
-                          return _buildFavoritesHeader(context);
-                        }
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final item = items[index];
 
-                        if (item is String) {
-                          return _buildLetterHeader(context, item);
-                        }
+                            if (item is _ArchivedSectionMarker) {
+                              return _buildArchivedTile(context, item.count);
+                            }
 
-                        final contact = item as ContactSummary;
+                            if (item is _FavoritesSectionMarker) {
+                              return _buildFavoritesHeader(context);
+                            }
 
-                        return ContactCard(
-                          contact: contact,
-                          onTap: contact.displayNumber.isEmpty
-                              ? null
-                              : () => _openContact(contact),
-                        );
-                      },
+                            if (item is String) {
+                              return _buildLetterHeader(context, item);
+                            }
+
+                            final contact = item as ContactSummary;
+
+                            return ContactCard(
+                              contact: contact,
+                              onTap: contact.displayNumber.isEmpty
+                                  ? null
+                                  : () => _openContact(contact),
+                            );
+                          }, childCount: items.length),
+                        ),
+
+                        const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                      ],
                     ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: SideBarAlphabetIndex(
-                        letters: orderedLetters,
-                        onLetterSelected: (letter) {
-                          _scrollToLetter(letter, items);
-                        },
+
+                    if (_searchQuery.isEmpty)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: SideBarAlphabetIndex(
+                          letters: orderedLetters,
+                          onLetterSelected: _scrollToLetter,
+                        ),
                       ),
-                    ),
                   ],
                 );
               },
@@ -285,9 +345,8 @@ class ContactsScreenState extends State<ContactsScreen>
       title: const Text('Archived'),
       trailing: Text('$count', style: const TextStyle(color: Colors.grey)),
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
+        Navigator.of(context).push(
+          CupertinoPageRoute(
             builder: (context) => ArchivedContactsScreen(
               db: widget.db,
               deviceContacts: _deviceContacts,
@@ -315,6 +374,22 @@ class ContactsScreenState extends State<ContactsScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySearchView() {
+    if (_searchQuery.isEmpty) {
+      return const Center(child: Text('No contacts found.'));
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          'No contacts found for "$_searchQuery".',
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
@@ -357,6 +432,7 @@ class ContactsScreenState extends State<ContactsScreen>
 
   Widget _buildLetterHeader(BuildContext context, String letter) {
     return Container(
+      key: _letterKeys[letter],
       width: double.infinity,
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../models/search_filters.dart';
@@ -17,6 +18,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
+  final _titleController = GlassLargeTitleController();
   SearchFilters _filters = const SearchFilters();
   Timer? _debounce;
 
@@ -39,6 +41,7 @@ class _SearchScreenState extends State<SearchScreen> {
     _contactController.dispose();
     _noteController.dispose();
     _tagController.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -53,74 +56,89 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Search')),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _contactController,
-                  decoration: const InputDecoration(
-                    labelText: 'Contact name or number',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (v) =>
-                      _onFieldChanged((f) => f.copyWith(contactQuery: v)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _noteController,
-                  decoration: const InputDecoration(
-                    labelText: 'Search notes',
-                    prefixIcon: Icon(Icons.notes),
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (v) =>
-                      _onFieldChanged((f) => f.copyWith(noteQuery: v)),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _tagController,
-                  decoration: const InputDecoration(
-                    labelText: 'Search tags',
-                    prefixIcon: Icon(Icons.label_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (v) =>
-                      _onFieldChanged((f) => f.copyWith(tagQuery: v)),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(
+        title: const Text('Search'),
+        largeTitleController: _titleController,
+      ),
+      body: Material(
+        type: MaterialType.transparency,
+        child: CustomScrollView(
+          controller: _titleController.scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).padding.top + kToolbarHeight,
+              ),
+            ),
+            GlassLargeTitle(text: 'Search', controller: _titleController),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
                   children: [
-                    FilterChip(
-                      label: const Text('Has Attachment'),
-                      selected: _filters.hasAttachment,
-                      onSelected: (v) => setState(() {
-                        _filters = _filters.copyWith(hasAttachment: v);
-                      }),
+                    TextField(
+                      controller: _contactController,
+                      decoration: const InputDecoration(
+                        labelText: 'Contact name or number',
+                        prefixIcon: Icon(Icons.person_outline),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) =>
+                          _onFieldChanged((f) => f.copyWith(contactQuery: v)),
                     ),
-                    FilterChip(
-                      label: const Text('Has Reminder'),
-                      selected: _filters.hasReminder,
-                      onSelected: (v) => setState(() {
-                        _filters = _filters.copyWith(hasReminder: v);
-                      }),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _noteController,
+                      decoration: const InputDecoration(
+                        labelText: 'Search notes',
+                        prefixIcon: Icon(Icons.notes),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) =>
+                          _onFieldChanged((f) => f.copyWith(noteQuery: v)),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _tagController,
+                      decoration: const InputDecoration(
+                        labelText: 'Search tags',
+                        prefixIcon: Icon(Icons.label_outline),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (v) =>
+                          _onFieldChanged((f) => f.copyWith(tagQuery: v)),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        FilterChip(
+                          label: const Text('Has Attachment'),
+                          selected: _filters.hasAttachment,
+                          onSelected: (v) => setState(() {
+                            _filters = _filters.copyWith(hasAttachment: v);
+                          }),
+                        ),
+                        FilterChip(
+                          label: const Text('Has Reminder'),
+                          selected: _filters.hasReminder,
+                          onSelected: (v) => setState(() {
+                            _filters = _filters.copyWith(hasReminder: v);
+                          }),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: _filters.isEmpty
-                ? const Center(
-                    child: Text('Start typing or pick a filter to search.'),
+            const SliverToBoxAdapter(child: Divider(height: 1)),
+            _filters.isEmpty
+                ? const SliverFillRemaining(
+                    child: Center(
+                      child: Text('Start typing or pick a filter to search.'),
+                    ),
                   )
                 : StreamBuilder<List<Call>>(
                     stream: widget.db.searchCalls(
@@ -132,21 +150,28 @@ class _SearchScreenState extends State<SearchScreen> {
                     ),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
+                        return const SliverFillRemaining(
+                          child: Center(child: CircularProgressIndicator()),
+                        );
                       }
                       final results = snapshot.data!;
                       if (results.isEmpty) {
-                        return const Center(child: Text('No matching calls.'));
+                        return const SliverFillRemaining(
+                          child: Center(child: Text('No matching calls.')),
+                        );
                       }
-                      return ListView.builder(
-                        itemCount: results.length,
-                        itemBuilder: (context, index) =>
-                            CallCard(call: results[index], db: widget.db),
+                      return SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) =>
+                              CallCard(call: results[index], db: widget.db),
+                          childCount: results.length,
+                        ),
                       );
                     },
                   ),
-          ),
-        ],
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          ],
+        ),
       ),
     );
   }

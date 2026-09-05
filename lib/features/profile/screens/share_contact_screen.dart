@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../core/database/app_database.dart';
@@ -26,12 +28,22 @@ class ShareContactScreen extends StatefulWidget {
 }
 
 class _ShareContactScreenState extends State<ShareContactScreen> {
+  final _titleController = GlassLargeTitleController();
   final Set<String> _customSelectedKeys = {};
 
   @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(_titleFor(widget.type))),
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(
+        title: Text(_titleFor(widget.type)),
+        largeTitleController: _titleController,
+      ),
       body: StreamBuilder<Map<String, ProfileFieldEntry>>(
         stream: widget.db.watchProfileFields(),
         builder: (context, snapshot) {
@@ -45,7 +57,10 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
           }).toList();
 
           if (widget.type == ShareQrType.custom) {
-            return _buildCustomPicker(context, eligibleDefs, fields);
+            return Material(
+              type: MaterialType.transparency,
+              child: _buildCustomPicker(context, eligibleDefs, fields),
+            );
           }
 
           final includedDefs = eligibleDefs.where((def) {
@@ -56,7 +71,27 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
             return _workSections.contains(def.section);
           }).toList();
 
-          return _buildQrView(context, includedDefs, fields);
+          return Material(
+            type: MaterialType.transparency,
+            child: CustomScrollView(
+              controller: _titleController.scrollController,
+              slivers: [
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                  ),
+                ),
+                GlassLargeTitle(
+                  text: _titleFor(widget.type),
+                  controller: _titleController,
+                ),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _buildQrView(context, includedDefs, fields),
+                ),
+              ],
+            ),
+          );
         },
       ),
     );
@@ -92,11 +127,21 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
       );
     }
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            children: eligibleDefs.map((def) {
+    return CustomScrollView(
+      controller: _titleController.scrollController,
+      slivers: [
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: MediaQuery.of(context).padding.top + kToolbarHeight,
+          ),
+        ),
+        GlassLargeTitle(
+          text: _titleFor(widget.type),
+          controller: _titleController,
+        ),
+        SliverList(
+          delegate: SliverChildListDelegate(
+            eligibleDefs.map((def) {
               return CheckboxListTile(
                 title: Text(def.label),
                 subtitle: Text(fields[def.key]!.value!),
@@ -114,28 +159,31 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
             }).toList(),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _customSelectedKeys.isEmpty
-                  ? null
-                  : () {
-                      final selectedDefs = eligibleDefs
-                          .where((def) => _customSelectedKeys.contains(def.key))
-                          .toList();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => Scaffold(
-                            appBar: AppBar(title: const Text('Custom QR')),
-                            body: _buildQrView(context, selectedDefs, fields),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _customSelectedKeys.isEmpty
+                    ? null
+                    : () {
+                        final selectedDefs = eligibleDefs
+                            .where(
+                              (def) => _customSelectedKeys.contains(def.key),
+                            )
+                            .toList();
+                        Navigator.of(context).push(
+                          CupertinoPageRoute(
+                            builder: (context) => _CustomQrResultScreen(
+                              selectedDefs: selectedDefs,
+                              fields: fields,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-              child: const Text('Generate QR'),
+                        );
+                      },
+                child: const Text('Generate QR'),
+              ),
             ),
           ),
         ),
@@ -178,6 +226,82 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
               'Including: ${includedDefs.map((d) => d.label).join(', ')}',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CustomQrResultScreen extends StatefulWidget {
+  final List<ProfileFieldDef> selectedDefs;
+  final Map<String, ProfileFieldEntry> fields;
+
+  const _CustomQrResultScreen({
+    required this.selectedDefs,
+    required this.fields,
+  });
+
+  @override
+  State<_CustomQrResultScreen> createState() => _CustomQrResultScreenState();
+}
+
+class _CustomQrResultScreenState extends State<_CustomQrResultScreen> {
+  final _titleController = GlassLargeTitleController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final values = {
+      for (final def in widget.selectedDefs)
+        def.key: widget.fields[def.key]?.value ?? '',
+    };
+    final vcard = buildVCard(values);
+
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(
+        title: const Text('Custom QR'),
+        largeTitleController: _titleController,
+      ),
+      body: Material(
+        type: MaterialType.transparency,
+        child: CustomScrollView(
+          controller: _titleController.scrollController,
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).padding.top + kToolbarHeight,
+              ),
+            ),
+            GlassLargeTitle(text: 'Custom QR', controller: _titleController),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      QrImageView(data: vcard, size: 240),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Including: ${widget.selectedDefs.map((d) => d.label).join(', ')}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ],
         ),

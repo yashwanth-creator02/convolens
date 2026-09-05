@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
@@ -23,8 +25,13 @@ import 'yearly_recap_screen.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   final AppDatabase db;
+  final GlassLargeTitleController titleController;
 
-  const AnalyticsScreen({super.key, required this.db});
+  const AnalyticsScreen({
+    super.key,
+    required this.db,
+    required this.titleController,
+  });
 
   @override
   State<AnalyticsScreen> createState() => _AnalyticsScreenState();
@@ -79,9 +86,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   void _openContact(ContactSummary contact) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+    Navigator.of(context).push(
+      CupertinoPageRoute(
         builder: (context) => ContactDetailScreen(
           normalizedNumber: contact.normalizedNumber,
           displayName: contact.displayName,
@@ -261,9 +267,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   void _openComparison(ComparisonConfig config) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+    Navigator.of(context).push(
+      CupertinoPageRoute(
         builder: (context) => ComparisonScreen(
           db: widget.db,
           deviceContacts: _deviceContacts,
@@ -348,442 +353,493 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
         final summary = snapshot.data!;
 
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: _buildFilterBar(context),
-            ),
-            AppTabRow(
-              tabs: _tabs,
-              scrollable: true,
-              selectedIndex: _selectedTab,
-              onTabSelected: (index) {
-                setState(() {
-                  _selectedTab = index;
-                });
-              },
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: IndexedStack(
-                index: _selectedTab,
-                children: [
-                  _buildOverviewTab(summary),
-                  _buildActivityTab(summary),
-                  _buildPeopleTab(summary),
-                  _buildRecordsTab(summary),
-                ],
+        return Material(
+          type: MaterialType.transparency,
+          child: CustomScrollView(
+            controller: widget.titleController.scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                ),
               ),
-            ),
-          ],
+              GlassLargeTitle(
+                text: 'Analytics',
+                controller: widget.titleController,
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: _buildFilterBar(context),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: AppTabRow(
+                  tabs: _tabs,
+                  scrollable: true,
+                  selectedIndex: _selectedTab,
+                  onTabSelected: (index) {
+                    setState(() {
+                      _selectedTab = index;
+                    });
+                  },
+                ),
+              ),
+              const SliverToBoxAdapter(child: Divider(height: 1)),
+              ..._buildTabSlivers(summary),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildOverviewTab(AnalyticsSummary summary) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          children: [
-            _statCard('Calls', '${summary.totalCalls}'),
-            const SizedBox(width: 12),
-            _statCard('Contacts', '${summary.totalContacts}'),
-            const SizedBox(width: 12),
-            _statCard(
-              'Talk Time',
-              '${(summary.totalTalkSeconds / 60).round()}m',
+  List<Widget> _buildTabSlivers(AnalyticsSummary summary) {
+    switch (_selectedTab) {
+      case 0:
+        return _buildOverviewSlivers(summary);
+      case 1:
+        return _buildActivitySlivers(summary);
+      case 2:
+        return _buildPeopleSlivers(summary);
+      case 3:
+        return _buildRecordsSlivers(summary);
+      default:
+        return [];
+    }
+  }
+
+  List<Widget> _buildOverviewSlivers(AnalyticsSummary summary) {
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.all(16),
+        sliver: SliverList(
+          delegate: SliverChildListDelegate([
+            Row(
+              children: [
+                _statCard('Calls', '${summary.totalCalls}'),
+                const SizedBox(width: 12),
+                _statCard('Contacts', '${summary.totalContacts}'),
+                const SizedBox(width: 12),
+                _statCard(
+                  'Talk Time',
+                  '${(summary.totalTalkSeconds / 60).round()}m',
+                ),
+              ],
             ),
-          ],
-        ),
 
-        const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-        Row(
-          children: [
-            _statCard('🔥 Streak', '${summary.currentStreak}d'),
-            const SizedBox(width: 12),
-            _statCard('Best Streak', '${summary.longestStreak}d'),
-            const SizedBox(width: 12),
-            _statCard(
-              'Longest Call',
-              '${(summary.longestCallSeconds / 60).round()}m',
+            Row(
+              children: [
+                _statCard('🔥 Streak', '${summary.currentStreak}d'),
+                const SizedBox(width: 12),
+                _statCard('Best Streak', '${summary.longestStreak}d'),
+                const SizedBox(width: 12),
+                _statCard(
+                  'Longest Call',
+                  '${(summary.longestCallSeconds / 60).round()}m',
+                ),
+              ],
             ),
-          ],
+
+            const SizedBox(height: 8),
+
+            if (summary.busiestDayDate != null)
+              Text(
+                'Busiest day: ${summary.busiestDayDate} '
+                '(${summary.busiestDayCount} calls)',
+                style: const TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+
+            Text(
+              'Missed call rate: '
+              '${(summary.missedCallRate * 100).round()}%',
+              style: const TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+
+            const SizedBox(height: 24),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Activity',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      setState(() => _useCalendarGrid = !_useCalendarGrid),
+                  child: Text(
+                    _useCalendarGrid ? 'Heatmap View' : 'Calendar View',
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
+
+            _useCalendarGrid
+                ? CalendarGridHeatmap(
+                    countsByDate: summary.heatmapData,
+                    month: DateTime.now().month,
+                    year: DateTime.now().year,
+                  )
+                : ContributionHeatmap(
+                    countsByDate: summary.heatmapData,
+                    onDayTap: (day, count) =>
+                        _showDayDetail(context, day, count),
+                  ),
+
+            const SizedBox(height: 24),
+
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _showComparisonOptions(context),
+                  icon: const Icon(Icons.compare_arrows, size: 18),
+                  label: const Text('Compare'),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      CupertinoPageRoute(
+                        builder: (context) => YearlyRecapScreen(
+                          db: widget.db,
+                          deviceContacts: _deviceContacts,
+                          year: DateTime.now().year,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.auto_awesome, size: 18),
+                  label: Text('${DateTime.now().year} Recap'),
+                ),
+              ],
+            ),
+          ]),
         ),
+      ),
+    ];
+  }
 
-        const SizedBox(height: 8),
+  List<Widget> _buildActivitySlivers(AnalyticsSummary summary) {
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.all(16),
+        sliver: SliverList(
+          delegate: SliverChildListDelegate([
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Trend',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      setState(() => _showDuration = !_showDuration),
+                  child: Text(_showDuration ? 'Show Count' : 'Show Duration'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildBarChart(
+              _showDuration
+                  ? summary.durationTrend.map((s) => (s / 60).round()).toList()
+                  : summary.callsPerDay,
+              summary.dayLabels,
+            ),
 
-        if (summary.busiestDayDate != null)
-          Text(
-            'Busiest day: ${summary.busiestDayDate} '
-            '(${summary.busiestDayCount} calls)',
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-
-        Text(
-          'Missed call rate: '
-          '${(summary.missedCallRate * 100).round()}%',
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
-        ),
-
-        const SizedBox(height: 24),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
+            const SizedBox(height: 24),
             const Text(
-              'Activity',
+              'Talk Ratio',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            TextButton(
-              onPressed: () =>
-                  setState(() => _useCalendarGrid = !_useCalendarGrid),
-              child: Text(_useCalendarGrid ? 'Heatmap View' : 'Calendar View'),
+            const SizedBox(height: 8),
+            TalkRatioBar(callTypeCounts: summary.callTypeCounts),
+
+            const SizedBox(height: 24),
+            const Text(
+              'Answered / Missed / Declined',
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-          ],
+            const SizedBox(height: 8),
+            AnsweredMissedDeclinedBars(callTypeCounts: summary.callTypeCounts),
+
+            const SizedBox(height: 24),
+            const Text(
+              'Day of Week',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            WeekdayChart(weekdayCounts: summary.weekdayCounts),
+
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Busiest Hours',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      setState(() => _useClockFace = !_useClockFace),
+                  child: Text(_useClockFace ? 'Bar View' : 'Clock View'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _useClockFace
+                ? HourClockFace(hourCounts: summary.hourCounts)
+                : HourHistogram(hourCounts: summary.hourCounts),
+
+            const SizedBox(height: 24),
+            const Text(
+              'Call Length Distribution',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ..._buildDurationDistribution(summary.durationDistribution),
+
+            if (summary.anomalyDays.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'Unusual Days',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Days that stood out from your normal pattern',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              ...summary.anomalyDays.map(
+                (e) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(e.key, style: const TextStyle(fontSize: 12)),
+                      Text(
+                        '${e.value} calls',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ]),
         ),
+      ),
+    ];
+  }
 
-        const SizedBox(height: 8),
+  List<Widget> _buildPeopleSlivers(AnalyticsSummary summary) {
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.all(16),
+        sliver: SliverList(
+          delegate: SliverChildListDelegate([
+            const Text(
+              'Your Network',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Line thickness reflects how often you talk',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            RelationshipWeb(
+              contacts: summary.mostContacted,
+              onContactTap: _openContact,
+            ),
 
-        _useCalendarGrid
-            ? CalendarGridHeatmap(
-                countsByDate: summary.heatmapData,
-                month: DateTime.now().month,
-                year: DateTime.now().year,
+            const SizedBox(height: 24),
+            const Text(
+              'People Who Call You',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Contacts who initiate more often than you do',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            if (summary.theyInitiateMore.isEmpty)
+              const Text('No one yet.', style: TextStyle(color: Colors.grey))
+            else
+              ...summary.theyInitiateMore.map(
+                (c) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(c.displayName),
+                  trailing: Text('${c.incoming} calls from them'),
+                  onTap: () => _openContact(c),
+                ),
+              ),
+
+            const SizedBox(height: 24),
+            const Text(
+              'People You Call',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Contacts you initiate more often than they do',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            if (summary.youInitiateMore.isEmpty)
+              const Text('No one yet.', style: TextStyle(color: Colors.grey))
+            else
+              ...summary.youInitiateMore.map(
+                (c) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(c.displayName),
+                  trailing: Text('${c.outgoing} calls from you'),
+                  onTap: () => _openContact(c),
+                ),
+              ),
+
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Most Contacted',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      setState(() => _rankByDuration = !_rankByDuration),
+                  child: Text(_rankByDuration ? 'By Calls' : 'By Talk Time'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (summary.mostContacted.isEmpty)
+              const Text('No calls yet.', style: TextStyle(color: Colors.grey))
+            else
+              ...(_rankByDuration
+                      ? ([...summary.mostContacted]..sort(
+                          (a, b) => b.totalDuration.compareTo(a.totalDuration),
+                        ))
+                      : summary.mostContacted)
+                  .take(5)
+                  .map(
+                    (c) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(c.displayName),
+                      trailing: Text(
+                        _rankByDuration
+                            ? '${(c.totalDuration / 60).round()}m'
+                            : '${c.callCount} calls',
+                      ),
+                      onTap: () => _openContact(c),
+                    ),
+                  ),
+
+            const SizedBox(height: 24),
+            const Text(
+              'Favorites vs Everyone Else',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            _buildFavoritesComparison(summary),
+
+            const SizedBox(height: 24),
+            const Text('By Tag', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            if (summary.tagCounts.isEmpty)
+              const Text(
+                'No tagged calls yet.',
+                style: TextStyle(color: Colors.grey),
               )
-            : ContributionHeatmap(
-                countsByDate: summary.heatmapData,
-                onDayTap: (day, count) => _showDayDetail(context, day, count),
-              ),
-
-        const SizedBox(height: 24),
-
-        Row(
-          children: [
-            OutlinedButton.icon(
-              onPressed: () => _showComparisonOptions(context),
-              icon: const Icon(Icons.compare_arrows, size: 18),
-              label: const Text('Compare'),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => YearlyRecapScreen(
-                      db: widget.db,
-                      deviceContacts: _deviceContacts,
-                      year: DateTime.now().year,
-                    ),
+            else
+              ...summary.tagCounts.entries.map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [Text(entry.key), Text('${entry.value}')],
                   ),
-                );
-              },
-              icon: const Icon(Icons.auto_awesome, size: 18),
-              label: Text('${DateTime.now().year} Recap'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActivityTab(AnalyticsSummary summary) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Trend', style: TextStyle(fontWeight: FontWeight.bold)),
-            TextButton(
-              onPressed: () => setState(() => _showDuration = !_showDuration),
-              child: Text(_showDuration ? 'Show Count' : 'Show Duration'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildBarChart(
-          _showDuration
-              ? summary.durationTrend.map((s) => (s / 60).round()).toList()
-              : summary.callsPerDay,
-          summary.dayLabels,
-        ),
-
-        const SizedBox(height: 24),
-        const Text('Talk Ratio', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TalkRatioBar(callTypeCounts: summary.callTypeCounts),
-
-        const SizedBox(height: 24),
-        const Text(
-          'Answered / Missed / Declined',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        AnsweredMissedDeclinedBars(callTypeCounts: summary.callTypeCounts),
-
-        const SizedBox(height: 24),
-        const Text(
-          'Day of Week',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        WeekdayChart(weekdayCounts: summary.weekdayCounts),
-
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Busiest Hours',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextButton(
-              onPressed: () => setState(() => _useClockFace = !_useClockFace),
-              child: Text(_useClockFace ? 'Bar View' : 'Clock View'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        _useClockFace
-            ? HourClockFace(hourCounts: summary.hourCounts)
-            : HourHistogram(hourCounts: summary.hourCounts),
-
-        const SizedBox(height: 24),
-        const Text(
-          'Call Length Distribution',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        ..._buildDurationDistribution(summary.durationDistribution),
-
-        if (summary.anomalyDays.isNotEmpty) ...[
-          const SizedBox(height: 24),
-          const Text(
-            'Unusual Days',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Days that stood out from your normal pattern',
-            style: TextStyle(color: Colors.grey, fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-          ...summary.anomalyDays.map(
-            (e) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(e.key, style: const TextStyle(fontSize: 12)),
-                  Text(
-                    '${e.value} calls',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildPeopleTab(AnalyticsSummary summary) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Text(
-          'Your Network',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Line thickness reflects how often you talk',
-          style: TextStyle(color: Colors.grey, fontSize: 12),
-        ),
-        const SizedBox(height: 12),
-        RelationshipWeb(
-          contacts: summary.mostContacted,
-          onContactTap: _openContact,
-        ),
-
-        const SizedBox(height: 24),
-        const Text(
-          'People Who Call You',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Contacts who initiate more often than you do',
-          style: TextStyle(color: Colors.grey, fontSize: 12),
-        ),
-        const SizedBox(height: 8),
-        if (summary.theyInitiateMore.isEmpty)
-          const Text('No one yet.', style: TextStyle(color: Colors.grey))
-        else
-          ...summary.theyInitiateMore.map(
-            (c) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(c.displayName),
-              trailing: Text('${c.incoming} calls from them'),
-              onTap: () => _openContact(c),
-            ),
-          ),
-
-        const SizedBox(height: 24),
-        const Text(
-          'People You Call',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Contacts you initiate more often than they do',
-          style: TextStyle(color: Colors.grey, fontSize: 12),
-        ),
-        const SizedBox(height: 8),
-        if (summary.youInitiateMore.isEmpty)
-          const Text('No one yet.', style: TextStyle(color: Colors.grey))
-        else
-          ...summary.youInitiateMore.map(
-            (c) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(c.displayName),
-              trailing: Text('${c.outgoing} calls from you'),
-              onTap: () => _openContact(c),
-            ),
-          ),
-
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Most Contacted',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextButton(
-              onPressed: () =>
-                  setState(() => _rankByDuration = !_rankByDuration),
-              child: Text(_rankByDuration ? 'By Calls' : 'By Talk Time'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (summary.mostContacted.isEmpty)
-          const Text('No calls yet.', style: TextStyle(color: Colors.grey))
-        else
-          ...(_rankByDuration
-                  ? ([...summary.mostContacted]..sort(
-                      (a, b) => b.totalDuration.compareTo(a.totalDuration),
-                    ))
-                  : summary.mostContacted)
-              .take(5)
-              .map(
-                (c) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(c.displayName),
-                  trailing: Text(
-                    _rankByDuration
-                        ? '${(c.totalDuration / 60).round()}m'
-                        : '${c.callCount} calls',
-                  ),
-                  onTap: () => _openContact(c),
                 ),
               ),
 
-        const SizedBox(height: 24),
-        const Text(
-          'Favorites vs Everyone Else',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        _buildFavoritesComparison(summary),
-
-        const SizedBox(height: 24),
-        const Text('By Tag', style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        if (summary.tagCounts.isEmpty)
-          const Text(
-            'No tagged calls yet.',
-            style: TextStyle(color: Colors.grey),
-          )
-        else
-          ...summary.tagCounts.entries.map(
-            (entry) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [Text(entry.key), Text('${entry.value}')],
-              ),
+            const SizedBox(height: 24),
+            const Text(
+              "Haven't Talked To In A While",
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-          ),
-
-        const SizedBox(height: 24),
-        const Text(
-          "Haven't Talked To In A While",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Contacts you have saved but rarely or never call',
-          style: TextStyle(color: Colors.grey, fontSize: 12),
-        ),
-        const SizedBox(height: 8),
-        if (summary.silentContacts.isEmpty)
-          const Text(
-            "You're in touch with everyone!",
-            style: TextStyle(color: Colors.grey),
-          )
-        else
-          ...summary.silentContacts
-              .take(10)
-              .map(
-                (c) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(c.displayName),
-                  subtitle: Text(
-                    c.lastCallAt == null
-                        ? 'Never called'
-                        : 'Last called ${_daysAgo(c.lastCallAt!)} days ago',
+            const SizedBox(height: 4),
+            const Text(
+              'Contacts you have saved but rarely or never call',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            if (summary.silentContacts.isEmpty)
+              const Text(
+                "You're in touch with everyone!",
+                style: TextStyle(color: Colors.grey),
+              )
+            else
+              ...summary.silentContacts
+                  .take(10)
+                  .map(
+                    (c) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(c.displayName),
+                      subtitle: Text(
+                        c.lastCallAt == null
+                            ? 'Never called'
+                            : 'Last called ${_daysAgo(c.lastCallAt!)} days ago',
+                      ),
+                      onTap: () => _openContact(c),
+                    ),
                   ),
-                  onTap: () => _openContact(c),
-                ),
-              ),
-      ],
-    );
+          ]),
+        ),
+      ),
+    ];
   }
 
-  Widget _buildRecordsTab(AnalyticsSummary summary) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (summary.longestCallWith != null)
-          _buildLongestCallCard(summary.longestCallWith!),
-        const SizedBox(height: 24),
-        const Text(
-          'New Relationships',
-          style: TextStyle(fontWeight: FontWeight.bold),
+  List<Widget> _buildRecordsSlivers(AnalyticsSummary summary) {
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.all(16),
+        sliver: SliverList(
+          delegate: SliverChildListDelegate([
+            if (summary.longestCallWith != null)
+              _buildLongestCallCard(summary.longestCallWith!),
+            const SizedBox(height: 24),
+            const Text(
+              'New Relationships',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const Text(
+              'Genuinely new contacts appearing in your call log by month',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            _buildBarChart(
+              summary.newContactsByMonth.values.toList(),
+              summary.newContactsByMonth.keys
+                  .map((k) => k.split('-')[1])
+                  .toList(),
+              color: Theme.of(context).colorScheme.tertiary,
+            ),
+          ]),
         ),
-        const Text(
-          'Genuinely new contacts appearing in your call log by month',
-          style: TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-        const SizedBox(height: 8),
-        _buildBarChart(
-          summary.newContactsByMonth.values.toList(),
-          summary.newContactsByMonth.keys.map((k) => k.split('-')[1]).toList(),
-          color: Theme.of(context).colorScheme.tertiary,
-        ),
-      ],
-    );
+      ),
+    ];
   }
 
   Widget _buildFavoritesComparison(AnalyticsSummary summary) {

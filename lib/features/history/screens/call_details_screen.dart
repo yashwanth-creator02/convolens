@@ -1,15 +1,19 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:open_filex/open_filex.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../core/utils/normalize_number.dart';
 import '../../../shared/widgets/add_tag_dialog.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/text_input_dialog.dart';
+import '../../contacts/screens/contact_detail_screen.dart';
 import '../repository/attachment_storage.dart';
 import '../widgets/call_details/call_attachments_section.dart';
 import '../widgets/call_details/call_developer_info.dart';
@@ -20,12 +24,17 @@ import '../widgets/call_details/call_tags_section.dart';
 import '../widgets/voice_note_player_sheet.dart';
 import '../widgets/voice_recorder_dialog.dart';
 
-class CallDetailScreen extends StatelessWidget {
+class CallDetailScreen extends StatefulWidget {
   final Call call;
   final AppDatabase db;
 
   const CallDetailScreen({super.key, required this.call, required this.db});
 
+  @override
+  State<CallDetailScreen> createState() => _CallDetailScreenState();
+}
+
+class _CallDetailScreenState extends State<CallDetailScreen> {
   Future<void> _editNote(BuildContext context, String? currentNote) async {
     final result = await showTextInputDialog(
       context: context,
@@ -38,7 +47,7 @@ class CallDetailScreen extends StatelessWidget {
     if (result == null) return;
 
     try {
-      await db.saveNote(call.id, result);
+      await widget.db.saveNote(widget.call.id, result);
 
       if (!context.mounted) return;
 
@@ -51,7 +60,7 @@ class CallDetailScreen extends StatelessWidget {
   }
 
   Future<void> _addTag(BuildContext context) async {
-    final existingTags = await db.getAllTags();
+    final existingTags = await widget.db.getAllTags();
 
     if (!context.mounted) return;
 
@@ -64,7 +73,7 @@ class CallDetailScreen extends StatelessWidget {
 
     if (result == null || result.isEmpty) return;
 
-    await db.addTagToCall(call.id, result);
+    await widget.db.addTagToCall(widget.call.id, result);
   }
 
   Future<void> _setReminder(BuildContext context) async {
@@ -125,32 +134,29 @@ class CallDetailScreen extends StatelessWidget {
       }
     }
 
-    final displayName = call.name?.isNotEmpty == true
-        ? call.name!
-        : (call.number ?? 'Unknown');
+    final displayName = widget.call.name?.isNotEmpty == true
+        ? widget.call.name!
+        : (widget.call.number ?? 'Unknown');
 
-    // Use the user's note if provided.
-    // Otherwise, create a sensible default title.
     final reminderTitle = label.trim().isNotEmpty
         ? label.trim()
         : 'Call reminder: $displayName';
 
     await NotificationService.scheduleReminder(
-      callId: call.id,
+      callId: widget.call.id,
       scheduledTime: reminderTime,
       title: reminderTitle,
       body: 'Follow up on your call with $displayName',
     );
 
-    await db.saveReminder(
-      call.id,
+    await widget.db.saveReminder(
+      widget.call.id,
       reminderTime,
       label.trim().isNotEmpty ? label.trim() : null,
     );
 
     if (!context.mounted) return;
 
-    // Calculate how much time is left until the reminder.
     final remaining = reminderTime.difference(DateTime.now());
 
     String remainingText;
@@ -179,9 +185,9 @@ class CallDetailScreen extends StatelessWidget {
 
   Future<void> _clearReminder(BuildContext context) async {
     try {
-      await NotificationService.cancelReminder(call.id);
+      await NotificationService.cancelReminder(widget.call.id);
 
-      await db.clearReminder(call.id);
+      await widget.db.clearReminder(widget.call.id);
 
       if (!context.mounted) return;
 
@@ -246,11 +252,11 @@ class CallDetailScreen extends StatelessWidget {
     try {
       final copiedPath = await AttachmentStorage.copyToAppStorage(
         sourcePath,
-        call.id,
+        widget.call.id,
       );
 
-      await db.addAttachment(
-        callId: call.id,
+      await widget.db.addAttachment(
+        callId: widget.call.id,
         filePath: copiedPath,
         originalFileName: pickedFile.name,
         fileType: fileType,
@@ -267,7 +273,9 @@ class CallDetailScreen extends StatelessWidget {
   }
 
   Future<void> _recordVoiceNote(BuildContext context) async {
-    final destinationPath = await AttachmentStorage.newVoiceNotePath(call.id);
+    final destinationPath = await AttachmentStorage.newVoiceNotePath(
+      widget.call.id,
+    );
 
     if (!context.mounted) return;
 
@@ -276,8 +284,8 @@ class CallDetailScreen extends StatelessWidget {
     if (savedPath == null || !context.mounted) return;
 
     try {
-      await db.addAttachment(
-        callId: call.id,
+      await widget.db.addAttachment(
+        callId: widget.call.id,
         filePath: savedPath,
         originalFileName: 'Voice note',
         fileType: 'voice',
@@ -310,7 +318,7 @@ class CallDetailScreen extends StatelessWidget {
     try {
       await AttachmentStorage.deleteFile(attachment.filePath);
 
-      await db.deleteAttachment(attachment.id);
+      await widget.db.deleteAttachment(attachment.id);
 
       if (!context.mounted) return;
 
@@ -324,9 +332,8 @@ class CallDetailScreen extends StatelessWidget {
 
   void _viewAttachment(BuildContext context, CallAttachment attachment) {
     if (attachment.fileType == 'image') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
+      Navigator.of(context).push(
+        CupertinoPageRoute(
           builder: (context) {
             return _ImagePreviewScreen(
               filePath: attachment.filePath,
@@ -348,87 +355,120 @@ class CallDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Call Details')),
-      body: StreamBuilder<Setting>(
-        stream: db.watchSettings(),
-        builder: (context, settingsSnapshot) {
-          final devMode = settingsSnapshot.data?.devMode ?? false;
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(
+        title: const Text('Call Details'),
+        actions: [
+          if (widget.call.number?.trim().isNotEmpty == true)
+            GlassBarItem.icon(
+              icon: const Icon(Icons.person_outline),
+              id: 'context_action',
+              label: 'View Contact',
+              onTap: () {
+                final phoneNumber = widget.call.number!.trim();
+                final displayName = widget.call.name?.trim().isNotEmpty == true
+                    ? widget.call.name!.trim()
+                    : phoneNumber;
 
-          return StreamBuilder<CallDetail?>(
-            stream: db.watchDetailsForCall(call.id),
-            builder: (context, detailSnapshot) {
-              final detail = detailSnapshot.data;
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CallInfoSection(call: call, db: db),
-
-                    const Divider(height: 32),
-
-                    CallNoteSection(
-                      note: detail?.note,
-                      onAdd: () => _editNote(context, detail?.note),
-                      onEdit: () => _editNote(context, detail?.note),
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => ContactDetailScreen(
+                      normalizedNumber: normalizePhoneNumber(phoneNumber),
+                      displayName: displayName,
+                      displayNumber: phoneNumber,
+                      db: widget.db,
                     ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+      body: Material(
+        type: MaterialType.transparency,
+        child: StreamBuilder<Setting>(
+          stream: widget.db.watchSettings(),
+          builder: (context, settingsSnapshot) {
+            final devMode = settingsSnapshot.data?.devMode ?? false;
 
-                    const Divider(height: 32),
+            return StreamBuilder<CallDetail?>(
+              stream: widget.db.watchDetailsForCall(widget.call.id),
+              builder: (context, detailSnapshot) {
+                final detail = detailSnapshot.data;
 
-                    StreamBuilder<List<Tag>>(
-                      stream: db.watchTagsForCall(call.id),
-                      builder: (context, tagSnapshot) {
-                        return CallTagsSection(
-                          tags: tagSnapshot.data ?? const [],
-                          onAdd: () => _addTag(context),
-                          onRemove: (tag) {
-                            db.removeTagFromCall(call.id, tag.id);
-                          },
-                        );
-                      },
+                return CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.all(16),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          CallInfoSection(call: widget.call, db: widget.db),
+                          const Divider(height: 32),
+                          CallNoteSection(
+                            note: detail?.note,
+                            onAdd: () => _editNote(context, detail?.note),
+                            onEdit: () => _editNote(context, detail?.note),
+                          ),
+                          const Divider(height: 32),
+                          StreamBuilder<List<Tag>>(
+                            stream: widget.db.watchTagsForCall(widget.call.id),
+                            builder: (context, tagSnapshot) {
+                              return CallTagsSection(
+                                tags: tagSnapshot.data ?? const [],
+                                onAdd: () => _addTag(context),
+                                onRemove: (tag) {
+                                  widget.db.removeTagFromCall(
+                                    widget.call.id,
+                                    tag.id,
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                          const Divider(height: 32),
+                          StreamBuilder<CallDetail?>(
+                            stream: widget.db.watchReminderForCall(
+                              widget.call.id,
+                            ),
+                            builder: (context, reminderSnapshot) {
+                              return CallReminderSection(
+                                reminder: reminderSnapshot.data,
+                                onSet: () => _setReminder(context),
+                                onClear: () => _clearReminder(context),
+                              );
+                            },
+                          ),
+                          const Divider(height: 32),
+                          StreamBuilder<List<CallAttachment>>(
+                            stream: widget.db.watchAttachmentsForCall(
+                              widget.call.id,
+                            ),
+                            builder: (context, attachmentSnapshot) {
+                              return CallAttachmentsSection(
+                                attachments:
+                                    attachmentSnapshot.data ?? const [],
+                                onAdd: () => _chooseAttachmentType(context),
+                                onView: (attachment) =>
+                                    _viewAttachment(context, attachment),
+                                onDelete: (attachment) =>
+                                    _deleteAttachment(context, attachment),
+                              );
+                            },
+                          ),
+                          if (devMode) ...[
+                            const Divider(height: 32),
+                            CallDeveloperInfo(call: widget.call),
+                          ],
+                          const SizedBox(height: 40),
+                        ]),
+                      ),
                     ),
-
-                    const Divider(height: 32),
-
-                    StreamBuilder<CallDetail?>(
-                      stream: db.watchReminderForCall(call.id),
-                      builder: (context, reminderSnapshot) {
-                        return CallReminderSection(
-                          reminder: reminderSnapshot.data,
-                          onSet: () => _setReminder(context),
-                          onClear: () => _clearReminder(context),
-                        );
-                      },
-                    ),
-
-                    const Divider(height: 32),
-
-                    StreamBuilder<List<CallAttachment>>(
-                      stream: db.watchAttachmentsForCall(call.id),
-                      builder: (context, attachmentSnapshot) {
-                        return CallAttachmentsSection(
-                          attachments: attachmentSnapshot.data ?? const [],
-                          onAdd: () => _chooseAttachmentType(context),
-                          onView: (attachment) =>
-                              _viewAttachment(context, attachment),
-                          onDelete: (attachment) =>
-                              _deleteAttachment(context, attachment),
-                        );
-                      },
-                    ),
-
-                    if (devMode) ...[
-                      const Divider(height: 32),
-                      CallDeveloperInfo(call: call),
-                    ],
                   ],
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -442,8 +482,8 @@ class _ImagePreviewScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(title: Text(title)),
       backgroundColor: Colors.black,
       body: Center(child: InteractiveViewer(child: Image.file(File(filePath)))),
     );

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
@@ -12,8 +13,13 @@ import '../widgets/history_permission_view.dart';
 
 class HistoryScreen extends StatefulWidget {
   final AppDatabase db;
+  final GlassLargeTitleController titleController;
 
-  const HistoryScreen({super.key, required this.db});
+  const HistoryScreen({
+    super.key,
+    required this.db,
+    required this.titleController,
+  });
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -186,7 +192,25 @@ class _HistoryScreenState extends State<HistoryScreen>
 
         final calls = snapshot.data ?? [];
 
-        return HistoryCallList(calls: calls, db: widget.db);
+        return Material(
+          type: MaterialType.transparency,
+          child: CustomScrollView(
+            controller: widget.titleController.scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                ),
+              ),
+              GlassLargeTitle(
+                text: 'History',
+                controller: widget.titleController,
+              ),
+              SliverHistoryCallList(calls: calls, db: widget.db),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
+        );
       },
     );
   }
