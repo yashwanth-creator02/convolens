@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/database/app_database.dart';
 import '../models/analytics_filters.dart';
 import '../repository/analytics_repository.dart';
@@ -52,52 +53,56 @@ class _AnalyticsFilterSheetState extends State<AnalyticsFilterSheet> {
     final selected = await showModalBottomSheet<ContactSummary?>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final query = searchController.text.toLowerCase();
-          final filtered = allSummaries.mostContacted
-              .where((c) => c.displayName.toLowerCase().contains(query))
-              .toList();
+      builder: (context) =>
+          StatefulBuilder(
+            builder: (context, setSheetState) {
+              final query = searchController.text.toLowerCase();
+              final filtered = allSummaries.mostContacted
+                  .where((c) => c.displayName.toLowerCase().contains(query))
+                  .toList();
 
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-              left: 16,
-              right: 16,
-              top: 16,
-            ),
-            child: SizedBox(
-              height: 400,
-              child: Column(
-                children: [
-                  TextField(
-                    controller: searchController,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Search contact',
-                    ),
-                    onChanged: (_) => setSheetState(() {}),
+              return Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery
+                      .of(context)
+                      .viewInsets
+                      .bottom,
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                ),
+                child: SizedBox(
+                  height: 400,
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: searchController,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Search contact',
+                        ),
+                        onChanged: (_) => setSheetState(() {}),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final c = filtered[index];
+                            return ListTile(
+                              title: Text(c.displayName),
+                              subtitle: Text('${c.callCount} calls'),
+                              onTap: () => Navigator.pop(context, c),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final c = filtered[index];
-                        return ListTile(
-                          title: Text(c.displayName),
-                          subtitle: Text('${c.callCount} calls'),
-                          onTap: () => Navigator.pop(context, c),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+                ),
+              );
+            },
+          ),
     );
 
     searchController.dispose();
@@ -120,21 +125,23 @@ class _AnalyticsFilterSheetState extends State<AnalyticsFilterSheet> {
 
     final selected = await showDialog<Tag?>(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Filter by tag'),
-        children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('All Tags'),
+      builder: (context) =>
+          SimpleDialog(
+            title: const Text('Filter by tag'),
+            children: [
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, null),
+                child: const Text('All Tags'),
+              ),
+              ...allTags.map(
+                    (tag) =>
+                    SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, tag),
+                      child: Text(tag.name),
+                    ),
+              ),
+            ],
           ),
-          ...allTags.map(
-            (tag) => SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, tag),
-              child: Text(tag.name),
-            ),
-          ),
-        ],
-      ),
     );
 
     setState(() {
@@ -154,13 +161,13 @@ class _AnalyticsFilterSheetState extends State<AnalyticsFilterSheet> {
       firstDate: DateTime(2015),
       lastDate: DateTime.now(),
       initialDateRange:
-          _filters.dateRange == DateRangeOption.custom &&
-              _filters.customStart != null &&
-              _filters.customEnd != null
+      _filters.dateRange == DateRangeOption.custom &&
+          _filters.customStart != null &&
+          _filters.customEnd != null
           ? DateTimeRange(
-              start: _filters.customStart!,
-              end: _filters.customEnd!,
-            )
+        start: _filters.customStart!,
+        end: _filters.customEnd!,
+      )
           : null,
     );
 
@@ -177,14 +184,12 @@ class _AnalyticsFilterSheetState extends State<AnalyticsFilterSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        top: false,
+    final isGlass = GlassModalSheetStateProvider.of(context) != null;
+
+    final sheetContent = SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -295,6 +300,24 @@ class _AnalyticsFilterSheetState extends State<AnalyticsFilterSheet> {
           ],
         ),
       ),
+    );
+
+    if (isGlass) {
+      return Material(
+        type: MaterialType.transparency,
+        child: sheetContent,
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme
+            .of(context)
+            .colorScheme
+            .surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: sheetContent,
     );
   }
 

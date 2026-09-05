@@ -38,12 +38,12 @@ class AnalyticsScreen extends StatefulWidget {
 }
 
 class AnalyticsScreenState extends State<AnalyticsScreen> {
-  late final AnalyticsRepository _repository;
+  late final AnalyticsRepository repository;
 
-  List<Contact> _deviceContacts = [];
+  List<Contact> deviceContacts = [];
   bool _loading = true;
 
-  AnalyticsFilters _filters = const AnalyticsFilters();
+  AnalyticsFilters filters = const AnalyticsFilters();
 
   int _selectedTab = 0;
 
@@ -52,19 +52,27 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   bool _useClockFace = false;
   bool _useCalendarGrid = false;
 
-  String? _selectedContactName;
-  String? _selectedTagName;
+  String? selectedContactName;
+  String? selectedTagName;
 
   @override
   void initState() {
     super.initState();
 
-    _repository = AnalyticsRepository(widget.db);
+    repository = AnalyticsRepository(widget.db);
 
     _loadContacts();
   }
 
   Future<void> openFilters() => _showFilters();
+
+  void applyFilters(AnalyticsFilters result) {
+    if (!mounted) return;
+    setState(() {
+      filters = result;
+      _updateSelectedNames();
+    });
+  }
 
   Future<void> _showFilters() async {
     final result = await showModalBottomSheet<AnalyticsFilters>(
@@ -73,56 +81,51 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) => AnalyticsFilterSheet(
         db: widget.db,
-        repository: _repository,
-        deviceContacts: _deviceContacts,
-        initialFilters: _filters,
-        initialContactName: _selectedContactName,
-        initialTagName: _selectedTagName,
+        repository: repository,
+        deviceContacts: deviceContacts,
+        initialFilters: filters,
+        initialContactName: selectedContactName,
+        initialTagName: selectedTagName,
       ),
     );
 
-    if (result != null && mounted) {
-      setState(() {
-        _filters = result;
-
-        // Update selected names for the inline bar if it's still there
-        _updateSelectedNames();
-      });
+    if (result != null) {
+      applyFilters(result);
     }
   }
 
   Future<void> _updateSelectedNames() async {
-    if (_filters.contactNormalizedNumber != null) {
-      final summary = await _repository
+    if (filters.contactNormalizedNumber != null) {
+      final summary = await repository
           .watchSummary(
-            _deviceContacts,
+            deviceContacts,
             AnalyticsFilters(
-              contactNormalizedNumber: _filters.contactNormalizedNumber,
+              contactNormalizedNumber: filters.contactNormalizedNumber,
             ),
           )
           .first;
       if (mounted) {
         setState(() {
-          _selectedContactName = summary.mostContacted.firstOrNull?.displayName;
+          selectedContactName = summary.mostContacted.firstOrNull?.displayName;
         });
       }
     } else {
       setState(() {
-        _selectedContactName = null;
+        selectedContactName = null;
       });
     }
 
-    if (_filters.tagId != null) {
+    if (filters.tagId != null) {
       final tags = await widget.db.getAllTags();
-      final tag = tags.where((t) => t.id == _filters.tagId).firstOrNull;
+      final tag = tags.where((t) => t.id == filters.tagId).firstOrNull;
       if (mounted) {
         setState(() {
-          _selectedTagName = tag?.name;
+          selectedTagName = tag?.name;
         });
       }
     } else {
       setState(() {
-        _selectedTagName = null;
+        selectedTagName = null;
       });
     }
   }
@@ -131,7 +134,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     final status = await Permission.contacts.status;
 
     if (status.isGranted) {
-      _deviceContacts = await FlutterContacts.getContacts(withProperties: true);
+      deviceContacts = await FlutterContacts.getContacts(withProperties: true);
     }
 
     if (mounted) {
@@ -195,7 +198,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       CupertinoPageRoute(
         builder: (context) => ComparisonScreen(
           db: widget.db,
-          deviceContacts: _deviceContacts,
+          deviceContacts: deviceContacts,
           config: config,
         ),
       ),
@@ -203,8 +206,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Future<void> _pickTwoContactsForComparison() async {
-    final allSummaries = await _repository
-        .watchSummary(_deviceContacts, const AnalyticsFilters())
+    final allSummaries = await repository
+        .watchSummary(deviceContacts, const AnalyticsFilters())
         .first;
     final candidates = allSummaries.mostContacted;
 
@@ -269,7 +272,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     return StreamBuilder<AnalyticsSummary>(
-      stream: _repository.watchSummary(_deviceContacts, _filters),
+      stream: repository.watchSummary(deviceContacts, filters),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
@@ -433,7 +436,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                       CupertinoPageRoute(
                         builder: (context) => YearlyRecapScreen(
                           db: widget.db,
-                          deviceContacts: _deviceContacts,
+                          deviceContacts: deviceContacts,
                           year: DateTime.now().year,
                         ),
                       ),
