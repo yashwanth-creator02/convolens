@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+import '../shared/glass_action_ids.dart';
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
 import '../features/analytics/repository/insight_checker.dart';
@@ -26,8 +27,6 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   AppDatabase get _db => widget.db;
-
-  static const String _contextActionId = 'context_action';
 
   // ---------------------------------------------------------------------------
   // Keys
@@ -216,13 +215,13 @@ class _MainShellState extends State<MainShell> {
         return [
           GlassBarItem.icon(
             icon: const Icon(Icons.search),
-            id: _contextActionId,
+            id: GlassActionIds.search,
             label: 'Search',
             onTap: _openSearch,
           ),
           GlassBarItem.icon(
             icon: const Icon(Icons.settings),
-            id: 'settings',
+            id: GlassActionIds.settings,
             label: 'Settings',
             onTap: _openSettings,
           ),
@@ -234,7 +233,7 @@ class _MainShellState extends State<MainShell> {
         return [
           GlassBarItem.icon(
             icon: const Icon(Icons.settings),
-            id: 'settings',
+            id: GlassActionIds.settings,
             label: 'Settings',
             onTap: _openSettings,
           ),

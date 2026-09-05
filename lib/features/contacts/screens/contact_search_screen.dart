@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../shared/glass_action_ids.dart';
 import '../models/contact_summary.dart';
 import '../repository/contacts_repository.dart';
 import '../widgets/contact_card.dart';
@@ -21,7 +24,8 @@ class ContactSearchScreen extends StatefulWidget {
 
 class _ContactSearchScreenState extends State<ContactSearchScreen> {
   late final ContactsRepository _repository;
-  final _queryController = TextEditingController();
+  final _titleController = GlassLargeTitleController();
+  final _searchFocusNode = FocusNode();
   Timer? _debounce;
 
   String _query = '';
@@ -35,6 +39,12 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
     super.initState();
     _repository = ContactsRepository(widget.db);
     _load();
+
+    // Land already focused with the keyboard up, continuing the
+    // gesture that opened this screen.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocusNode.requestFocus();
+    });
   }
 
   Future<void> _load() async {
@@ -49,7 +59,8 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _queryController.dispose();
+    _searchFocusNode.dispose();
+    _titleController.dispose();
     super.dispose();
   }
 
@@ -68,9 +79,8 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
   }
 
   void _openContact(ContactSummary contact) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+    Navigator.of(context).push(
+      CupertinoPageRoute(
         builder: (context) => ContactDetailScreen(
           normalizedNumber: contact.normalizedNumber,
           displayName: contact.displayName,
@@ -84,54 +94,75 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _queryController,
-          autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Search contacts…',
-            border: InputBorder.none,
+    return GlassScaffold(
+      appBar: GlassAppBar.pinned(
+        title: const Text('Search'),
+        largeTitleController: _titleController,
+        actions: [
+          GlassBarItem.icon(
+            icon: const Icon(Icons.close),
+            id: GlassActionIds.contactSearch,
+            label: 'Close',
+            onTap: () => Navigator.of(context).pop(),
           ),
-          onChanged: _onQueryChanged,
-        ),
+        ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                if (_allTags.isNotEmpty)
-                  SizedBox(
-                    height: 44,
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: const Text('All'),
-                            selected: _selectedTagId == null,
-                            onSelected: (_) =>
-                                setState(() => _selectedTagId = null),
-                          ),
-                        ),
-                        ..._allTags.map(
-                          (tag) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: Text(tag.name),
-                              selected: _selectedTagId == tag.id,
-                              onSelected: (_) =>
-                                  setState(() => _selectedTagId = tag.id),
-                            ),
-                          ),
-                        ),
-                      ],
+      body: Material(
+        type: MaterialType.transparency,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : CustomScrollView(
+                controller: _titleController.scrollController,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height:
+                          MediaQuery.of(context).padding.top + kToolbarHeight,
                     ),
                   ),
-                Expanded(
-                  child: FutureBuilder<Set<String>?>(
+                  GlassLargeTitle(
+                    text: 'Search',
+                    controller: _titleController,
+                    searchBar: GlassSearchBar(
+                      placeholder: 'Search contacts',
+                      useOwnLayer: true,
+                      focusNode: _searchFocusNode,
+                      onChanged: _onQueryChanged,
+                    ),
+                  ),
+                  if (_allTags.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 44,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: const Text('All'),
+                                selected: _selectedTagId == null,
+                                onSelected: (_) =>
+                                    setState(() => _selectedTagId = null),
+                              ),
+                            ),
+                            ..._allTags.map(
+                              (tag) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(tag.name),
+                                  selected: _selectedTagId == tag.id,
+                                  onSelected: (_) =>
+                                      setState(() => _selectedTagId = tag.id),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  FutureBuilder<Set<String>?>(
                     future: _selectedTagId != null
                         ? _numbersForTag(_selectedTagId!)
                         : null,
@@ -155,26 +186,34 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
                           }).toList();
 
                           if (_query.isEmpty && _selectedTagId == null) {
-                            return const Center(
-                              child: Text(
-                                'Type to search, or pick a tag.',
-                                style: TextStyle(color: Colors.grey),
+                            return const SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Center(
+                                child: Text(
+                                  'Type to search, or pick a tag.',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
                               ),
                             );
                           }
 
                           if (filtered.isEmpty) {
-                            return const Center(
-                              child: Text(
-                                'No matching contacts.',
-                                style: TextStyle(color: Colors.grey),
+                            return const SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Center(
+                                child: Text(
+                                  'No matching contacts.',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
                               ),
                             );
                           }
 
-                          return ListView.builder(
-                            itemCount: filtered.length,
-                            itemBuilder: (context, index) {
+                          return SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
                               final contact = filtered[index];
                               return ContactCard(
                                 contact: contact,
@@ -182,15 +221,16 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
                                     ? null
                                     : () => _openContact(contact),
                               );
-                            },
+                            }, childCount: filtered.length),
                           );
                         },
                       );
                     },
                   ),
-                ),
-              ],
-            ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                ],
+              ),
+      ),
     );
   }
 }
