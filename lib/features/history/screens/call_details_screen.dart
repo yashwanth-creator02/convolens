@@ -35,14 +35,6 @@ class CallDetailScreen extends StatefulWidget {
 }
 
 class _CallDetailScreenState extends State<CallDetailScreen> {
-  final _titleController = GlassLargeTitleController();
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    super.dispose();
-  }
-
   Future<void> _editNote(BuildContext context, String? currentNote) async {
     final result = await showTextInputDialog(
       context: context,
@@ -366,7 +358,6 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     return GlassScaffold(
       appBar: GlassAppBar.pinned(
         title: const Text('Call Details'),
-        largeTitleController: _titleController,
         actions: [
           if (widget.call.number?.trim().isNotEmpty == true)
             GlassBarItem.icon(
@@ -406,18 +397,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 final detail = detailSnapshot.data;
 
                 return CustomScrollView(
-                  controller: _titleController.scrollController,
                   slivers: [
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height:
-                            MediaQuery.of(context).padding.top + kToolbarHeight,
-                      ),
-                    ),
-                    GlassLargeTitle(
-                      text: 'Call Details',
-                      controller: _titleController,
-                    ),
                     SliverPadding(
                       padding: const EdgeInsets.all(16),
                       sliver: SliverList(

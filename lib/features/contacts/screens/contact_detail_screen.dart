@@ -106,60 +106,58 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
         final detail = snapshot.data;
 
         return GlassScaffold(
-          appBar: AppBar(
+          appBar: GlassAppBar.pinned(
             title: const Text('Contact'),
             actions: [
-              IconButton(
-                tooltip: 'More',
-                icon: const Icon(Icons.more_vert),
-                onPressed: () => _showContactMenu(detail),
+              GlassBarItem.icon(
+                icon: const Icon(Icons.more_horiz),
+                id: 'contact_more',
+                label: 'More',
+                onTap: () => _showContactMenu(detail),
               ),
             ],
           ),
           body: Material(
             type: MaterialType.transparency,
-            child: Padding(
-              padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-              child: Column(
-                children: [
-                  ContactHeader(
+            child: Column(
+              children: [
+                ContactHeader(
+                  displayName: widget.displayName,
+                  displayNumber: widget.displayNumber,
+                  deviceContact: widget.deviceContact,
+                  isFavorite: detail?.isFavorite ?? false,
+                  isArchived: detail?.isArchived ?? false,
+                  onFavoritePressed: () =>
+                      _toggleFavorite(detail?.isFavorite ?? false),
+                  colorValue: detail?.colorValue,
+                ),
+                AppTabRow(
+                  tabs: _tabs,
+                  scrollable: true,
+                  selectedIndex: _selectedTab,
+                  onTabSelected: (index) {
+                    if (_selectedTab == index) {
+                      return;
+                    }
+
+                    setState(() {
+                      _selectedTab = index;
+                    });
+                  },
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: _ContactTabView(
+                    selectedIndex: _selectedTab,
+                    detail: detail,
+                    normalizedNumber: widget.normalizedNumber,
                     displayName: widget.displayName,
                     displayNumber: widget.displayNumber,
                     deviceContact: widget.deviceContact,
-                    isFavorite: detail?.isFavorite ?? false,
-                    isArchived: detail?.isArchived ?? false,
-                    onFavoritePressed: () =>
-                        _toggleFavorite(detail?.isFavorite ?? false),
-                    colorValue: detail?.colorValue,
+                    db: widget.db,
                   ),
-                  AppTabRow(
-                    tabs: _tabs,
-                    scrollable: true,
-                    selectedIndex: _selectedTab,
-                    onTabSelected: (index) {
-                      if (_selectedTab == index) {
-                        return;
-                      }
-
-                      setState(() {
-                        _selectedTab = index;
-                      });
-                    },
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: _ContactTabView(
-                      selectedIndex: _selectedTab,
-                      detail: detail,
-                      normalizedNumber: widget.normalizedNumber,
-                      displayName: widget.displayName,
-                      displayNumber: widget.displayNumber,
-                      deviceContact: widget.deviceContact,
-                      db: widget.db,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
