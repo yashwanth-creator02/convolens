@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../core/database/app_database.dart';
 import '../core/theme/app_theme.dart';
@@ -53,6 +54,11 @@ class _AppState extends State<App> {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: AppTheme.getTheme(AppThemeType.light),
+            builder: (context, child) {
+              return GlassNavigationShell(
+                child: Material(type: MaterialType.transparency, child: child!),
+              );
+            },
             home: const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             ),
@@ -70,8 +76,11 @@ class _AppState extends State<App> {
             darkTheme: AppTheme.getTheme(AppThemeType.dark),
             themeMode: ThemeMode.system,
             debugShowCheckedModeBanner: false,
-            builder: (context, child) =>
-                Material(type: MaterialType.transparency, child: child!),
+            builder: (context, child) {
+              return GlassNavigationShell(
+                child: Material(type: MaterialType.transparency, child: child!),
+              );
+            },
             home: MainShell(db: _db),
           );
         }
@@ -81,8 +90,11 @@ class _AppState extends State<App> {
           title: 'ConvoLens',
           theme: AppTheme.getTheme(themeType),
           debugShowCheckedModeBanner: false,
-          builder: (context, child) =>
-              Material(type: MaterialType.transparency, child: child!),
+          builder: (context, child) {
+            return GlassNavigationShell(
+              child: Material(type: MaterialType.transparency, child: child!),
+            );
+          },
           home: MainShell(db: _db),
         );
       },

@@ -27,6 +27,8 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   AppDatabase get _db => widget.db;
 
+  static const String _contextActionId = 'context_action';
+
   // ---------------------------------------------------------------------------
   // Keys
   // ---------------------------------------------------------------------------
@@ -214,7 +216,7 @@ class _MainShellState extends State<MainShell> {
         return [
           GlassBarItem.icon(
             icon: const Icon(Icons.search),
-            id: 'search',
+            id: _contextActionId,
             label: 'Search',
             onTap: _openSearch,
           ),

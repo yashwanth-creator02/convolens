@@ -371,7 +371,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
           if (widget.call.number?.trim().isNotEmpty == true)
             GlassBarItem.icon(
               icon: const Icon(Icons.person_outline),
-              id: 'view_contact',
+              id: 'context_action',
               label: 'View Contact',
               onTap: () {
                 final phoneNumber = widget.call.number!.trim();
