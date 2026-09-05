@@ -67,7 +67,8 @@ class _ComparisonScreenState extends State<ComparisonScreen> {
                   slivers: [
                     SliverToBoxAdapter(
                       child: SizedBox(
-                        height: MediaQuery.of(context).padding.top,
+                        height:
+                            MediaQuery.of(context).padding.top + kToolbarHeight,
                       ),
                     ),
                     GlassLargeTitle(

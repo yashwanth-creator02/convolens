@@ -77,7 +77,9 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
               controller: _titleController.scrollController,
               slivers: [
                 SliverToBoxAdapter(
-                  child: SizedBox(height: MediaQuery.of(context).padding.top),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                  ),
                 ),
                 GlassLargeTitle(
                   text: _titleFor(widget.type),
@@ -129,7 +131,9 @@ class _ShareContactScreenState extends State<ShareContactScreen> {
       controller: _titleController.scrollController,
       slivers: [
         SliverToBoxAdapter(
-          child: SizedBox(height: MediaQuery.of(context).padding.top),
+          child: SizedBox(
+            height: MediaQuery.of(context).padding.top + kToolbarHeight,
+          ),
         ),
         GlassLargeTitle(
           text: _titleFor(widget.type),
@@ -271,7 +275,9 @@ class _CustomQrResultScreenState extends State<_CustomQrResultScreen> {
           controller: _titleController.scrollController,
           slivers: [
             SliverToBoxAdapter(
-              child: SizedBox(height: MediaQuery.of(context).padding.top),
+              child: SizedBox(
+                height: MediaQuery.of(context).padding.top + kToolbarHeight,
+              ),
             ),
             GlassLargeTitle(text: 'Custom QR', controller: _titleController),
             SliverFillRemaining(

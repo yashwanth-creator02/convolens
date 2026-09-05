@@ -56,7 +56,9 @@ class _ArchivedContactsScreenState extends State<ArchivedContactsScreen> {
               controller: _titleController.scrollController,
               slivers: [
                 SliverToBoxAdapter(
-                  child: SizedBox(height: MediaQuery.of(context).padding.top),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                  ),
                 ),
                 GlassLargeTitle(
                   text: 'Archived Contacts',

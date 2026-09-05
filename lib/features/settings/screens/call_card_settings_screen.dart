@@ -56,7 +56,9 @@ class _CallCardSettingsScreenState extends State<CallCardSettingsScreen> {
               controller: _titleController.scrollController,
               slivers: [
                 SliverToBoxAdapter(
-                  child: SizedBox(height: MediaQuery.of(context).padding.top),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                  ),
                 ),
                 GlassLargeTitle(
                   text: 'Call Card Display',

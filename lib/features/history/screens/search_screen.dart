@@ -67,7 +67,9 @@ class _SearchScreenState extends State<SearchScreen> {
           controller: _titleController.scrollController,
           slivers: [
             SliverToBoxAdapter(
-              child: SizedBox(height: MediaQuery.of(context).padding.top),
+              child: SizedBox(
+                height: MediaQuery.of(context).padding.top + kToolbarHeight,
+              ),
             ),
             GlassLargeTitle(text: 'Search', controller: _titleController),
             SliverToBoxAdapter(

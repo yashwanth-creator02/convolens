@@ -56,10 +56,10 @@ class ProfileScreen extends StatelessWidget {
 
             final displayName =
                 valueFor('displayName') ??
-                    [
-                      valueFor('firstName'),
-                      valueFor('lastName'),
-                    ].whereType<String>().join(' ');
+                [
+                  valueFor('firstName'),
+                  valueFor('lastName'),
+                ].whereType<String>().join(' ');
             final primaryPhone = valueFor('primaryPhone');
 
             return Material(
@@ -68,10 +68,10 @@ class ProfileScreen extends StatelessWidget {
                 controller: titleController.scrollController,
                 slivers: [
                   SliverToBoxAdapter(
-                    child: SizedBox(height: MediaQuery
-                        .of(context)
-                        .padding
-                        .top),
+                    child: SizedBox(
+                      height:
+                          MediaQuery.of(context).padding.top + kToolbarHeight,
+                    ),
                   ),
                   GlassLargeTitle(text: 'Profile', controller: titleController),
                   SliverPadding(
@@ -99,12 +99,9 @@ class ProfileScreen extends StatelessWidget {
                                       bottom: 0,
                                       child: CircleAvatar(
                                         radius: 12,
-                                        backgroundColor: Theme
-                                            .of(
+                                        backgroundColor: Theme.of(
                                           context,
-                                        )
-                                            .colorScheme
-                                            .primary,
+                                        ).colorScheme.primary,
                                         child: const Icon(
                                           Icons.edit,
                                           size: 14,
@@ -156,26 +153,25 @@ class ProfileScreen extends StatelessWidget {
                                 ),
                                 const Divider(),
                                 ...sectionFields.map(
-                                      (entry) =>
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 4,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            SizedBox(
-                                              width: 120,
-                                              child: Text(
-                                                entry.key.label,
-                                                style: const TextStyle(
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
+                                  (entry) => Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 120,
+                                          child: Text(
+                                            entry.key.label,
+                                            style: const TextStyle(
+                                              color: Colors.grey,
                                             ),
-                                            Expanded(child: Text(entry.value!)),
-                                          ],
+                                          ),
                                         ),
-                                      ),
+                                        Expanded(child: Text(entry.value!)),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),

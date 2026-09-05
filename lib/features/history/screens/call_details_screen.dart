@@ -383,7 +383,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   slivers: [
                     SliverToBoxAdapter(
                       child: SizedBox(
-                        height: MediaQuery.of(context).padding.top,
+                        height:
+                            MediaQuery.of(context).padding.top + kToolbarHeight,
                       ),
                     ),
                     GlassLargeTitle(

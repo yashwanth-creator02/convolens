@@ -39,7 +39,9 @@ class _DeveloperScreenState extends State<DeveloperScreen> {
           controller: _titleController.scrollController,
           slivers: [
             SliverToBoxAdapter(
-              child: SizedBox(height: MediaQuery.of(context).padding.top),
+              child: SizedBox(
+                height: MediaQuery.of(context).padding.top + kToolbarHeight,
+              ),
             ),
             GlassLargeTitle(
               text: 'Developer Tools',
