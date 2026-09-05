@@ -45,57 +45,59 @@ class _AppState extends State<App> {
     }
   }
 
+  Widget _buildAppWithTheme({
+    required AppThemeType themeType,
+    ThemeMode themeMode = ThemeMode.light,
+    AppDatabase? db,
+    Widget? home,
+  }) {
+    return MaterialApp(
+      title: 'ConvoLens',
+      theme: AppTheme.getTheme(
+        themeType == AppThemeType.system ? AppThemeType.light : themeType,
+      ),
+      darkTheme: themeType == AppThemeType.system
+          ? AppTheme.getTheme(AppThemeType.dark)
+          : null,
+      themeMode: themeMode,
+      debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return GlassNavigationShell(
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            resizeToAvoidBottomInset: false,
+            body: child!,
+          ),
+        );
+      },
+      home:
+          home ??
+          (db != null
+              ? MainShell(db: db)
+              : const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                )),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Setting>(
       stream: _db.watchSettings(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.getTheme(AppThemeType.light),
-            builder: (context, child) {
-              return GlassNavigationShell(
-                child: Material(type: MaterialType.transparency, child: child!),
-              );
-            },
-            home: const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            ),
-          );
+          return _buildAppWithTheme(themeType: AppThemeType.light);
         }
 
         final settings = snapshot.data!;
         final themeType = _themeFromString(settings.theme);
 
-        // System Default
-        if (themeType == AppThemeType.system) {
-          return MaterialApp(
-            title: 'ConvoLens',
-            theme: AppTheme.getTheme(AppThemeType.light),
-            darkTheme: AppTheme.getTheme(AppThemeType.dark),
-            themeMode: ThemeMode.system,
-            debugShowCheckedModeBanner: false,
-            builder: (context, child) {
-              return GlassNavigationShell(
-                child: Material(type: MaterialType.transparency, child: child!),
-              );
-            },
-            home: MainShell(db: _db),
-          );
-        }
-
-        // themes
-        return MaterialApp(
-          title: 'ConvoLens',
-          theme: AppTheme.getTheme(themeType),
-          debugShowCheckedModeBanner: false,
-          builder: (context, child) {
-            return GlassNavigationShell(
-              child: Material(type: MaterialType.transparency, child: child!),
-            );
-          },
-          home: MainShell(db: _db),
+        return _buildAppWithTheme(
+          themeType: themeType,
+          themeMode: themeType == AppThemeType.system
+              ? ThemeMode.system
+              : ThemeMode.light,
+          db: _db,
         );
       },
     );

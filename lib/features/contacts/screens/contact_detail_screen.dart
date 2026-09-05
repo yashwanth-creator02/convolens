@@ -46,58 +46,6 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     await widget.db.toggleContactFavorite(widget.normalizedNumber, !isFavorite);
   }
 
-  void _showContactMenu(ContactDetail? detail) {
-    final isArchived = detail?.isArchived ?? false;
-
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit contact'),
-                onTap: () {
-                  Navigator.pop(context);
-                  // TODO: Open edit contact screen.
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  isArchived
-                      ? Icons.unarchive_outlined
-                      : Icons.archive_outlined,
-                ),
-                title: Text(
-                  isArchived ? 'Unarchive contact' : 'Archive contact',
-                ),
-                onTap: () async {
-                  Navigator.pop(context);
-
-                  await widget.db.setContactFields(
-                    widget.normalizedNumber,
-                    ContactDetailsCompanion(
-                      isArchived: drift.Value(!isArchived),
-                    ),
-                  );
-
-                  if (mounted) {
-                    ToastService.success(
-                      context,
-                      isArchived ? 'Contact unarchived' : 'Contact archived',
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<ContactDetail?>(
@@ -105,32 +53,86 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
       builder: (context, snapshot) {
         final detail = snapshot.data;
 
-        return GlassScaffold(
-          appBar: GlassAppBar.pinned(
-            title: const Text('Contact'),
-            actions: [
-              GlassBarItem.icon(
-                icon: const Icon(Icons.more_horiz),
-                id: 'contact_more',
-                label: 'More',
-                onTap: () => _showContactMenu(detail),
-              ),
-            ],
-          ),
-          body: Material(
-            type: MaterialType.transparency,
-            child: Column(
-              children: [
-                ContactHeader(
-                  displayName: widget.displayName,
-                  displayNumber: widget.displayNumber,
-                  deviceContact: widget.deviceContact,
-                  isFavorite: detail?.isFavorite ?? false,
-                  isArchived: detail?.isArchived ?? false,
-                  onFavoritePressed: () =>
-                      _toggleFavorite(detail?.isFavorite ?? false),
-                  colorValue: detail?.colorValue,
+        return Material(
+          child: GlassScaffold(
+            appBar: GlassAppBar.pinned(
+              title: const Text('Contact'),
+              actions: [
+                GlassBarItem.menu(
+                  icon: const Icon(Icons.more_horiz),
+                  id: 'contact_more',
+                  label: 'More',
+                  menuAlignment: GlassMenuAlignment.topRight,
+                  menuWidth: 170,
+                  menuItems: [
+                    GlassMenuItem(
+                      title: 'Edit',
+                      icon: const Icon(Icons.edit_outlined),
+                      titleStyle: const TextStyle(
+                        decoration: TextDecoration.none,
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      onTap: () {
+                        // TODO: Open edit contact screen.
+                      },
+                    ),
+                    GlassMenuItem(
+                      title: detail?.isArchived == true
+                          ? 'Unarchive'
+                          : 'Archive',
+                      icon: Icon(
+                        detail?.isArchived == true
+                            ? Icons.unarchive_outlined
+                            : Icons.archive_outlined,
+                      ),
+                      titleStyle: const TextStyle(
+                        decoration: TextDecoration.none,
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      onTap: () async {
+                        final isArchived = detail?.isArchived ?? false;
+
+                        await widget.db.setContactFields(
+                          widget.normalizedNumber,
+                          ContactDetailsCompanion(
+                            isArchived: drift.Value(!isArchived),
+                          ),
+                        );
+
+                        if (!context.mounted) return;
+
+                        ToastService.success(
+                          context,
+                          isArchived
+                              ? 'Contact unarchived'
+                              : 'Contact archived',
+                        );
+                      },
+                    ),
+                  ],
                 ),
+              ],
+            ),
+            body: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 8.0),
+                  child: ContactHeader(
+                    displayName: widget.displayName,
+                    displayNumber: widget.displayNumber,
+                    deviceContact: widget.deviceContact,
+                    isFavorite: detail?.isFavorite ?? false,
+                    isArchived: detail?.isArchived ?? false,
+                    onFavoritePressed: () =>
+                        _toggleFavorite(detail?.isFavorite ?? false),
+                    colorValue: detail?.colorValue,
+                  ),
+                ),
+                const SizedBox(height: 8.0),
                 AppTabRow(
                   tabs: _tabs,
                   scrollable: true,
@@ -145,16 +147,28 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                     });
                   },
                 ),
-                const Divider(height: 1),
+                Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Theme.of(context).dividerColor.withAlpha(20),
+                ),
                 Expanded(
-                  child: _ContactTabView(
-                    selectedIndex: _selectedTab,
-                    detail: detail,
-                    normalizedNumber: widget.normalizedNumber,
-                    displayName: widget.displayName,
-                    displayNumber: widget.displayNumber,
-                    deviceContact: widget.deviceContact,
-                    db: widget.db,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    child: KeyedSubtree(
+                      key: ValueKey<int>(_selectedTab),
+                      child: _ContactTabView(
+                        selectedIndex: _selectedTab,
+                        detail: detail,
+                        normalizedNumber: widget.normalizedNumber,
+                        displayName: widget.displayName,
+                        displayNumber: widget.displayNumber,
+                        deviceContact: widget.deviceContact,
+                        db: widget.db,
+                      ),
+                    ),
                   ),
                 ),
               ],
