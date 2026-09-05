@@ -18,19 +18,21 @@ class SideBarAlphabetIndex extends AlphabetIndexStyle {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: letters.map((letter) {
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onLetterSelected(letter),
-            child: SizedBox(
-              width: 28,
-              height: 16,
-              child: Center(
-                child: Text(
-                  letter,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
+          return Flexible(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onLetterSelected(letter),
+              child: Container(
+                width: 28,
+                constraints: const BoxConstraints(maxHeight: 16),
+                child: Center(
+                  child: Text(
+                    letter,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
               ),

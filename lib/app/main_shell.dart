@@ -4,6 +4,7 @@ import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
 import '../features/analytics/repository/insight_checker.dart';
 import '../features/analytics/screens/analytics_screen.dart';
+import '../features/contacts/screens/contact_search_screen.dart';
 import '../features/contacts/screens/contacts_screen.dart';
 import '../features/contacts/widgets/add_contact_screen.dart';
 import '../features/history/screens/history_screen.dart';
@@ -92,12 +93,24 @@ class _MainShellState extends State<MainShell> {
 
   List<Widget> _buildAppBarActions() {
     return [
-      if (_selectedIndex == 0)
+      if (_selectedIndex == 2)
         IconButton(
-          icon: const Icon(Icons.search),
-          tooltip: 'Search',
-          onPressed: _openSearch,
+          icon: const Icon(Icons.person_search),
+          tooltip: 'Search Contacts',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ContactSearchScreen(db: _db),
+              ),
+            );
+          },
         ),
+      IconButton(
+        icon: const Icon(Icons.search),
+        tooltip: 'Search',
+        onPressed: _openSearch,
+      ),
       IconButton(
         icon: const Icon(Icons.settings),
         tooltip: 'Settings',
