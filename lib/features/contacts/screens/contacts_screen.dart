@@ -37,13 +37,17 @@ class ContactsScreenState extends State<ContactsScreen>
   List<Contact> _deviceContacts = [];
   final Map<String, GlobalKey> _letterKeys = {};
 
+  String _searchQuery = '';
+
   Future<void> refreshDeviceContacts() => _loadDeviceContacts();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
     _repository = ContactsRepository(widget.db);
+
     _loadDeviceContacts();
   }
 
@@ -112,6 +116,22 @@ class ContactsScreenState extends State<ContactsScreen>
     }
   }
 
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value.trim().toLowerCase();
+    });
+  }
+
+  bool _matchesSearch(ContactSummary contact) {
+    if (_searchQuery.isEmpty) {
+      return true;
+    }
+
+    return contact.displayName.toLowerCase().contains(_searchQuery) ||
+        contact.displayNumber.toLowerCase().contains(_searchQuery) ||
+        contact.normalizedNumber.toLowerCase().contains(_searchQuery);
+  }
+
   void _openContact(ContactSummary contact) {
     if (contact.displayNumber.isEmpty) return;
 
@@ -130,6 +150,7 @@ class ContactsScreenState extends State<ContactsScreen>
 
   void _scrollToLetter(String letter) {
     final key = _letterKeys[letter];
+
     if (key != null && key.currentContext != null) {
       Scrollable.ensureVisible(
         key.currentContext!,
@@ -159,7 +180,11 @@ class ContactsScreenState extends State<ContactsScreen>
     return StreamBuilder<List<ContactSummary>>(
       stream: _repository.watchArchivedContacts(_deviceContacts),
       builder: (context, archivedSnapshot) {
-        final archivedCount = archivedSnapshot.data?.length ?? 0;
+        final archivedContacts = archivedSnapshot.data ?? [];
+
+        final filteredArchivedContacts = archivedContacts
+            .where(_matchesSearch)
+            .toList();
 
         return StreamBuilder<Set<String>>(
           stream: widget.db.watchFavoriteNumbers(),
@@ -178,10 +203,12 @@ class ContactsScreenState extends State<ContactsScreen>
                   return _buildErrorView(snapshot.error);
                 }
 
-                final contacts = snapshot.data ?? [];
+                final allContacts = snapshot.data ?? [];
 
-                if (contacts.isEmpty) {
-                  return const Center(child: Text('No contacts found.'));
+                final contacts = allContacts.where(_matchesSearch).toList();
+
+                if (contacts.isEmpty && filteredArchivedContacts.isEmpty) {
+                  return _buildEmptySearchView();
                 }
 
                 final favorites =
@@ -224,12 +251,15 @@ class ContactsScreenState extends State<ContactsScreen>
 
                 for (final letter in orderedLetters) {
                   _letterKeys.putIfAbsent(letter, () => GlobalKey());
+
                   items.add(letter);
                   items.addAll(grouped[letter]!);
                 }
 
-                if (archivedCount > 0) {
-                  items.add(_ArchivedSectionMarker(archivedCount));
+                if (filteredArchivedContacts.isNotEmpty) {
+                  items.add(
+                    _ArchivedSectionMarker(filteredArchivedContacts.length),
+                  );
                 }
 
                 return Stack(
@@ -244,16 +274,24 @@ class ContactsScreenState extends State<ContactsScreen>
                                 kToolbarHeight,
                           ),
                         ),
+
                         GlassLargeTitle(
                           text: 'Contacts',
                           controller: widget.titleController,
+                          searchBar: GlassSearchBar(
+                            placeholder: 'Search Contacts',
+                            useOwnLayer: true,
+                            onChanged: _onSearchChanged,
+                          ),
                         ),
+
                         SliverList(
                           delegate: SliverChildBuilderDelegate((
                             context,
                             index,
                           ) {
                             final item = items[index];
+
                             if (item is _ArchivedSectionMarker) {
                               return _buildArchivedTile(context, item.count);
                             }
@@ -276,18 +314,21 @@ class ContactsScreenState extends State<ContactsScreen>
                             );
                           }, childCount: items.length),
                         ),
+
                         const SliverToBoxAdapter(child: SizedBox(height: 120)),
                       ],
                     ),
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: SideBarAlphabetIndex(
-                        letters: orderedLetters,
-                        onLetterSelected: _scrollToLetter,
+
+                    if (_searchQuery.isEmpty)
+                      Positioned(
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        child: SideBarAlphabetIndex(
+                          letters: orderedLetters,
+                          onLetterSelected: _scrollToLetter,
+                        ),
                       ),
-                    ),
                   ],
                 );
               },
@@ -333,6 +374,22 @@ class ContactsScreenState extends State<ContactsScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySearchView() {
+    if (_searchQuery.isEmpty) {
+      return const Center(child: Text('No contacts found.'));
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          'No contacts found for "$_searchQuery".',
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
