@@ -9,9 +9,11 @@ import 'package:open_filex/open_filex.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../core/utils/normalize_number.dart';
 import '../../../shared/widgets/add_tag_dialog.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/text_input_dialog.dart';
+import '../../contacts/screens/contact_detail_screen.dart';
 import '../repository/attachment_storage.dart';
 import '../widgets/call_details/call_attachments_section.dart';
 import '../widgets/call_details/call_developer_info.dart';
@@ -365,6 +367,31 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
       appBar: GlassAppBar.pinned(
         title: const Text('Call Details'),
         largeTitleController: _titleController,
+        actions: [
+          if (widget.call.number?.trim().isNotEmpty == true)
+            GlassBarItem.icon(
+              icon: const Icon(Icons.person_outline),
+              id: 'view_contact',
+              label: 'View Contact',
+              onTap: () {
+                final phoneNumber = widget.call.number!.trim();
+                final displayName = widget.call.name?.trim().isNotEmpty == true
+                    ? widget.call.name!.trim()
+                    : phoneNumber;
+
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => ContactDetailScreen(
+                      normalizedNumber: normalizePhoneNumber(phoneNumber),
+                      displayName: displayName,
+                      displayNumber: phoneNumber,
+                      db: widget.db,
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
       ),
       body: Material(
         type: MaterialType.transparency,
