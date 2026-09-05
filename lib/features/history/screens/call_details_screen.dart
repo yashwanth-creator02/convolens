@@ -386,88 +386,95 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
       ),
       body: Material(
         type: MaterialType.transparency,
-        child: StreamBuilder<Setting>(
-          stream: widget.db.watchSettings(),
-          builder: (context, settingsSnapshot) {
-            final devMode = settingsSnapshot.data?.devMode ?? false;
+        child: SafeArea(
+          bottom: false,
+          child: StreamBuilder<Setting>(
+            stream: widget.db.watchSettings(),
+            builder: (context, settingsSnapshot) {
+              final devMode = settingsSnapshot.data?.devMode ?? false;
 
-            return StreamBuilder<CallDetail?>(
-              stream: widget.db.watchDetailsForCall(widget.call.id),
-              builder: (context, detailSnapshot) {
-                final detail = detailSnapshot.data;
+              return StreamBuilder<CallDetail?>(
+                stream: widget.db.watchDetailsForCall(widget.call.id),
+                builder: (context, detailSnapshot) {
+                  final detail = detailSnapshot.data;
 
-                return CustomScrollView(
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.all(16),
-                      sliver: SliverList(
-                        delegate: SliverChildListDelegate([
-                          CallInfoSection(call: widget.call, db: widget.db),
-                          const Divider(height: 32),
-                          CallNoteSection(
-                            note: detail?.note,
-                            onAdd: () => _editNote(context, detail?.note),
-                            onEdit: () => _editNote(context, detail?.note),
-                          ),
-                          const Divider(height: 32),
-                          StreamBuilder<List<Tag>>(
-                            stream: widget.db.watchTagsForCall(widget.call.id),
-                            builder: (context, tagSnapshot) {
-                              return CallTagsSection(
-                                tags: tagSnapshot.data ?? const [],
-                                onAdd: () => _addTag(context),
-                                onRemove: (tag) {
-                                  widget.db.removeTagFromCall(
-                                    widget.call.id,
-                                    tag.id,
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                          const Divider(height: 32),
-                          StreamBuilder<CallDetail?>(
-                            stream: widget.db.watchReminderForCall(
-                              widget.call.id,
-                            ),
-                            builder: (context, reminderSnapshot) {
-                              return CallReminderSection(
-                                reminder: reminderSnapshot.data,
-                                onSet: () => _setReminder(context),
-                                onClear: () => _clearReminder(context),
-                              );
-                            },
-                          ),
-                          const Divider(height: 32),
-                          StreamBuilder<List<CallAttachment>>(
-                            stream: widget.db.watchAttachmentsForCall(
-                              widget.call.id,
-                            ),
-                            builder: (context, attachmentSnapshot) {
-                              return CallAttachmentsSection(
-                                attachments:
-                                    attachmentSnapshot.data ?? const [],
-                                onAdd: () => _chooseAttachmentType(context),
-                                onView: (attachment) =>
-                                    _viewAttachment(context, attachment),
-                                onDelete: (attachment) =>
-                                    _deleteAttachment(context, attachment),
-                              );
-                            },
-                          ),
-                          if (devMode) ...[
-                            const Divider(height: 32),
-                            CallDeveloperInfo(call: widget.call),
-                          ],
-                          const SizedBox(height: 40),
-                        ]),
+                  return CustomScrollView(
+                    slivers: [
+                      const SliverToBoxAdapter(
+                        child: SizedBox(height: kToolbarHeight),
                       ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
+                      SliverPadding(
+                        padding: const EdgeInsets.all(16),
+                        sliver: SliverList(
+                          delegate: SliverChildListDelegate([
+                            CallInfoSection(call: widget.call, db: widget.db),
+                            const Divider(height: 32),
+                            CallNoteSection(
+                              note: detail?.note,
+                              onAdd: () => _editNote(context, detail?.note),
+                              onEdit: () => _editNote(context, detail?.note),
+                            ),
+                            const Divider(height: 32),
+                            StreamBuilder<List<Tag>>(
+                              stream: widget.db.watchTagsForCall(
+                                  widget.call.id),
+                              builder: (context, tagSnapshot) {
+                                return CallTagsSection(
+                                  tags: tagSnapshot.data ?? const [],
+                                  onAdd: () => _addTag(context),
+                                  onRemove: (tag) {
+                                    widget.db.removeTagFromCall(
+                                      widget.call.id,
+                                      tag.id,
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                            const Divider(height: 32),
+                            StreamBuilder<CallDetail?>(
+                              stream: widget.db.watchReminderForCall(
+                                widget.call.id,
+                              ),
+                              builder: (context, reminderSnapshot) {
+                                return CallReminderSection(
+                                  reminder: reminderSnapshot.data,
+                                  onSet: () => _setReminder(context),
+                                  onClear: () => _clearReminder(context),
+                                );
+                              },
+                            ),
+                            const Divider(height: 32),
+                            StreamBuilder<List<CallAttachment>>(
+                              stream: widget.db.watchAttachmentsForCall(
+                                widget.call.id,
+                              ),
+                              builder: (context, attachmentSnapshot) {
+                                return CallAttachmentsSection(
+                                  attachments:
+                                  attachmentSnapshot.data ?? const [],
+                                  onAdd: () => _chooseAttachmentType(context),
+                                  onView: (attachment) =>
+                                      _viewAttachment(context, attachment),
+                                  onDelete: (attachment) =>
+                                      _deleteAttachment(context, attachment),
+                                );
+                              },
+                            ),
+                            if (devMode) ...[
+                              const Divider(height: 32),
+                              CallDeveloperInfo(call: widget.call),
+                            ],
+                            const SizedBox(height: 40),
+                          ]),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );

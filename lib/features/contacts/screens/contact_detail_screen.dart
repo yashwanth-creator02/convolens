@@ -117,61 +117,65 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                 ),
               ],
             ),
-            body: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 8.0),
-                  child: ContactHeader(
-                    displayName: widget.displayName,
-                    displayNumber: widget.displayNumber,
-                    deviceContact: widget.deviceContact,
-                    isFavorite: detail?.isFavorite ?? false,
-                    isArchived: detail?.isArchived ?? false,
-                    onFavoritePressed: () =>
-                        _toggleFavorite(detail?.isFavorite ?? false),
-                    colorValue: detail?.colorValue,
+            body: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  const SizedBox(height: kToolbarHeight),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 8.0),
+                    child: ContactHeader(
+                      displayName: widget.displayName,
+                      displayNumber: widget.displayNumber,
+                      deviceContact: widget.deviceContact,
+                      isFavorite: detail?.isFavorite ?? false,
+                      isArchived: detail?.isArchived ?? false,
+                      onFavoritePressed: () =>
+                          _toggleFavorite(detail?.isFavorite ?? false),
+                      colorValue: detail?.colorValue,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8.0),
-                AppTabRow(
-                  tabs: _tabs,
-                  scrollable: true,
-                  selectedIndex: _selectedTab,
-                  onTabSelected: (index) {
-                    if (_selectedTab == index) {
-                      return;
-                    }
+                  const SizedBox(height: 8.0),
+                  AppTabRow(
+                    tabs: _tabs,
+                    scrollable: true,
+                    selectedIndex: _selectedTab,
+                    onTabSelected: (index) {
+                      if (_selectedTab == index) {
+                        return;
+                      }
 
-                    setState(() {
-                      _selectedTab = index;
-                    });
-                  },
-                ),
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Theme.of(context).dividerColor.withAlpha(20),
-                ),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    switchInCurve: Curves.easeOut,
-                    switchOutCurve: Curves.easeIn,
-                    child: KeyedSubtree(
-                      key: ValueKey<int>(_selectedTab),
-                      child: _ContactTabView(
-                        selectedIndex: _selectedTab,
-                        detail: detail,
-                        normalizedNumber: widget.normalizedNumber,
-                        displayName: widget.displayName,
-                        displayNumber: widget.displayNumber,
-                        deviceContact: widget.deviceContact,
-                        db: widget.db,
+                      setState(() {
+                        _selectedTab = index;
+                      });
+                    },
+                  ),
+                  Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Theme.of(context).dividerColor.withAlpha(20),
+                  ),
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      child: KeyedSubtree(
+                        key: ValueKey<int>(_selectedTab),
+                        child: _ContactTabView(
+                          selectedIndex: _selectedTab,
+                          detail: detail,
+                          normalizedNumber: widget.normalizedNumber,
+                          displayName: widget.displayName,
+                          displayNumber: widget.displayNumber,
+                          deviceContact: widget.deviceContact,
+                          db: widget.db,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         );
