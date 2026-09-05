@@ -33,6 +33,8 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   final _contactsScreenKey = GlobalKey<ContactsScreenState>();
+  final GlobalKey<AnalyticsScreenState> _analyticsScreenKey =
+      GlobalKey<AnalyticsScreenState>();
 
   // ---------------------------------------------------------------------------
   // Large-title controllers
@@ -73,7 +75,11 @@ class _MainShellState extends State<MainShell> {
 
   late final List<Widget> _screens = [
     HistoryScreen(db: _db, titleController: _historyTitleController),
-    AnalyticsScreen(db: _db, titleController: _analyticsTitleController),
+    AnalyticsScreen(
+      key: _analyticsScreenKey,
+      db: _db,
+      titleController: _analyticsTitleController,
+    ),
     ContactsScreen(
       key: _contactsScreenKey,
       db: _db,
@@ -203,6 +209,10 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  void _openAnalyticsFilters() {
+    _analyticsScreenKey.currentState?.openFilters();
+  }
+
   // ---------------------------------------------------------------------------
   // App-bar actions
   //
@@ -254,6 +264,12 @@ class _MainShellState extends State<MainShell> {
         return GlassTabBarTrailingButton(
           icon: const Icon(Icons.dialpad),
           onTap: _openNumberPad,
+        );
+
+      case 1:
+        return GlassTabBarTrailingButton(
+          icon: const Icon(Icons.tune),
+          onTap: _openAnalyticsFilters,
         );
 
       case 2:

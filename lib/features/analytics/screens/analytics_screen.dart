@@ -20,6 +20,7 @@ import '../widgets/hour_histogram.dart';
 import '../widgets/relationship_web.dart';
 import '../widgets/talk_ratio_bar.dart';
 import '../widgets/weekday_chart.dart';
+import '../widgets/analytics_filter_sheet.dart';
 import 'comparison_screen.dart';
 import 'yearly_recap_screen.dart';
 
@@ -34,10 +35,10 @@ class AnalyticsScreen extends StatefulWidget {
   });
 
   @override
-  State<AnalyticsScreen> createState() => _AnalyticsScreenState();
+  State<AnalyticsScreen> createState() => AnalyticsScreenState();
 }
 
-class _AnalyticsScreenState extends State<AnalyticsScreen> {
+class AnalyticsScreenState extends State<AnalyticsScreen> {
   late final AnalyticsRepository _repository;
 
   List<Contact> _deviceContacts = [];
@@ -71,6 +72,69 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     _loadContacts();
   }
 
+  Future<void> openFilters() => _showFilters();
+
+  Future<void> _showFilters() async {
+    final result = await showModalBottomSheet<AnalyticsFilters>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AnalyticsFilterSheet(
+        db: widget.db,
+        repository: _repository,
+        deviceContacts: _deviceContacts,
+        initialFilters: _filters,
+        initialContactName: _selectedContactName,
+        initialTagName: _selectedTagName,
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _filters = result;
+
+        // Update selected names for the inline bar if it's still there
+        _updateSelectedNames();
+      });
+    }
+  }
+
+  Future<void> _updateSelectedNames() async {
+    if (_filters.contactNormalizedNumber != null) {
+      final summary = await _repository
+          .watchSummary(
+            _deviceContacts,
+            AnalyticsFilters(
+              contactNormalizedNumber: _filters.contactNormalizedNumber,
+            ),
+          )
+          .first;
+      if (mounted) {
+        setState(() {
+          _selectedContactName = summary.mostContacted.firstOrNull?.displayName;
+        });
+      }
+    } else {
+      setState(() {
+        _selectedContactName = null;
+      });
+    }
+
+    if (_filters.tagId != null) {
+      final tags = await widget.db.getAllTags();
+      final tag = tags.where((t) => t.id == _filters.tagId).firstOrNull;
+      if (mounted) {
+        setState(() {
+          _selectedTagName = tag?.name;
+        });
+      }
+    } else {
+      setState(() {
+        _selectedTagName = null;
+      });
+    }
+  }
+
   Future<void> _loadContacts() async {
     final status = await Permission.contacts.status;
 
@@ -97,138 +161,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
       ),
     );
-  }
-
-  Future<void> _pickContactFilter() async {
-    final allSummaries = await _repository
-        .watchSummary(_deviceContacts, const AnalyticsFilters())
-        .first;
-
-    if (!mounted) return;
-
-    final searchController = TextEditingController();
-
-    final selected = await showModalBottomSheet<ContactSummary?>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          final query = searchController.text.toLowerCase();
-
-          final filtered = allSummaries.mostContacted
-              .where((c) => c.displayName.toLowerCase().contains(query))
-              .toList();
-
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-              left: 16,
-              right: 16,
-              top: 16,
-            ),
-            child: SizedBox(
-              height: 400,
-              child: Column(
-                children: [
-                  TextField(
-                    controller: searchController,
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Search contact',
-                    ),
-                    onChanged: (_) {
-                      setSheetState(() {});
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final c = filtered[index];
-
-                        return ListTile(
-                          title: Text(c.displayName),
-                          subtitle: Text('${c.callCount} calls'),
-                          onTap: () {
-                            Navigator.pop(context, c);
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-
-    searchController.dispose();
-
-    if (selected != null) {
-      setState(() {
-        _filters = _filters.copyWith(
-          contactNormalizedNumber: selected.normalizedNumber,
-        );
-
-        _selectedContactName = selected.displayName;
-      });
-    }
-  }
-
-  Future<void> _pickTagFilter() async {
-    final allTags = await widget.db.getAllTags();
-
-    if (!mounted) return;
-
-    final selected = await showDialog<Tag?>(
-      context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Filter by tag'),
-        children: [
-          SimpleDialogOption(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('All Tags'),
-          ),
-          ...allTags.map(
-            (tag) => SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, tag),
-              child: Text(tag.name),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    setState(() {
-      if (selected == null) {
-        _filters = _filters.copyWith(clearTag: true);
-        _selectedTagName = null;
-      } else {
-        _filters = _filters.copyWith(tagId: selected.id);
-        _selectedTagName = selected.name;
-      }
-    });
-  }
-
-  Future<void> _pickCustomDateRange() async {
-    final range = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2015),
-      lastDate: DateTime.now(),
-    );
-
-    if (range != null) {
-      setState(() {
-        _filters = _filters.copyWith(
-          dateRange: DateRangeOption.custom,
-          customStart: range.start,
-          customEnd: range.end,
-        );
-      });
-    }
   }
 
   Future<void> _showComparisonOptions(BuildContext context) async {
@@ -366,12 +298,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               GlassLargeTitle(
                 text: 'Analytics',
                 controller: widget.titleController,
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: _buildFilterBar(context),
-                ),
               ),
               SliverToBoxAdapter(
                 child: AppTabRow(
@@ -908,119 +834,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
             ),
           ),
-      ],
-    );
-  }
-
-  Widget _buildFilterBar(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              ChoiceChip(
-                label: const Text('7d'),
-                selected: _filters.dateRange == DateRangeOption.last7,
-                onSelected: (_) {
-                  setState(() {
-                    _filters = _filters.copyWith(
-                      dateRange: DateRangeOption.last7,
-                    );
-                  });
-                },
-              ),
-              const SizedBox(width: 6),
-              ChoiceChip(
-                label: const Text('30d'),
-                selected: _filters.dateRange == DateRangeOption.last30,
-                onSelected: (_) {
-                  setState(() {
-                    _filters = _filters.copyWith(
-                      dateRange: DateRangeOption.last30,
-                    );
-                  });
-                },
-              ),
-              const SizedBox(width: 6),
-              ChoiceChip(
-                label: const Text('6mo'),
-                selected: _filters.dateRange == DateRangeOption.last6Months,
-                onSelected: (_) {
-                  setState(() {
-                    _filters = _filters.copyWith(
-                      dateRange: DateRangeOption.last6Months,
-                    );
-                  });
-                },
-              ),
-              const SizedBox(width: 6),
-              ChoiceChip(
-                label: const Text('1yr'),
-                selected: _filters.dateRange == DateRangeOption.lastYear,
-                onSelected: (_) {
-                  setState(() {
-                    _filters = _filters.copyWith(
-                      dateRange: DateRangeOption.lastYear,
-                    );
-                  });
-                },
-              ),
-              const SizedBox(width: 6),
-              ChoiceChip(
-                label: const Text('Custom'),
-                selected: _filters.dateRange == DateRangeOption.custom,
-                onSelected: (_) => _pickCustomDateRange(),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _pickContactFilter,
-                icon: const Icon(Icons.person_outline, size: 16),
-                label: Text(
-                  _selectedContactName ?? 'All Contacts',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            if (_filters.contactNormalizedNumber != null)
-              IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: () {
-                  setState(() {
-                    _filters = _filters.copyWith(clearContact: true);
-                    _selectedContactName = null;
-                  });
-                },
-              ),
-            const SizedBox(width: 8),
-            DropdownButton<CallTypeFilter>(
-              value: _filters.callType,
-              items: CallTypeFilter.values
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
-                  .toList(),
-              onChanged: (t) {
-                if (t != null) {
-                  setState(() {
-                    _filters = _filters.copyWith(callType: t);
-                  });
-                }
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _pickTagFilter,
-          icon: const Icon(Icons.label_outline, size: 16),
-          label: Text(_selectedTagName ?? 'All Tags'),
-        ),
       ],
     );
   }
