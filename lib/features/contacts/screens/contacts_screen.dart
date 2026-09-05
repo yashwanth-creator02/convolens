@@ -12,6 +12,7 @@ import '../widgets/contact_card.dart';
 import '../widgets/side_bar_alphabet_index.dart';
 import 'archived_contacts_screen.dart';
 import 'contact_detail_screen.dart';
+import 'contact_search_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -37,7 +38,7 @@ class ContactsScreenState extends State<ContactsScreen>
   List<Contact> _deviceContacts = [];
   final Map<String, GlobalKey> _letterKeys = {};
 
-  String _searchQuery = '';
+  final _searchFocusNode = FocusNode();
 
   Future<void> refreshDeviceContacts() => _loadDeviceContacts();
 
@@ -49,11 +50,14 @@ class ContactsScreenState extends State<ContactsScreen>
     _repository = ContactsRepository(widget.db);
 
     _loadDeviceContacts();
+
+    _searchFocusNode.addListener(_onSearchFocusChanged);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -116,20 +120,19 @@ class ContactsScreenState extends State<ContactsScreen>
     }
   }
 
-  void _onSearchChanged(String value) {
-    setState(() {
-      _searchQuery = value.trim().toLowerCase();
-    });
+  void _onSearchFocusChanged() {
+    if (_searchFocusNode.hasFocus) {
+      _searchFocusNode.unfocus();
+      _openContactSearch();
+    }
   }
 
-  bool _matchesSearch(ContactSummary contact) {
-    if (_searchQuery.isEmpty) {
-      return true;
-    }
-
-    return contact.displayName.toLowerCase().contains(_searchQuery) ||
-        contact.displayNumber.toLowerCase().contains(_searchQuery) ||
-        contact.normalizedNumber.toLowerCase().contains(_searchQuery);
+  void _openContactSearch() {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (context) => ContactSearchScreen(db: widget.db),
+      ),
+    );
   }
 
   void _openContact(ContactSummary contact) {
@@ -180,11 +183,7 @@ class ContactsScreenState extends State<ContactsScreen>
     return StreamBuilder<List<ContactSummary>>(
       stream: _repository.watchArchivedContacts(_deviceContacts),
       builder: (context, archivedSnapshot) {
-        final archivedContacts = archivedSnapshot.data ?? [];
-
-        final filteredArchivedContacts = archivedContacts
-            .where(_matchesSearch)
-            .toList();
+        final archivedCount = archivedSnapshot.data?.length ?? 0;
 
         return StreamBuilder<Set<String>>(
           stream: widget.db.watchFavoriteNumbers(),
@@ -203,12 +202,10 @@ class ContactsScreenState extends State<ContactsScreen>
                   return _buildErrorView(snapshot.error);
                 }
 
-                final allContacts = snapshot.data ?? [];
+                final contacts = snapshot.data ?? [];
 
-                final contacts = allContacts.where(_matchesSearch).toList();
-
-                if (contacts.isEmpty && filteredArchivedContacts.isEmpty) {
-                  return _buildEmptySearchView();
+                if (contacts.isEmpty) {
+                  return const Center(child: Text('No contacts found.'));
                 }
 
                 final favorites =
@@ -256,10 +253,8 @@ class ContactsScreenState extends State<ContactsScreen>
                   items.addAll(grouped[letter]!);
                 }
 
-                if (filteredArchivedContacts.isNotEmpty) {
-                  items.add(
-                    _ArchivedSectionMarker(filteredArchivedContacts.length),
-                  );
+                if (archivedCount > 0) {
+                  items.add(_ArchivedSectionMarker(archivedCount));
                 }
 
                 return Stack(
@@ -281,7 +276,7 @@ class ContactsScreenState extends State<ContactsScreen>
                           searchBar: GlassSearchBar(
                             placeholder: 'Search Contacts',
                             useOwnLayer: true,
-                            onChanged: _onSearchChanged,
+                            focusNode: _searchFocusNode,
                           ),
                         ),
 
@@ -319,16 +314,15 @@ class ContactsScreenState extends State<ContactsScreen>
                       ],
                     ),
 
-                    if (_searchQuery.isEmpty)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: SideBarAlphabetIndex(
-                          letters: orderedLetters,
-                          onLetterSelected: _scrollToLetter,
-                        ),
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: SideBarAlphabetIndex(
+                        letters: orderedLetters,
+                        onLetterSelected: _scrollToLetter,
                       ),
+                    ),
                   ],
                 );
               },
@@ -374,22 +368,6 @@ class ContactsScreenState extends State<ContactsScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildEmptySearchView() {
-    if (_searchQuery.isEmpty) {
-      return const Center(child: Text('No contacts found.'));
-    }
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'No contacts found for "$_searchQuery".',
-          textAlign: TextAlign.center,
-        ),
       ),
     );
   }

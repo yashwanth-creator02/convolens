@@ -6,7 +6,6 @@ import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
 import '../features/analytics/repository/insight_checker.dart';
 import '../features/analytics/screens/analytics_screen.dart';
-import '../features/contacts/screens/contact_search_screen.dart';
 import '../features/contacts/screens/contacts_screen.dart';
 import '../features/contacts/widgets/add_contact_screen.dart';
 import '../features/history/screens/history_screen.dart';
@@ -164,14 +163,6 @@ class _MainShellState extends State<MainShell> {
     ).push(CupertinoPageRoute(builder: (context) => SearchScreen(db: _db)));
   }
 
-  void _openContactSearch() {
-    Navigator.of(context).push(
-      CupertinoPageRoute(
-        builder: (context) => ContactSearchScreen(db: _db),
-      ),
-    );
-  }
-
   void _openSettings() {
     Navigator.of(
       context,
@@ -237,23 +228,8 @@ class _MainShellState extends State<MainShell> {
           ),
         ];
 
-      case 2:
-        return [
-          GlassBarItem.icon(
-            icon: const Icon(Icons.person_search),
-            id: 'contact_search',
-            label: 'Search Contacts',
-            onTap: _openContactSearch,
-          ),
-          GlassBarItem.icon(
-            icon: const Icon(Icons.settings),
-            id: 'settings',
-            label: 'Settings',
-            onTap: _openSettings,
-          ),
-        ];
-
       case 1:
+      case 2:
       case 3:
         return [
           GlassBarItem.icon(
