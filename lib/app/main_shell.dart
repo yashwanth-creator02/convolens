@@ -206,7 +206,7 @@ class _MainShellState extends State<MainShell> {
   Future<void> _addContact() async {
     final added = await showAddContactScreen(context);
 
-    if (!mounted || !added) {
+    if (!mounted || added == null) {
       return;
     }
 

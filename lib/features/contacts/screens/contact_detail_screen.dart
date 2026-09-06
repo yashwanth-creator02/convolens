@@ -12,6 +12,7 @@ import '../tabs/contact_more_tab.dart';
 import '../tabs/contact_overview_tab.dart';
 import '../widgets/contact_header.dart';
 import '../widgets/edit_contact_screen.dart';
+import '../widgets/add_contact_screen.dart';
 
 class ContactDetailScreen extends StatefulWidget {
   final String normalizedNumber;
@@ -35,6 +36,13 @@ class ContactDetailScreen extends StatefulWidget {
 
 class _ContactDetailScreenState extends State<ContactDetailScreen> {
   int _selectedTab = 0;
+  late Contact? _deviceContact;
+
+  @override
+  void initState() {
+    super.initState();
+    _deviceContact = widget.deviceContact;
+  }
 
   Future<void> _toggleFavorite(bool isFavorite) async {
     await widget.db.toggleContactFavorite(widget.normalizedNumber, !isFavorite);
@@ -59,7 +67,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                   menuAlignment: GlassMenuAlignment.topRight,
                   menuWidth: 170,
                   menuItems: [
-                    if (widget.deviceContact != null)
+                    if (_deviceContact != null)
                       GlassMenuItem(
                         title: 'Edit',
                         icon: const Icon(Icons.edit_outlined),
@@ -74,7 +82,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                               .push<bool>(
                                 CupertinoPageRoute(
                                   builder: (context) => EditContactScreen(
-                                    contact: widget.deviceContact!,
+                                    contact: _deviceContact!,
                                   ),
                                 ),
                               );
@@ -83,6 +91,31 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                             setState(() {});
                             if (context.mounted) {
                               ToastService.success(context, 'Contact updated.');
+                            }
+                          }
+                        },
+                      )
+                    else
+                      GlassMenuItem(
+                        title: 'Create',
+                        icon: const Icon(Icons.person_add_outlined),
+                        titleStyle: const TextStyle(
+                          decoration: TextDecoration.none,
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        onTap: () async {
+                          final created = await showAddContactScreen(
+                            context,
+                            initialName: widget.displayName,
+                            initialPhone: widget.displayNumber,
+                          );
+
+                          if (created != null && mounted) {
+                            setState(() => _deviceContact = created);
+                            if (context.mounted) {
+                              ToastService.success(context, 'Contact created.');
                             }
                           }
                         },
@@ -136,7 +169,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                     child: ContactHeader(
                       displayName: widget.displayName,
                       displayNumber: widget.displayNumber,
-                      deviceContact: widget.deviceContact,
+                      deviceContact: _deviceContact,
                       isFavorite: detail?.isFavorite ?? false,
                       isArchived: detail?.isArchived ?? false,
                       onFavoritePressed: () =>
@@ -185,7 +218,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                           normalizedNumber: widget.normalizedNumber,
                           displayName: widget.displayName,
                           displayNumber: widget.displayNumber,
-                          deviceContact: widget.deviceContact,
+                          deviceContact: _deviceContact,
                           db: widget.db,
                         ),
                       ),
@@ -261,7 +294,8 @@ class _ContactTabViewState extends State<_ContactTabView> {
   void didUpdateWidget(covariant _ContactTabView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.detail != widget.detail) {
+    if (oldWidget.detail != widget.detail ||
+        oldWidget.deviceContact != widget.deviceContact) {
       _pages[0] = ContactOverviewTab(
         normalizedNumber: widget.normalizedNumber,
         displayNumber: widget.displayNumber,

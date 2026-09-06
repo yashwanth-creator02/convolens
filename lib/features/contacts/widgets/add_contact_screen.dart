@@ -4,24 +4,34 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-Future<bool> showAddContactScreen(BuildContext context) async {
+Future<Contact?> showAddContactScreen(
+  BuildContext context, {
+  String? initialName,
+  String? initialPhone,
+}) async {
   final status = await Permission.contacts.status;
   if (!status.isGranted) {
     final requested = await Permission.contacts.request();
-    if (!requested.isGranted) return false;
+    if (!requested.isGranted) return null;
   }
 
-  if (!context.mounted) return false;
+  if (!context.mounted) return null;
 
-  final result = await Navigator.of(context).push<bool>(
-    CupertinoPageRoute(builder: (context) => const AddContactScreen()),
+  return Navigator.of(context).push<Contact>(
+    CupertinoPageRoute(
+      builder: (context) => AddContactScreen(
+        initialName: initialName,
+        initialPhone: initialPhone,
+      ),
+    ),
   );
-
-  return result ?? false;
 }
 
 class AddContactScreen extends StatefulWidget {
-  const AddContactScreen({super.key});
+  final String? initialName;
+  final String? initialPhone;
+
+  const AddContactScreen({super.key, this.initialName, this.initialPhone});
 
   @override
   State<AddContactScreen> createState() => _AddContactScreenState();
@@ -29,16 +39,30 @@ class AddContactScreen extends StatefulWidget {
 
 class _AddContactScreenState extends State<AddContactScreen> {
   final _titleController = GlassLargeTitleController();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
+  late final TextEditingController _firstNameController;
+  late final TextEditingController _lastNameController;
   final _companyController = TextEditingController();
   final _jobTitleController = TextEditingController();
   final _emailController = TextEditingController();
-  final List<TextEditingController> _phoneControllers = [
-    TextEditingController(),
-  ];
+  late final List<TextEditingController> _phoneControllers;
 
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final name = widget.initialName?.trim() ?? '';
+    final spaceIndex = name.indexOf(' ');
+    final firstGuess = spaceIndex == -1 ? name : name.substring(0, spaceIndex);
+    final lastGuess = spaceIndex == -1 ? '' : name.substring(spaceIndex + 1);
+
+    _firstNameController = TextEditingController(text: firstGuess);
+    _lastNameController = TextEditingController(text: lastGuess);
+    _phoneControllers = [
+      TextEditingController(text: widget.initialPhone ?? ''),
+    ];
+  }
 
   @override
   void dispose() {
@@ -99,7 +123,7 @@ class _AddContactScreenState extends State<AddContactScreen> {
 
       await newContact.insert();
 
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) Navigator.pop(context, newContact);
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
