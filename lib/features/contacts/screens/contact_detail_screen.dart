@@ -275,6 +275,7 @@ class _ContactTabViewState extends State<_ContactTabView> {
       ContactActivityTab(
         normalizedNumber: widget.normalizedNumber,
         db: widget.db,
+        deviceContact: widget.deviceContact,
       ),
       ContactAnalyticsTab(
         normalizedNumber: widget.normalizedNumber,
@@ -302,6 +303,12 @@ class _ContactTabViewState extends State<_ContactTabView> {
         deviceContact: widget.deviceContact,
         detail: widget.detail,
         db: widget.db,
+      );
+
+      _pages[1] = ContactActivityTab(
+        normalizedNumber: widget.normalizedNumber,
+        db: widget.db,
+        deviceContact: widget.deviceContact,
       );
 
       _pages[3] = ContactMoreTab(

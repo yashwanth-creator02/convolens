@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/utils/normalize_number.dart';
 import '../models/search_filters.dart';
 import '../widgets/call_card.dart';
 
@@ -21,6 +24,8 @@ class _SearchScreenState extends State<SearchScreen> {
   final _titleController = GlassLargeTitleController();
   SearchFilters _filters = const SearchFilters();
   Timer? _debounce;
+
+  List<Contact> _deviceContacts = [];
 
   final _contactController = TextEditingController();
   final _noteController = TextEditingController();
@@ -48,10 +53,39 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    _loadContacts();
     if (widget.initialContactQuery != null) {
       _contactController.text = widget.initialContactQuery!;
       _filters = _filters.copyWith(contactQuery: widget.initialContactQuery);
     }
+  }
+
+  Future<void> _loadContacts() async {
+    final status = await Permission.contacts.status;
+    if (status.isGranted) {
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withThumbnail: true,
+      );
+      if (mounted) {
+        setState(() {
+          _deviceContacts = contacts;
+        });
+      }
+    }
+  }
+
+  Contact? _findContact(String? number) {
+    if (number == null || number.isEmpty) return null;
+    final normalized = normalizePhoneNumber(number);
+    for (final contact in _deviceContacts) {
+      for (final phone in contact.phones) {
+        if (normalizePhoneNumber(phone.number) == normalized) {
+          return contact;
+        }
+      }
+    }
+    return null;
   }
 
   @override
@@ -162,8 +196,11 @@ class _SearchScreenState extends State<SearchScreen> {
                       }
                       return SliverList(
                         delegate: SliverChildBuilderDelegate(
-                          (context, index) =>
-                              CallCard(call: results[index], db: widget.db),
+                          (context, index) => CallCard(
+                            call: results[index],
+                            db: widget.db,
+                            deviceContact: _findContact(results[index].number),
+                          ),
                           childCount: results.length,
                         ),
                       );

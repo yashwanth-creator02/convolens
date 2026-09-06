@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../history/widgets/call_card.dart';
@@ -6,11 +7,13 @@ import '../../history/widgets/call_card.dart';
 class ContactCallHistory extends StatelessWidget {
   final String normalizedNumber;
   final AppDatabase db;
+  final Contact? deviceContact;
 
   const ContactCallHistory({
     super.key,
     required this.normalizedNumber,
     required this.db,
+    this.deviceContact,
   });
 
   @override
@@ -58,7 +61,7 @@ class ContactCallHistory extends StatelessWidget {
           delegate: SliverChildBuilderDelegate((context, index) {
             final call = calls[index];
 
-            return CallCard(call: call, db: db);
+            return CallCard(call: call, db: db, deviceContact: deviceContact);
           }, childCount: calls.length),
         );
       },

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import 'call_card_content.dart';
@@ -6,8 +7,14 @@ import 'call_card_content.dart';
 class CallCard extends StatelessWidget {
   final Call call;
   final AppDatabase db;
+  final Contact? deviceContact;
 
-  const CallCard({super.key, required this.call, required this.db});
+  const CallCard({
+    super.key,
+    required this.call,
+    required this.db,
+    this.deviceContact,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +37,7 @@ class CallCard extends StatelessWidget {
                       detail: detailSnapshot.data,
                       tags: tagsSnapshot.data ?? const [],
                       attachmentCount: attachmentSnapshot.data ?? 0,
+                      deviceContact: deviceContact,
                     );
                   },
                 );

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -39,6 +40,8 @@ class _HistoryScreenState extends State<HistoryScreen>
   String? _visibleDate;
   bool _showScrollToTop = false;
 
+  List<Contact> _deviceContacts = [];
+
   bool _isFirstLaunchLoading = false;
   bool _permissionDenied = false;
   bool _permissionPermanentlyDenied = false;
@@ -54,6 +57,8 @@ class _HistoryScreenState extends State<HistoryScreen>
     _settingsSubscription = widget.db.watchSettings().listen((settings) {
       Logger.devModeEnabled = settings.devMode;
     });
+
+    _loadContacts();
 
     widget.titleController.scrollController.addListener(_updateVisibleDate);
 
@@ -82,6 +87,21 @@ class _HistoryScreenState extends State<HistoryScreen>
       setState(() {
         _visibleDate = date;
       });
+    }
+  }
+
+  Future<void> _loadContacts() async {
+    final status = await Permission.contacts.status;
+    if (status.isGranted) {
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withThumbnail: true,
+      );
+      if (mounted) {
+        setState(() {
+          _deviceContacts = contacts;
+        });
+      }
     }
   }
 
@@ -254,6 +274,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                     key: _historyListKey,
                     calls: calls,
                     db: widget.db,
+                    deviceContacts: _deviceContacts,
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],

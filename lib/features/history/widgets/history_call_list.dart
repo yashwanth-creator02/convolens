@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/utils/normalize_number.dart';
 import '../utils/group_calls_by_day.dart';
 import 'call_card.dart';
 
 class SliverHistoryCallList extends StatefulWidget {
   final List<Call> calls;
   final AppDatabase db;
+  final List<Contact> deviceContacts;
 
   const SliverHistoryCallList({
     super.key,
     required this.calls,
     required this.db,
+    required this.deviceContacts,
   });
 
   @override
@@ -146,8 +150,25 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
           );
         }
 
-        return CallCard(call: item as Call, db: widget.db);
+        return CallCard(
+          call: item as Call,
+          db: widget.db,
+          deviceContact: _findContact(item.number),
+        );
       }, childCount: items.length),
     );
+  }
+
+  Contact? _findContact(String? number) {
+    if (number == null || number.isEmpty) return null;
+    final normalized = normalizePhoneNumber(number);
+    for (final contact in widget.deviceContacts) {
+      for (final phone in contact.phones) {
+        if (normalizePhoneNumber(phone.number) == normalized) {
+          return contact;
+        }
+      }
+    }
+    return null;
   }
 }
