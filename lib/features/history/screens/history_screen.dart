@@ -34,9 +34,10 @@ class _HistoryScreenState extends State<HistoryScreen>
   StreamSubscription<Setting>? _settingsSubscription;
 
   final GlobalKey<SliverHistoryCallListState> _historyListKey =
-  GlobalKey<SliverHistoryCallListState>();
+      GlobalKey<SliverHistoryCallListState>();
 
   String? _visibleDate;
+  bool _showScrollToTop = false;
 
   bool _isFirstLaunchLoading = false;
   bool _permissionDenied = false;
@@ -61,6 +62,14 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   void _updateVisibleDate() {
     if (!mounted) return;
+
+    final scrollController = widget.titleController.scrollController;
+    final showScrollToTop = scrollController.offset > 300;
+    if (showScrollToTop != _showScrollToTop) {
+      setState(() {
+        _showScrollToTop = showScrollToTop;
+      });
+    }
 
     final listState = _historyListKey.currentState;
     if (listState == null) return;
@@ -234,10 +243,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   SliverToBoxAdapter(
                     child: SizedBox(
                       height:
-                      MediaQuery
-                          .of(context)
-                          .padding
-                          .top + kToolbarHeight,
+                          MediaQuery.of(context).padding.top + kToolbarHeight,
                     ),
                   ),
                   GlassLargeTitle(
@@ -254,10 +260,7 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
               if (_visibleDate != null)
                 Positioned(
-                  top: MediaQuery
-                      .of(context)
-                      .padding
-                      .top + kToolbarHeight + 12,
+                  top: MediaQuery.of(context).padding.top + kToolbarHeight + 12,
                   left: 0,
                   right: 0,
                   child: IgnorePointer(
@@ -283,10 +286,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                             child: Text(
                               _visibleDate!,
                               style: TextStyle(
-                                color: Theme
-                                    .of(context)
-                                    .colorScheme
-                                    .onSurface,
+                                color: Theme.of(context).colorScheme.onSurface,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                               ),
@@ -297,6 +297,34 @@ class _HistoryScreenState extends State<HistoryScreen>
                     ),
                   ),
                 ),
+              Positioned(
+                right: 21,
+                bottom: 100,
+                child: AnimatedSlide(
+                  offset: _showScrollToTop ? Offset.zero : const Offset(2, 0),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  child: AnimatedOpacity(
+                    opacity: _showScrollToTop ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 250),
+                    child: GlassContainer(
+                      quality: GlassQuality.standard,
+                      useOwnLayer: true,
+                      shape: const LiquidOval(),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_upward),
+                        onPressed: () {
+                          widget.titleController.scrollController.animateTo(
+                            0,
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeOutCubic,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         );
