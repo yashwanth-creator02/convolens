@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -8,6 +9,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/logger/logger.dart';
 import '../../../core/toast/toast_service.dart';
 import '../repository/calls_repository.dart';
+import '../utils/group_calls_by_day.dart';
 import '../widgets/history_call_list.dart';
 import '../widgets/history_permission_view.dart';
 
@@ -31,6 +33,11 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   StreamSubscription<Setting>? _settingsSubscription;
 
+  final GlobalKey<SliverHistoryCallListState> _historyListKey =
+  GlobalKey<SliverHistoryCallListState>();
+
+  String? _visibleDate;
+
   bool _isFirstLaunchLoading = false;
   bool _permissionDenied = false;
   bool _permissionPermanentlyDenied = false;
@@ -47,11 +54,31 @@ class _HistoryScreenState extends State<HistoryScreen>
       Logger.devModeEnabled = settings.devMode;
     });
 
+    widget.titleController.scrollController.addListener(_updateVisibleDate);
+
     _requestFetchAndStore();
+  }
+
+  void _updateVisibleDate() {
+    if (!mounted) return;
+
+    final listState = _historyListKey.currentState;
+    if (listState == null) return;
+
+    listState.updateVisibleDate();
+
+    final date = listState.visibleDate;
+
+    if (date != null && date != _visibleDate) {
+      setState(() {
+        _visibleDate = date;
+      });
+    }
   }
 
   @override
   void dispose() {
+    widget.titleController.scrollController.removeListener(_updateVisibleDate);
     WidgetsBinding.instance.removeObserver(this);
     _settingsSubscription?.cancel();
 
@@ -192,22 +219,84 @@ class _HistoryScreenState extends State<HistoryScreen>
 
         final calls = snapshot.data ?? [];
 
+        if (calls.isNotEmpty && _visibleDate == null) {
+          final grouped = groupCallsByDay(calls);
+          _visibleDate = grouped.keys.first;
+        }
+
         return Material(
           type: MaterialType.transparency,
-          child: CustomScrollView(
-            controller: widget.titleController.scrollController,
-            slivers: [
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: MediaQuery.of(context).padding.top + kToolbarHeight,
+          child: Stack(
+            children: [
+              CustomScrollView(
+                controller: widget.titleController.scrollController,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height:
+                      MediaQuery
+                          .of(context)
+                          .padding
+                          .top + kToolbarHeight,
+                    ),
+                  ),
+                  GlassLargeTitle(
+                    text: 'History',
+                    controller: widget.titleController,
+                  ),
+                  SliverHistoryCallList(
+                    key: _historyListKey,
+                    calls: calls,
+                    db: widget.db,
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ],
+              ),
+              if (_visibleDate != null)
+                Positioned(
+                  top: MediaQuery
+                      .of(context)
+                      .padding
+                      .top + kToolbarHeight + 12,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Center(
+                      child: AnimatedOpacity(
+                        opacity: _visibleDate == 'Today' ? 0.0 : 1.0,
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeInOut,
+                        child: AnimatedScale(
+                          scale: _visibleDate == 'Today' ? 0.8 : 1.0,
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutBack,
+                          child: GlassContainer(
+                            quality: GlassQuality.standard,
+                            useOwnLayer: true,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 7,
+                            ),
+                            shape: const LiquidRoundedSuperellipse(
+                              borderRadius: 18,
+                            ),
+                            child: Text(
+                              _visibleDate!,
+                              style: TextStyle(
+                                color: Theme
+                                    .of(context)
+                                    .colorScheme
+                                    .onSurface,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              GlassLargeTitle(
-                text: 'History',
-                controller: widget.titleController,
-              ),
-              SliverHistoryCallList(calls: calls, db: widget.db),
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
         );
