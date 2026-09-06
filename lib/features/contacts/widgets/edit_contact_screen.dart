@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -20,6 +22,9 @@ class _EditContactScreenState extends State<EditContactScreen> {
   late final TextEditingController _jobTitleController;
   late final TextEditingController _emailController;
   late final List<TextEditingController> _phoneControllers;
+
+  Uint8List? _photoBytes;
+  bool _photoChanged = false;
 
   bool _saving = false;
 
@@ -77,6 +82,29 @@ class _EditContactScreenState extends State<EditContactScreen> {
     });
   }
 
+  Future<void> _pickPhoto() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png'],
+      withData: true,
+    );
+
+    final bytes = result?.files.single.bytes;
+    if (bytes == null) return;
+
+    setState(() {
+      _photoBytes = bytes;
+      _photoChanged = true;
+    });
+  }
+
+  void _removePhoto() {
+    setState(() {
+      _photoBytes = null;
+      _photoChanged = true;
+    });
+  }
+
   Future<void> _save() async {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
@@ -103,6 +131,10 @@ class _EditContactScreenState extends State<EditContactScreen> {
 
       final email = _emailController.text.trim();
       widget.contact.emails = email.isNotEmpty ? [Email(email)] : [];
+
+      if (_photoChanged) {
+        widget.contact.photo = _photoBytes;
+      }
 
       await widget.contact.update();
 
@@ -155,6 +187,58 @@ class _EditContactScreenState extends State<EditContactScreen> {
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 44,
+                          backgroundImage: _photoChanged
+                              ? (_photoBytes != null
+                                    ? MemoryImage(_photoBytes!)
+                                    : null)
+                              : (widget.contact.thumbnail != null
+                                    ? MemoryImage(widget.contact.thumbnail!)
+                                    : null),
+                          child:
+                              (_photoChanged
+                                      ? _photoBytes
+                                      : widget.contact.thumbnail) ==
+                                  null
+                              ? const Icon(Icons.person, size: 40)
+                              : null,
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: GestureDetector(
+                            onTap: _pickPhoto,
+                            child: CircleAvatar(
+                              radius: 14,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              child: const Icon(
+                                Icons.edit,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if ((_photoChanged
+                          ? _photoBytes
+                          : widget.contact.thumbnail) !=
+                      null)
+                    Center(
+                      child: TextButton(
+                        onPressed: _removePhoto,
+                        child: const Text('Remove Photo'),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
                   TextField(
                     controller: _firstNameController,
                     autofocus: true,
