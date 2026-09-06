@@ -6,6 +6,7 @@ import '../../../core/database/app_database.dart';
 import '../screens/call_details_screen.dart';
 import '../utils/call_type_label.dart';
 import '../utils/format_call_time.dart';
+import '../utils/format_duration.dart';
 import 'call_indicators.dart';
 import 'call_note_preview.dart';
 
@@ -54,10 +55,23 @@ class CallCardContent extends StatelessWidget {
     final showReminderIndicator = settings?.showReminderIndicator ?? true;
     final showAttachmentCount = settings?.showAttachmentCount ?? true;
 
-    final detailParts = <String>[
-      if (showCallType) callTypeLabel(call.type),
-      if (showDuration) '${call.duration}s',
-      if (showTime) formatCallTime(call.timestamp),
+    final callDetails = <Widget>[
+      if (showCallType)
+        _CallMetaItem(
+          icon: callTypeIcon(call.type),
+          label: callTypeLabel(call.type),
+          color: _getCallTypeColor(call.type, scheme),
+        ),
+      if (showDuration && call.duration > 0)
+        _CallMetaItem(
+          icon: Icons.timer_outlined,
+          label: formatDuration(call.duration),
+        ),
+      if (showTime)
+        _CallMetaItem(
+          icon: Icons.schedule_outlined,
+          label: formatCallTime(call.timestamp),
+        ),
     ];
 
     final note = detail?.note?.trim();
@@ -156,28 +170,41 @@ class CallCardContent extends StatelessWidget {
                         ],
                       ),
                     ),
+
+                    if (phoneNumber?.isNotEmpty == true)
+                      IconButton(
+                        icon: const Icon(Icons.call_outlined),
+                        onPressed: () {
+                          // TODO: Implement call functionality
+                        },
+                        color: scheme.primary,
+                        visualDensity: VisualDensity.compact,
+                      ),
                   ],
                 ),
 
-                if (detailParts.isNotEmpty) ...[
+                if (callDetails.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Icon(
-                        Icons.call_outlined,
-                        size: 15,
-                        color: scheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          detailParts.join(' • '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
+                      ...callDetails.expand(
+                        (item) => [
+                          item,
+                          if (item != callDetails.last)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Container(
+                                width: 3,
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: scheme.outlineVariant,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -226,5 +253,47 @@ class CallCardContent extends StatelessWidget {
     return '${parts.first.substring(0, 1)}'
             '${parts.last.substring(0, 1)}'
         .toUpperCase();
+  }
+
+  Color _getCallTypeColor(int type, ColorScheme scheme) {
+    switch (type) {
+      case 3: // Missed
+      case 5: // Rejected
+      case 6: // Blocked
+        return scheme.error;
+      case 1: // Incoming
+        return Colors.green;
+      case 2: // Outgoing
+        return Colors.blue;
+      default:
+        return scheme.onSurfaceVariant;
+    }
+  }
+}
+
+class _CallMetaItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  const _CallMetaItem({required this.icon, required this.label, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final effectiveColor = color ?? scheme.onSurfaceVariant;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: effectiveColor),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: theme.textTheme.bodySmall?.copyWith(color: effectiveColor),
+        ),
+      ],
+    );
   }
 }

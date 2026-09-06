@@ -247,11 +247,18 @@ class _HistoryScreenState extends State<HistoryScreen>
         }
 
         final calls = snapshot.data ?? [];
+        final String? firstDate = calls.isNotEmpty
+            ? dayLabelFor(
+                DateTime.fromMillisecondsSinceEpoch(calls.first.timestamp),
+              )
+            : null;
 
         if (calls.isNotEmpty && _visibleDate == null) {
-          final grouped = groupCallsByDay(calls);
-          _visibleDate = grouped.keys.first;
+          _visibleDate = firstDate;
         }
+
+        final bool isAtTopDate =
+            _visibleDate != null && _visibleDate == firstDate;
 
         return Material(
           type: MaterialType.transparency,
@@ -287,11 +294,11 @@ class _HistoryScreenState extends State<HistoryScreen>
                   child: IgnorePointer(
                     child: Center(
                       child: AnimatedOpacity(
-                        opacity: _visibleDate == 'Today' ? 0.0 : 1.0,
+                        opacity: isAtTopDate ? 0.0 : 1.0,
                         duration: const Duration(milliseconds: 250),
                         curve: Curves.easeInOut,
                         child: AnimatedScale(
-                          scale: _visibleDate == 'Today' ? 0.8 : 1.0,
+                          scale: isAtTopDate ? 0.8 : 1.0,
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.easeOutBack,
                           child: GlassContainer(
