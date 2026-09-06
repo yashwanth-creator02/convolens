@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' as drift;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
@@ -10,6 +11,7 @@ import '../tabs/contact_analytics_tab.dart';
 import '../tabs/contact_more_tab.dart';
 import '../tabs/contact_overview_tab.dart';
 import '../widgets/contact_header.dart';
+import '../widgets/edit_contact_screen.dart';
 
 class ContactDetailScreen extends StatefulWidget {
   final String normalizedNumber;
@@ -23,7 +25,7 @@ class ContactDetailScreen extends StatefulWidget {
     required this.normalizedNumber,
     required this.displayName,
     required this.displayNumber,
-    this.deviceContact,
+    required this.deviceContact,
     required this.db,
   });
 
@@ -57,19 +59,34 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                   menuAlignment: GlassMenuAlignment.topRight,
                   menuWidth: 170,
                   menuItems: [
-                    GlassMenuItem(
-                      title: 'Edit',
-                      icon: const Icon(Icons.edit_outlined),
-                      titleStyle: const TextStyle(
-                        decoration: TextDecoration.none,
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                    if (widget.deviceContact != null)
+                      GlassMenuItem(
+                        title: 'Edit',
+                        icon: const Icon(Icons.edit_outlined),
+                        titleStyle: const TextStyle(
+                          decoration: TextDecoration.none,
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        onTap: () async {
+                          final updated = await Navigator.of(context)
+                              .push<bool>(
+                                CupertinoPageRoute(
+                                  builder: (context) => EditContactScreen(
+                                    contact: widget.deviceContact!,
+                                  ),
+                                ),
+                              );
+
+                          if (updated == true && mounted) {
+                            setState(() {});
+                            if (context.mounted) {
+                              ToastService.success(context, 'Contact updated.');
+                            }
+                          }
+                        },
                       ),
-                      onTap: () {
-                        // TODO: Open edit contact screen.
-                      },
-                    ),
                     GlassMenuItem(
                       title: detail?.isArchived == true
                           ? 'Unarchive'

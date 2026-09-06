@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:open_filex/open_filex.dart';
 
@@ -35,6 +36,22 @@ class CallDetailScreen extends StatefulWidget {
 }
 
 class _CallDetailScreenState extends State<CallDetailScreen> {
+  Future<Contact?> _findDeviceContact(String phoneNumber) async {
+    final normalized = normalizePhoneNumber(phoneNumber);
+
+    final contacts = await FlutterContacts.getContacts(withProperties: true);
+
+    for (final contact in contacts) {
+      for (final phone in contact.phones) {
+        if (normalizePhoneNumber(phone.number) == normalized) {
+          return contact;
+        }
+      }
+    }
+
+    return null;
+  }
+
   Future<void> _editNote(BuildContext context, String? currentNote) async {
     final result = await showTextInputDialog(
       context: context,
@@ -364,11 +381,16 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
               icon: const Icon(Icons.person_outline),
               id: 'context_action',
               label: 'View Contact',
-              onTap: () {
+              onTap: () async {
                 final phoneNumber = widget.call.number!.trim();
+
                 final displayName = widget.call.name?.trim().isNotEmpty == true
                     ? widget.call.name!.trim()
                     : phoneNumber;
+
+                final deviceContact = await _findDeviceContact(phoneNumber);
+
+                if (!context.mounted) return;
 
                 Navigator.of(context).push(
                   CupertinoPageRoute(
@@ -376,6 +398,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       normalizedNumber: normalizePhoneNumber(phoneNumber),
                       displayName: displayName,
                       displayNumber: phoneNumber,
+                      deviceContact: deviceContact,
                       db: widget.db,
                     ),
                   ),
@@ -417,7 +440,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                             const Divider(height: 32),
                             StreamBuilder<List<Tag>>(
                               stream: widget.db.watchTagsForCall(
-                                  widget.call.id),
+                                widget.call.id,
+                              ),
                               builder: (context, tagSnapshot) {
                                 return CallTagsSection(
                                   tags: tagSnapshot.data ?? const [],
@@ -452,7 +476,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                               builder: (context, attachmentSnapshot) {
                                 return CallAttachmentsSection(
                                   attachments:
-                                  attachmentSnapshot.data ?? const [],
+                                      attachmentSnapshot.data ?? const [],
                                   onAdd: () => _chooseAttachmentType(context),
                                   onView: (attachment) =>
                                       _viewAttachment(context, attachment),

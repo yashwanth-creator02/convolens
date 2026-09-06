@@ -8,7 +8,6 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/database/app_database.dart';
 import '../../history/repository/attachment_storage.dart';
 import '../models/profile_field_def.dart';
-import 'edit_profile_screen.dart';
 import 'share_contact_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
