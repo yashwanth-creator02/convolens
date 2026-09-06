@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -43,6 +45,10 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   List<Contact> deviceContacts = [];
   bool _loading = true;
 
+  bool _isActive = false;
+  StreamSubscription<AnalyticsSummary>? _summarySubscription;
+  AnalyticsSummary? _cachedSummary;
+
   AnalyticsFilters filters = const AnalyticsFilters();
 
   int _selectedTab = 0;
@@ -66,12 +72,32 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
 
   Future<void> openFilters() => _showFilters();
 
+  void setActive(bool active) {
+    if (_isActive == active) return;
+    _isActive = active;
+    _updateSubscription();
+  }
+
+  void _updateSubscription() {
+    _summarySubscription?.cancel();
+    _summarySubscription = null;
+
+    if (!_isActive || _loading) return;
+
+    _summarySubscription = repository
+        .watchSummary(deviceContacts, filters)
+        .listen((summary) {
+          if (mounted) setState(() => _cachedSummary = summary);
+        });
+  }
+
   void applyFilters(AnalyticsFilters result) {
     if (!mounted) return;
     setState(() {
       filters = result;
       _updateSelectedNames();
     });
+    _updateSubscription();
   }
 
   Future<void> _showFilters() async {
@@ -92,6 +118,12 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     if (result != null) {
       applyFilters(result);
     }
+  }
+
+  @override
+  void dispose() {
+    _summarySubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _updateSelectedNames() async {
@@ -141,6 +173,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       setState(() {
         _loading = false;
       });
+      _updateSubscription();
     }
   }
 
@@ -271,55 +304,50 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return StreamBuilder<AnalyticsSummary>(
-      stream: repository.watchSummary(deviceContacts, filters),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    if (_cachedSummary == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-        final summary = snapshot.data!;
+    final summary = _cachedSummary!;
 
-        return Material(
-          type: MaterialType.transparency,
-          child: CustomScrollView(
-            controller: widget.titleController.scrollController,
-            slivers: [
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: MediaQuery.of(context).padding.top + kToolbarHeight,
-                ),
-              ),
-              GlassLargeTitle(
-                text: 'Analytics',
-                controller: widget.titleController,
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: GlassSegmentedControl.scrollable(
-                    quality: GlassQuality.premium,
-                    selectedIndex: _selectedTab,
-                    onSegmentSelected: (index) {
-                      setState(() {
-                        _selectedTab = index;
-                      });
-                    },
-                    segments: const [
-                      GlassSegment(label: 'Overview'),
-                      GlassSegment(label: 'Activity'),
-                      GlassSegment(label: 'People'),
-                      GlassSegment(label: 'Records'),
-                    ],
-                  ),
-                ),
-              ),
-              ..._buildTabSlivers(summary),
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
-            ],
+    return Material(
+      type: MaterialType.transparency,
+      child: CustomScrollView(
+        controller: widget.titleController.scrollController,
+        slivers: [
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: MediaQuery.of(context).padding.top + kToolbarHeight,
+            ),
           ),
-        );
-      },
+          GlassLargeTitle(
+            text: 'Analytics',
+            controller: widget.titleController,
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GlassSegmentedControl.scrollable(
+                quality: GlassQuality.premium,
+                selectedIndex: _selectedTab,
+                onSegmentSelected: (index) {
+                  setState(() {
+                    _selectedTab = index;
+                  });
+                },
+                segments: const [
+                  GlassSegment(label: 'Overview'),
+                  GlassSegment(label: 'Activity'),
+                  GlassSegment(label: 'People'),
+                  GlassSegment(label: 'Records'),
+                ],
+              ),
+            ),
+          ),
+          ..._buildTabSlivers(summary),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+        ],
+      ),
     );
   }
 

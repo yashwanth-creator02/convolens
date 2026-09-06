@@ -129,6 +129,11 @@ class _MainShellState extends State<MainShell> {
 
     InsightChecker(_db).checkStreakRecord();
     InsightChecker(_db).checkWeeklySummary();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _analyticsScreenKey.currentState?.setActive(_selectedIndex == 1);
+      _contactsScreenKey.currentState?.setActive(_selectedIndex == 2);
+    });
   }
 
   @override
@@ -154,6 +159,9 @@ class _MainShellState extends State<MainShell> {
     }
 
     _tabBarMinimizeController.expand();
+
+    _analyticsScreenKey.currentState?.setActive(index == 1);
+    _contactsScreenKey.currentState?.setActive(index == 2);
 
     setState(() {
       _selectedIndex = index;
