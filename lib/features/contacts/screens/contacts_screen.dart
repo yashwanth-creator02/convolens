@@ -36,14 +36,14 @@ class ContactsScreenState extends State<ContactsScreen>
   late final ContactsRepository _repository;
 
   bool _isActive = false;
+  bool _contactsLoaded = false;
+  List<ContactSummary> _cachedContacts = [];
+  Set<String> _cachedFavorites = {};
+  int _cachedArchivedCount = 0;
 
-  StreamSubscription<List<ContactSummary>>? _contactsSubscription;
-  StreamSubscription<List<ContactSummary>>? _archivedSubscription;
-  StreamSubscription<Set<String>>? _favoritesSubscription;
-
-  List<ContactSummary>? _cachedContacts;
-  List<ContactSummary>? _cachedArchived;
-  Set<String>? _cachedFavorites;
+  StreamSubscription<List<ContactSummary>>? _contactsSub;
+  StreamSubscription<Set<String>>? _favoritesSub;
+  StreamSubscription<List<ContactSummary>>? _archivedSub;
 
   bool _permissionGranted = false;
   bool _loadingContacts = true;
@@ -61,30 +61,32 @@ class ContactsScreenState extends State<ContactsScreen>
   }
 
   void _updateSubscriptions() {
-    _contactsSubscription?.cancel();
-    _archivedSubscription?.cancel();
-    _favoritesSubscription?.cancel();
+    _contactsSub?.cancel();
+    _favoritesSub?.cancel();
+    _archivedSub?.cancel();
+    _contactsSub = null;
+    _favoritesSub = null;
+    _archivedSub = null;
 
-    _contactsSubscription = null;
-    _archivedSubscription = null;
-    _favoritesSubscription = null;
+    if (!_isActive || _loadingContacts) return;
 
-    if (!_isActive || _loadingContacts || !_permissionGranted) return;
-
-    _contactsSubscription = _repository.watchContacts(_deviceContacts).listen((
-      data,
-    ) {
-      if (mounted) setState(() => _cachedContacts = data);
+    _contactsSub = _repository.watchContacts(_deviceContacts).listen((data) {
+      if (mounted) {
+        setState(() {
+          _cachedContacts = data;
+          _contactsLoaded = true;
+        });
+      }
     });
 
-    _archivedSubscription = _repository
-        .watchArchivedContacts(_deviceContacts)
-        .listen((data) {
-          if (mounted) setState(() => _cachedArchived = data);
-        });
-
-    _favoritesSubscription = widget.db.watchFavoriteNumbers().listen((data) {
+    _favoritesSub = widget.db.watchFavoriteNumbers().listen((data) {
       if (mounted) setState(() => _cachedFavorites = data);
+    });
+
+    _archivedSub = _repository.watchArchivedContacts(_deviceContacts).listen((
+      data,
+    ) {
+      if (mounted) setState(() => _cachedArchivedCount = data.length);
     });
   }
 
@@ -106,9 +108,9 @@ class ContactsScreenState extends State<ContactsScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _searchFocusNode.dispose();
-    _contactsSubscription?.cancel();
-    _archivedSubscription?.cancel();
-    _favoritesSubscription?.cancel();
+    _contactsSub?.cancel();
+    _favoritesSub?.cancel();
+    _archivedSub?.cancel();
     super.dispose();
   }
 
@@ -249,15 +251,13 @@ class ContactsScreenState extends State<ContactsScreen>
   }
 
   Widget _buildContactsList() {
-    final archivedCount = _cachedArchived?.length ?? 0;
-    final favoriteNumbers = _cachedFavorites ?? <String>{};
-    final contacts = _cachedContacts ?? [];
-
-    if (_cachedContacts == null ||
-        _cachedArchived == null ||
-        _cachedFavorites == null) {
+    if (!_contactsLoaded) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final contacts = _cachedContacts;
+    final favoriteNumbers = _cachedFavorites;
+    final archivedCount = _cachedArchivedCount;
 
     if (contacts.isEmpty) {
       return const Center(child: Text('No contacts found.'));

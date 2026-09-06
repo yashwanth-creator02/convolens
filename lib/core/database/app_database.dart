@@ -1438,6 +1438,6 @@ LazyDatabase _openConnection() {
 
     final file = File(p.join(dbFolder.path, 'convolens.sqlite'));
 
-    return NativeDatabase(file);
+    return NativeDatabase.createInBackground(file);
   });
 }
