@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/utils/call_launcher.dart';
 import '../screens/call_details_screen.dart';
 import '../utils/call_type_label.dart';
 import '../utils/format_call_time.dart';
@@ -233,9 +234,7 @@ class CallCardContent extends StatelessWidget {
                           if (phoneNumber?.isNotEmpty == true)
                             IconButton(
                               icon: const Icon(Icons.call_outlined, size: 20),
-                              onPressed: () {
-                                // TODO: Implement call functionality
-                              },
+                              onPressed: () => CallLauncher.call(phoneNumber!),
                               color: scheme.primary,
                               visualDensity: VisualDensity.compact,
                             ),

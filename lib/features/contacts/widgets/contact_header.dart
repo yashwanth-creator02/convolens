@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/utils/call_launcher.dart';
 
 class ContactHeader extends StatefulWidget {
   final String displayName;
@@ -50,18 +51,12 @@ class _ContactHeaderState extends State<ContactHeader>
 
   Future<void> _call() async {
     if (widget.displayNumber.isEmpty) return;
-
-    final uri = Uri(scheme: 'tel', path: widget.displayNumber);
-
-    await launchUrl(uri);
+    await CallLauncher.call(widget.displayNumber);
   }
 
   Future<void> _message() async {
     if (widget.displayNumber.isEmpty) return;
-
-    final uri = Uri(scheme: 'sms', path: widget.displayNumber);
-
-    await launchUrl(uri);
+    await CallLauncher.message(widget.displayNumber);
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/utils/call_launcher.dart';
 
 class ContactPhoneNumbersSection extends StatelessWidget {
   final Contact? deviceContact;
@@ -13,11 +14,11 @@ class ContactPhoneNumbersSection extends StatelessWidget {
   });
 
   Future<void> _call(String number) async {
-    await launchUrl(Uri(scheme: 'tel', path: number));
+    await CallLauncher.call(number);
   }
 
   Future<void> _message(String number) async {
-    await launchUrl(Uri(scheme: 'sms', path: number));
+    await CallLauncher.message(number);
   }
 
   String _labelFor(Phone phone) {
