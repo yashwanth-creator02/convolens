@@ -21,11 +21,7 @@ class ContactCard extends StatelessWidget {
             ? MemoryImage(contact.deviceContact!.thumbnail!)
             : null,
         child: contact.deviceContact?.thumbnail == null
-            ? Text(
-                contact.displayName.isNotEmpty
-                    ? contact.displayName[0].toUpperCase()
-                    : '?',
-              )
+            ? Text(_getInitials(contact.displayName))
             : null,
       ),
       title: Text(
@@ -47,5 +43,19 @@ class ContactCard extends StatelessWidget {
           : null,
       onTap: onTap,
     );
+  }
+
+  String _getInitials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
   }
 }

@@ -171,13 +171,25 @@ class _ContactHeaderState extends State<ContactHeader>
       backgroundImage: thumbnail != null ? MemoryImage(thumbnail) : null,
       child: thumbnail == null
           ? Text(
-              widget.displayName.isNotEmpty
-                  ? widget.displayName[0].toUpperCase()
-                  : '?',
+              _getInitials(widget.displayName),
               style: const TextStyle(fontSize: 22),
             )
           : null,
     );
+  }
+
+  String _getInitials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
   }
 
   Widget _buildContactInfo(Organization? organization, String? email) {
