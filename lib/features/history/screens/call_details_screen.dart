@@ -10,6 +10,7 @@ import 'package:open_filex/open_filex.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../core/utils/call_launcher.dart';
 import '../../../core/utils/normalize_number.dart';
 import '../../../shared/widgets/add_tag_dialog.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
@@ -376,7 +377,13 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
       appBar: GlassAppBar.pinned(
         title: const Text('Call Details'),
         actions: [
-          if (widget.call.number?.trim().isNotEmpty == true)
+          if (widget.call.number?.trim().isNotEmpty == true) ...[
+            GlassBarItem.icon(
+              icon: const Icon(Icons.call_outlined),
+              id: 'call_action',
+              label: 'Call',
+              onTap: () => CallLauncher.call(widget.call.number!.trim()),
+            ),
             GlassBarItem.icon(
               icon: const Icon(Icons.person_outline),
               id: 'context_action',
@@ -405,6 +412,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 );
               },
             ),
+          ],
         ],
       ),
       body: Material(

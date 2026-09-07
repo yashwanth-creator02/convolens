@@ -109,30 +109,35 @@ class CallCardContent extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 26, 12, 1),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (showCallType)
-                        _CallMetaItem(
-                          icon: callTypeIcon(call.type),
-                          value: callTypeLabel(call.type),
-                          color: callTypeColor,
-                        ),
-                      if (showCallType && (showDuration || showTime))
-                        const _MetaDivider(),
-                      if (showDuration && call.duration > 0)
-                        _CallMetaItem(
-                          icon: Icons.timer_outlined,
-                          value: formatDuration(call.duration),
-                        ),
-                      if (showDuration && call.duration > 0 && showTime)
-                        const _MetaDivider(),
-                      if (showTime)
-                        _CallMetaItem(
-                          icon: Icons.schedule_outlined,
-                          value: formatCallTime(call.timestamp),
-                        ),
-                    ],
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (showCallType)
+                          _CallMetaItem(
+                            icon: callTypeIcon(call.type),
+                            value: callTypeLabel(call.type),
+                            color: callTypeColor,
+                          ),
+                        if (showCallType && (showDuration || showTime))
+                          const _MetaDivider(),
+                        if (showDuration && call.duration > 0)
+                          _CallMetaItem(
+                            icon: Icons.timer_outlined,
+                            value: formatDuration(call.duration),
+                          ),
+                        if (showDuration && call.duration > 0 && showTime)
+                          const _MetaDivider(),
+                        if (showTime)
+                          _CallMetaItem(
+                            icon: Icons.schedule_outlined,
+                            value: formatCallTime(call.timestamp),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),

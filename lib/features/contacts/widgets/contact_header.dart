@@ -221,14 +221,6 @@ class _ContactHeaderState extends State<ContactHeader>
           ],
         ),
 
-        if (widget.displayNumber.isNotEmpty)
-          Text(
-            widget.displayNumber,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-
         if (organization != null &&
             (organization.company.isNotEmpty || organization.title.isNotEmpty))
           Text(

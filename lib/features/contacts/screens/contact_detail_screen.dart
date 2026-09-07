@@ -200,11 +200,6 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                       ],
                     ),
                   ),
-                  Divider(
-                    height: 1,
-                    thickness: 1,
-                    color: Theme.of(context).dividerColor.withAlpha(20),
-                  ),
                   Expanded(
                     child: AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
