@@ -88,20 +88,29 @@ class CallCardContent extends StatelessWidget {
         (attachmentCount > 0 && showAttachmentCount) ||
         (showTags && visibleTags.isNotEmpty);
 
+    final hasTopTab = (hasNote && showNotePreview) || showIndicators;
+    final hasBottomTab =
+        showCallType || (showDuration && call.duration > 0) || showTime;
+
     final callTypeColor = _getCallTypeColor(call.type, scheme);
     final tabBackgroundColor =
         Color.lerp(scheme.surfaceContainer, callTypeColor, 0.06) ??
         scheme.surfaceContainer;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(11, 18, 11, 18),
+      padding: EdgeInsets.fromLTRB(
+        11,
+        hasTopTab ? 18 : 2,
+        11,
+        hasBottomTab ? 18 : 2,
+      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           // ------------------------------------------------------------
           // Top metadata tab (Background Layer)
           // ------------------------------------------------------------
-          if ((hasNote && showNotePreview) || showIndicators)
+          if (hasTopTab)
             Positioned(
               left: 16,
               right: 16,
@@ -174,60 +183,61 @@ class CallCardContent extends StatelessWidget {
           // ------------------------------------------------------------
           // Bottom metadata tab (Background Layer)
           // ------------------------------------------------------------
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: -16,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: tabBackgroundColor,
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(16),
-                  ),
-                  border: Border.all(
-                    color: callTypeColor.withValues(alpha: 0.12),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: scheme.shadow.withValues(alpha: 0.04),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+          if (hasBottomTab)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: -16,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: tabBackgroundColor,
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(16),
                     ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 26, 12, 1),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (showCallType)
-                        _CallMetaItem(
-                          icon: callTypeIcon(call.type),
-                          value: callTypeLabel(call.type),
-                          color: callTypeColor,
-                        ),
-                      if (showCallType && (showDuration || showTime))
-                        const _MetaDivider(),
-                      if (showDuration && call.duration > 0)
-                        _CallMetaItem(
-                          icon: Icons.timer_outlined,
-                          value: formatDuration(call.duration),
-                        ),
-                      if (showDuration && call.duration > 0 && showTime)
-                        const _MetaDivider(),
-                      if (showTime)
-                        _CallMetaItem(
-                          icon: Icons.schedule_outlined,
-                          value: formatCallTime(call.timestamp),
-                        ),
+                    border: Border.all(
+                      color: callTypeColor.withValues(alpha: 0.12),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.shadow.withValues(alpha: 0.04),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
                     ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 26, 12, 1),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (showCallType)
+                          _CallMetaItem(
+                            icon: callTypeIcon(call.type),
+                            value: callTypeLabel(call.type),
+                            color: callTypeColor,
+                          ),
+                        if (showCallType && (showDuration || showTime))
+                          const _MetaDivider(),
+                        if (showDuration && call.duration > 0)
+                          _CallMetaItem(
+                            icon: Icons.timer_outlined,
+                            value: formatDuration(call.duration),
+                          ),
+                        if (showDuration && call.duration > 0 && showTime)
+                          const _MetaDivider(),
+                        if (showTime)
+                          _CallMetaItem(
+                            icon: Icons.schedule_outlined,
+                            value: formatCallTime(call.timestamp),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
           // ------------------------------------------------------------
           // Main contact card (Foreground Layer)
