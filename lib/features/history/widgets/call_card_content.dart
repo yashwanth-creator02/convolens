@@ -8,8 +8,6 @@ import '../screens/call_details_screen.dart';
 import '../utils/call_type_label.dart';
 import '../utils/format_call_time.dart';
 import '../utils/format_duration.dart';
-import 'call_indicators.dart';
-import 'call_note_preview.dart';
 
 class CallCardContent extends StatelessWidget {
   final Call call;
@@ -96,10 +94,83 @@ class CallCardContent extends StatelessWidget {
         scheme.surfaceContainer;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(11, 4, 11, 18),
+      padding: const EdgeInsets.fromLTRB(11, 18, 11, 18),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          // ------------------------------------------------------------
+          // Top metadata tab (Background Layer)
+          // ------------------------------------------------------------
+          if ((hasNote && showNotePreview) || showIndicators)
+            Positioned(
+              left: 16,
+              right: 16,
+              top: -16,
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: tabBackgroundColor,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                    border: Border.all(
+                      color: callTypeColor.withValues(alpha: 0.12),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.shadow.withValues(alpha: 0.04),
+                        blurRadius: 6,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 1, 12, 26),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        if (hasNote && showNotePreview)
+                          Flexible(
+                            child: _CallMetaItem(
+                              icon: Icons.notes,
+                              value: notePreview!,
+                            ),
+                          ),
+                        if (hasNote && showNotePreview && showIndicators)
+                          const _MetaDivider(),
+                        if (hasReminder && showReminderIndicator)
+                          _CallMetaItem(
+                            icon: Icons.notifications_active_outlined,
+                            value: 'Reminder',
+                            color: scheme.primary,
+                          ),
+                        if (hasReminder &&
+                            showReminderIndicator &&
+                            ((attachmentCount > 0 && showAttachmentCount) ||
+                                (showTags && visibleTags.isNotEmpty)))
+                          const _MetaDivider(),
+                        if (attachmentCount > 0 && showAttachmentCount)
+                          _CallMetaItem(
+                            icon: Icons.attach_file,
+                            value: '$attachmentCount',
+                          ),
+                        if (attachmentCount > 0 &&
+                            showAttachmentCount &&
+                            (showTags && visibleTags.isNotEmpty))
+                          const _MetaDivider(),
+                        if (showTags && visibleTags.isNotEmpty)
+                          _CallMetaItem(
+                            icon: Icons.label_outline,
+                            value: '${tags.length}',
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
           // ------------------------------------------------------------
           // Bottom metadata tab (Background Layer)
           // ------------------------------------------------------------
@@ -127,9 +198,9 @@ class CallCardContent extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 26, 12, 1),
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       if (showCallType)
                         _CallMetaItem(
@@ -259,30 +330,6 @@ class CallCardContent extends StatelessWidget {
                             ),
                         ],
                       ),
-
-                      // ------------------------------------------------
-                      // Optional note
-                      // ------------------------------------------------
-                      if (hasNote && showNotePreview) ...[
-                        const SizedBox(height: 12),
-                        CallNotePreview(note: notePreview!),
-                      ],
-
-                      // ------------------------------------------------
-                      // Existing indicators
-                      // ------------------------------------------------
-                      if (showIndicators) ...[
-                        const SizedBox(height: 12),
-                        CallIndicators(
-                          hasReminder: hasReminder,
-                          showReminderIndicator: showReminderIndicator,
-                          attachmentCount: attachmentCount,
-                          showAttachmentCount: showAttachmentCount,
-                          showTags: showTags,
-                          visibleTags: visibleTags,
-                          remainingTagCount: remainingTagCount,
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -342,12 +389,16 @@ class _CallMetaItem extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: effectiveColor),
         const SizedBox(width: 4),
-        Text(
-          value,
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: effectiveColor,
-            fontWeight: FontWeight.w600,
-            fontSize: 11,
+        Flexible(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: effectiveColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
           ),
         ),
       ],
