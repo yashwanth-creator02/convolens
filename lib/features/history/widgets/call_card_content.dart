@@ -19,6 +19,9 @@ class CallCardContent extends StatelessWidget {
   final List<Tag> tags;
   final int attachmentCount;
   final Contact? deviceContact;
+  final bool showCallButton;
+  final bool showPhoneNumber;
+  final bool showName;
 
   const CallCardContent({
     super.key,
@@ -29,6 +32,9 @@ class CallCardContent extends StatelessWidget {
     required this.tags,
     required this.attachmentCount,
     this.deviceContact,
+    this.showCallButton = true,
+    this.showPhoneNumber = true,
+    this.showName = true,
   });
 
   @override
@@ -39,15 +45,27 @@ class CallCardContent extends StatelessWidget {
     final contactName = call.name?.trim();
     final phoneNumber = call.number?.trim();
 
-    final displayName = contactName?.isNotEmpty == true
+    // Determine title and subtitle based on overrides and settings
+    final hasName = contactName?.isNotEmpty == true;
+    final hasNumber = phoneNumber?.isNotEmpty == true;
+
+    final displayTitle = (showName && hasName)
         ? contactName!
-        : phoneNumber?.isNotEmpty == true
+        : hasNumber
         ? phoneNumber!
         : 'Unknown';
 
+    final showSubtitle =
+        showName &&
+        hasName &&
+        showPhoneNumber &&
+        (settings?.showPhoneNumber ?? true) &&
+        hasNumber;
+
+    final displaySubtitle = showSubtitle ? phoneNumber : null;
+
     // Settings toggles
-    final showContactName = settings?.showContactName ?? true;
-    final showPhoneNumber = settings?.showPhoneNumber ?? true;
+    final showContactNameSetting = settings?.showContactName ?? true;
     final showCallType = settings?.showCallType ?? true;
     final showDuration = settings?.showDuration ?? true;
     final showTime = settings?.showTime ?? true;
@@ -109,35 +127,31 @@ class CallCardContent extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 26, 12, 1),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.center,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (showCallType)
-                          _CallMetaItem(
-                            icon: callTypeIcon(call.type),
-                            value: callTypeLabel(call.type),
-                            color: callTypeColor,
-                          ),
-                        if (showCallType && (showDuration || showTime))
-                          const _MetaDivider(),
-                        if (showDuration && call.duration > 0)
-                          _CallMetaItem(
-                            icon: Icons.timer_outlined,
-                            value: formatDuration(call.duration),
-                          ),
-                        if (showDuration && call.duration > 0 && showTime)
-                          const _MetaDivider(),
-                        if (showTime)
-                          _CallMetaItem(
-                            icon: Icons.schedule_outlined,
-                            value: formatCallTime(call.timestamp),
-                          ),
-                      ],
-                    ),
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      if (showCallType)
+                        _CallMetaItem(
+                          icon: callTypeIcon(call.type),
+                          value: callTypeLabel(call.type),
+                          color: callTypeColor,
+                        ),
+                      if (showCallType && (showDuration || showTime))
+                        const _MetaDivider(),
+                      if (showDuration && call.duration > 0)
+                        _CallMetaItem(
+                          icon: Icons.timer_outlined,
+                          value: formatDuration(call.duration),
+                        ),
+                      if (showDuration && call.duration > 0 && showTime)
+                        const _MetaDivider(),
+                      if (showTime)
+                        _CallMetaItem(
+                          icon: Icons.schedule_outlined,
+                          value: formatCallTime(call.timestamp),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -197,7 +211,9 @@ class CallCardContent extends StatelessWidget {
                                 (deviceContact?.thumbnail == null &&
                                     deviceContact?.photo == null)
                                 ? Text(
-                                    _getInitials(displayName),
+                                    _getInitials(
+                                      hasName ? contactName! : displayTitle,
+                                    ),
                                     style: TextStyle(
                                       color: scheme.onSecondaryContainer,
                                       fontWeight: FontWeight.bold,
@@ -211,20 +227,18 @@ class CallCardContent extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (showContactName)
+                                if (showContactNameSetting || !showName)
                                   Text(
-                                    displayName,
+                                    displayTitle,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: theme.textTheme.titleMedium
                                         ?.copyWith(fontWeight: FontWeight.w600),
                                   ),
-                                if (showPhoneNumber &&
-                                    phoneNumber?.isNotEmpty == true &&
-                                    contactName?.isNotEmpty == true) ...[
+                                if (displaySubtitle != null) ...[
                                   const SizedBox(height: 1),
                                   Text(
-                                    phoneNumber!,
+                                    displaySubtitle,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -236,7 +250,7 @@ class CallCardContent extends StatelessWidget {
                               ],
                             ),
                           ),
-                          if (phoneNumber?.isNotEmpty == true)
+                          if (showCallButton && hasNumber)
                             IconButton(
                               icon: const Icon(Icons.call_outlined, size: 20),
                               onPressed: () => CallLauncher.call(phoneNumber!),

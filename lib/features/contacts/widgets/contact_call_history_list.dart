@@ -49,6 +49,8 @@ class ContactCallHistoryList extends StatelessWidget {
             call: calls[index],
             db: db,
             deviceContact: deviceContact,
+            showCallButton: false,
+            showName: false,
           ),
         );
       },

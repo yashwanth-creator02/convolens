@@ -8,12 +8,18 @@ class CallCard extends StatelessWidget {
   final Call call;
   final AppDatabase db;
   final Contact? deviceContact;
+  final bool showCallButton;
+  final bool showPhoneNumber;
+  final bool showName;
 
   const CallCard({
     super.key,
     required this.call,
     required this.db,
     this.deviceContact,
+    this.showCallButton = true,
+    this.showPhoneNumber = true,
+    this.showName = true,
   });
 
   @override
@@ -38,6 +44,9 @@ class CallCard extends StatelessWidget {
                       tags: tagsSnapshot.data ?? const [],
                       attachmentCount: attachmentSnapshot.data ?? 0,
                       deviceContact: deviceContact,
+                      showCallButton: showCallButton,
+                      showPhoneNumber: showPhoneNumber,
+                      showName: showName,
                     );
                   },
                 );
