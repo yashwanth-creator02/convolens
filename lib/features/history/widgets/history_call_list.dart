@@ -4,19 +4,20 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/normalize_number.dart';
-import '../utils/group_calls_by_day.dart';
 import 'call_card.dart';
 
 class SliverHistoryCallList extends StatefulWidget {
-  final List<Call> calls;
+  final List<Object> items;
   final AppDatabase db;
   final List<Contact> deviceContacts;
+  final Map<int, GlobalKey>? boundaryKeys;
 
   const SliverHistoryCallList({
     super.key,
-    required this.calls,
+    required this.items,
     required this.db,
     required this.deviceContacts,
+    this.boundaryKeys,
   });
 
   @override
@@ -27,7 +28,6 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
   final GlobalKey _sliverKey = GlobalKey();
 
   late List<String> _datesByIndex;
-
   String? _currentDate;
 
   String? get visibleDate => _currentDate;
@@ -41,25 +41,19 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
   @override
   void didUpdateWidget(covariant SliverHistoryCallList oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.calls != widget.calls) {
+    if (oldWidget.items != widget.items) {
       _buildDateIndex();
     }
   }
 
   void _buildDateIndex() {
-    final grouped = groupCallsByDay(widget.calls);
-
     _datesByIndex = [];
-
-    for (final entry in grouped.entries) {
-      // Date header.
-      _datesByIndex.add(entry.key);
-
-      // Every call belonging to this date.
-      for (int i = 0; i < entry.value.length; i++) {
-        _datesByIndex.add(entry.key);
+    String? lastDate;
+    for (final item in widget.items) {
+      if (item is String) {
+        lastDate = item;
       }
+      _datesByIndex.add(lastDate ?? '');
     }
 
     if (_datesByIndex.isNotEmpty) {
@@ -77,8 +71,6 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
     if (renderObject is! RenderSliverMultiBoxAdaptor) return;
 
     final mediaQuery = MediaQuery.of(context);
-    // Boundary line: The vertical point where we want the date to switch.
-    // We'll place it at the center of where the floating glass header sits.
     final stickyHeaderTop = mediaQuery.padding.top + kToolbarHeight + 12;
     const stickyHeaderHeight = 32.0;
     final threshold = stickyHeaderTop + (stickyHeaderHeight / 2);
@@ -90,7 +82,6 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
       final y = child.localToGlobal(Offset.zero).dy;
       final height = child.size.height;
 
-      // Check if this child's vertical span covers the threshold line
       if (y <= threshold && y + height >= threshold) {
         final SliverMultiBoxAdaptorParentData parentData =
             child.parentData! as SliverMultiBoxAdaptorParentData;
@@ -98,8 +89,6 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
         break;
       }
 
-      // If the child is already below the threshold, it means the threshold
-      // is currently in a "gap" before the first child (e.g. under the title).
       if (y > threshold) {
         foundIndex = renderObject.indexOf(child);
         break;
@@ -120,42 +109,40 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.calls.isEmpty) {
+    if (widget.items.isEmpty) {
       return const SliverFillRemaining(
         child: Center(child: Text('No calls yet.')),
       );
     }
 
-    final grouped = groupCallsByDay(widget.calls);
-
-    final List<Object> items = [];
-
-    for (final entry in grouped.entries) {
-      items.add(entry.key);
-      items.addAll(entry.value);
-    }
-
     return SliverList(
       key: _sliverKey,
       delegate: SliverChildBuilderDelegate((context, index) {
-        final item = items[index];
+        final item = widget.items[index];
+        final boundaryKey = widget.boundaryKeys?[index];
 
+        Widget child;
         if (item is String) {
-          return Padding(
+          child = Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Text(
               item,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           );
+        } else {
+          final call = item as Call;
+          child = CallCard(
+            call: call,
+            db: widget.db,
+            deviceContact: _findContact(call.number),
+          );
         }
 
-        return CallCard(
-          call: item as Call,
-          db: widget.db,
-          deviceContact: _findContact(item.number),
-        );
-      }, childCount: items.length),
+        return boundaryKey != null
+            ? KeyedSubtree(key: boundaryKey, child: child)
+            : child;
+      }, childCount: widget.items.length),
     );
   }
 

@@ -10,9 +10,12 @@ import '../../../core/database/app_database.dart';
 import '../../../core/logger/logger.dart';
 import '../../../core/toast/toast_service.dart';
 import '../repository/calls_repository.dart';
+import '../utils/build_history_items.dart';
 import '../utils/group_calls_by_day.dart';
+import '../utils/year_index.dart';
 import '../widgets/history_call_list.dart';
 import '../widgets/history_permission_view.dart';
+import '../widgets/timeline_wave_navigator.dart';
 
 class HistoryScreen extends StatefulWidget {
   final AppDatabase db;
@@ -36,6 +39,8 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   final GlobalKey<SliverHistoryCallListState> _historyListKey =
       GlobalKey<SliverHistoryCallListState>();
+
+  final Map<int, GlobalKey> _yearBoundaryKeys = {};
 
   String? _visibleDate;
   bool _showScrollToTop = false;
@@ -247,13 +252,22 @@ class _HistoryScreenState extends State<HistoryScreen>
         }
 
         final calls = snapshot.data ?? [];
-        final String? firstDate = calls.isNotEmpty
-            ? dayLabelFor(
-                DateTime.fromMillisecondsSinceEpoch(calls.first.timestamp),
-              )
+        final items = buildHistoryItems(calls);
+        final yearIndex = buildYearIndex(items);
+
+        final boundaryKeys = <int, GlobalKey>{
+          for (final entry in yearIndex)
+            entry.itemIndex: _yearBoundaryKeys.putIfAbsent(
+              entry.itemIndex,
+              () => GlobalKey(),
+            ),
+        };
+
+        final String? firstDate = items.isNotEmpty && items.first is String
+            ? items.first as String
             : null;
 
-        if (calls.isNotEmpty && _visibleDate == null) {
+        if (items.isNotEmpty && _visibleDate == null) {
           _visibleDate = firstDate;
         }
 
@@ -279,9 +293,10 @@ class _HistoryScreenState extends State<HistoryScreen>
                   ),
                   SliverHistoryCallList(
                     key: _historyListKey,
-                    calls: calls,
+                    items: items,
                     db: widget.db,
                     deviceContacts: _deviceContacts,
+                    boundaryKeys: boundaryKeys,
                   ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
@@ -325,6 +340,25 @@ class _HistoryScreenState extends State<HistoryScreen>
                     ),
                   ),
                 ),
+              Positioned(
+                right: 0,
+                top: MediaQuery.of(context).padding.top + kToolbarHeight,
+                bottom: 100,
+                child: TimelineWaveNavigator(
+                  yearIndex: yearIndex,
+                  onCommit: (itemIndex) {
+                    final key = _yearBoundaryKeys[itemIndex];
+                    final targetContext = key?.currentContext;
+                    if (targetContext != null) {
+                      Scrollable.ensureVisible(
+                        targetContext,
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  },
+                ),
+              ),
               Positioned(
                 right: 21,
                 bottom: 100,
