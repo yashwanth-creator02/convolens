@@ -76,7 +76,7 @@ class ProfileQrView extends StatelessWidget {
       mainAxisSize: MainAxisSize.max,
       children: [
         GlassContainer(
-          quality: GlassQuality.premium,
+          quality: GlassQuality.standard,
           useOwnLayer: true,
           padding: EdgeInsets.zero,
           shape: LiquidRoundedRectangle(borderRadius: 24.0),

@@ -184,7 +184,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // tap would, instead of the two feeling like different interactions.
     await GlassModalSheet.show(
       context: context,
-      quality: GlassQuality.premium,
+      quality: GlassQuality.standard,
       detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
       initialState: GlassSheetState.half,
       morphFrom: _shareAnchor,

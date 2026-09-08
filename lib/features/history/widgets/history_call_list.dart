@@ -10,6 +10,7 @@ class SliverHistoryCallList extends StatefulWidget {
   final List<Object> items;
   final AppDatabase db;
   final List<Contact> deviceContacts;
+  final Setting? settings;
   final Map<int, GlobalKey>? boundaryKeys;
 
   const SliverHistoryCallList({
@@ -17,6 +18,7 @@ class SliverHistoryCallList extends StatefulWidget {
     required this.items,
     required this.db,
     required this.deviceContacts,
+    this.settings,
     this.boundaryKeys,
   });
 
@@ -29,6 +31,7 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
 
   late List<String> _datesByIndex;
   String? _currentDate;
+  Map<String, Contact> _contactMap = {};
 
   String? get visibleDate => _currentDate;
 
@@ -36,6 +39,7 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
   void initState() {
     super.initState();
     _buildDateIndex();
+    _buildContactMap();
   }
 
   @override
@@ -44,6 +48,22 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
     if (oldWidget.items != widget.items) {
       _buildDateIndex();
     }
+    if (oldWidget.deviceContacts != widget.deviceContacts) {
+      _buildContactMap();
+    }
+  }
+
+  void _buildContactMap() {
+    final newMap = <String, Contact>{};
+    for (final contact in widget.deviceContacts) {
+      for (final phone in contact.phones) {
+        final normalized = normalizePhoneNumber(phone.number);
+        if (normalized.isNotEmpty) {
+          newMap[normalized] = contact;
+        }
+      }
+    }
+    _contactMap = newMap;
   }
 
   void _buildDateIndex() {
@@ -70,36 +90,18 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
     final renderObject = context.findRenderObject();
     if (renderObject is! RenderSliverMultiBoxAdaptor) return;
 
-    final mediaQuery = MediaQuery.of(context);
-    final stickyHeaderTop = mediaQuery.padding.top + kToolbarHeight + 12;
-    const stickyHeaderHeight = 32.0;
-    final threshold = stickyHeaderTop + (stickyHeaderHeight / 2);
+    final firstChild = renderObject.firstChild;
+    if (firstChild == null) return;
 
-    int foundIndex = -1;
-    RenderBox? child = renderObject.firstChild;
+    final parentData = firstChild.parentData;
+    if (parentData is! SliverMultiBoxAdaptorParentData) return;
 
-    while (child != null) {
-      final y = child.localToGlobal(Offset.zero).dy;
-      final height = child.size.height;
-
-      if (y <= threshold && y + height >= threshold) {
-        final SliverMultiBoxAdaptorParentData parentData =
-            child.parentData! as SliverMultiBoxAdaptorParentData;
-        foundIndex = parentData.index!;
-        break;
-      }
-
-      if (y > threshold) {
-        foundIndex = renderObject.indexOf(child);
-        break;
-      }
-
-      child = renderObject.childAfter(child);
-    }
-
-    if (foundIndex != -1 && foundIndex < _datesByIndex.length) {
+    final foundIndex = parentData.index;
+    if (foundIndex != null &&
+        foundIndex >= 0 &&
+        foundIndex < _datesByIndex.length) {
       final date = _datesByIndex[foundIndex];
-      if (date != _currentDate) {
+      if (date.isNotEmpty && date != _currentDate) {
         setState(() {
           _currentDate = date;
         });
@@ -135,6 +137,7 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
           child = CallCard(
             call: call,
             db: widget.db,
+            settings: widget.settings,
             deviceContact: _findContact(call.number),
           );
         }
@@ -149,13 +152,6 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
   Contact? _findContact(String? number) {
     if (number == null || number.isEmpty) return null;
     final normalized = normalizePhoneNumber(number);
-    for (final contact in widget.deviceContacts) {
-      for (final phone in contact.phones) {
-        if (normalizePhoneNumber(phone.number) == normalized) {
-          return contact;
-        }
-      }
-    }
-    return null;
+    return _contactMap[normalized];
   }
 }

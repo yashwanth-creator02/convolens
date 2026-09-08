@@ -13,35 +13,37 @@ class ContactCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final lastCallAt = contact.lastCallAt;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: CircleAvatar(
-        radius: 24,
-        backgroundImage: contact.deviceContact?.thumbnail != null
-            ? MemoryImage(contact.deviceContact!.thumbnail!)
+    return RepaintBoundary(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: CircleAvatar(
+          radius: 24,
+          backgroundImage: contact.deviceContact?.thumbnail != null
+              ? MemoryImage(contact.deviceContact!.thumbnail!)
+              : null,
+          child: contact.deviceContact?.thumbnail == null
+              ? Text(_getInitials(contact.displayName))
+              : null,
+        ),
+        title: Text(
+          contact.displayName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          lastCallAt != null
+              ? '${contact.callCount} '
+                    'call${contact.callCount == 1 ? '' : 's'}'
+                    ' • ${formatLastContacted(lastCallAt)}'
+              : 'No calls yet',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: contact.displayNumber.isNotEmpty
+            ? const Icon(Icons.chevron_right)
             : null,
-        child: contact.deviceContact?.thumbnail == null
-            ? Text(_getInitials(contact.displayName))
-            : null,
+        onTap: onTap,
       ),
-      title: Text(
-        contact.displayName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        lastCallAt != null
-            ? '${contact.callCount} '
-                  'call${contact.callCount == 1 ? '' : 's'}'
-                  ' • ${formatLastContacted(lastCallAt)}'
-            : 'No calls yet',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: contact.displayNumber.isNotEmpty
-          ? const Icon(Icons.chevron_right)
-          : null,
-      onTap: onTap,
     );
   }
 

@@ -328,7 +328,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: GlassSegmentedControl.scrollable(
-                quality: GlassQuality.premium,
+                quality: GlassQuality.standard,
                 selectedIndex: _selectedTab,
                 onSegmentSelected: (index) {
                   setState(() {

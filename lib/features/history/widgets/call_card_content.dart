@@ -149,10 +149,12 @@ class CallCardContent extends StatelessWidget {
                         if (hasNote && showNotePreview && showIndicators)
                           const _MetaDivider(),
                         if (hasReminder && showReminderIndicator)
-                          _CallMetaItem(
-                            icon: Icons.notifications_active_outlined,
-                            value: 'Reminder',
-                            color: scheme.primary,
+                          Flexible(
+                            child: _CallMetaItem(
+                              icon: Icons.notifications_active_outlined,
+                              value: 'Reminder',
+                              color: scheme.primary,
+                            ),
                           ),
                         if (hasReminder &&
                             showReminderIndicator &&
@@ -160,18 +162,22 @@ class CallCardContent extends StatelessWidget {
                                 (showTags && visibleTags.isNotEmpty)))
                           const _MetaDivider(),
                         if (attachmentCount > 0 && showAttachmentCount)
-                          _CallMetaItem(
-                            icon: Icons.attach_file,
-                            value: '$attachmentCount',
+                          Flexible(
+                            child: _CallMetaItem(
+                              icon: Icons.attach_file,
+                              value: '$attachmentCount',
+                            ),
                           ),
                         if (attachmentCount > 0 &&
                             showAttachmentCount &&
                             (showTags && visibleTags.isNotEmpty))
                           const _MetaDivider(),
                         if (showTags && visibleTags.isNotEmpty)
-                          _CallMetaItem(
-                            icon: Icons.label_outline,
-                            value: '${tags.length}',
+                          Flexible(
+                            child: _CallMetaItem(
+                              icon: Icons.label_outline,
+                              value: '${tags.length}',
+                            ),
                           ),
                       ],
                     ),
@@ -207,30 +213,36 @@ class CallCardContent extends StatelessWidget {
                     ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 26, 12, 1),
+                    padding: const EdgeInsets.fromLTRB(8, 26, 8, 1),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         if (showCallType)
-                          _CallMetaItem(
-                            icon: callTypeIcon(call.type),
-                            value: callTypeLabel(call.type),
-                            color: callTypeColor,
+                          Flexible(
+                            child: _CallMetaItem(
+                              icon: callTypeIcon(call.type),
+                              value: callTypeLabel(call.type),
+                              color: callTypeColor,
+                            ),
                           ),
                         if (showCallType && (showDuration || showTime))
                           const _MetaDivider(),
                         if (showDuration && call.duration > 0)
-                          _CallMetaItem(
-                            icon: Icons.timer_outlined,
-                            value: formatDuration(call.duration),
+                          Flexible(
+                            child: _CallMetaItem(
+                              icon: Icons.timer_outlined,
+                              value: formatDuration(call.duration),
+                            ),
                           ),
                         if (showDuration && call.duration > 0 && showTime)
                           const _MetaDivider(),
                         if (showTime)
-                          _CallMetaItem(
-                            icon: Icons.schedule_outlined,
-                            value: formatCallTime(call.timestamp),
+                          Flexible(
+                            child: _CallMetaItem(
+                              icon: Icons.schedule_outlined,
+                              value: formatCallTime(call.timestamp),
+                            ),
                           ),
                       ],
                     ),
@@ -372,7 +384,7 @@ class CallCardContent extends StatelessWidget {
       case 6: // Blocked
         return scheme.error;
       case 1: // Incoming
-        return Colors.teal;
+        return scheme.tertiary;
       case 2: // Outgoing
         return scheme.primary;
       default:

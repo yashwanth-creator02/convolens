@@ -8,6 +8,7 @@ class CallCard extends StatelessWidget {
   final Call call;
   final AppDatabase db;
   final Contact? deviceContact;
+  final Setting? settings;
   final bool showCallButton;
   final bool showPhoneNumber;
   final bool showName;
@@ -17,6 +18,7 @@ class CallCard extends StatelessWidget {
     required this.call,
     required this.db,
     this.deviceContact,
+    this.settings,
     this.showCallButton = true,
     this.showPhoneNumber = true,
     this.showName = true,
@@ -24,31 +26,39 @@ class CallCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Setting>(
-      stream: db.watchSettings(),
-      builder: (context, settingsSnapshot) {
-        return StreamBuilder<CallDetail?>(
-          stream: db.watchDetailsForCall(call.id),
-          builder: (context, detailSnapshot) {
-            return StreamBuilder<List<Tag>>(
-              stream: db.watchTagsForCall(call.id),
-              builder: (context, tagsSnapshot) {
-                return StreamBuilder<int>(
-                  stream: db.watchAttachmentCountForCall(call.id),
-                  builder: (context, attachmentSnapshot) {
-                    return CallCardContent(
-                      call: call,
-                      db: db,
-                      settings: settingsSnapshot.data,
-                      detail: detailSnapshot.data,
-                      tags: tagsSnapshot.data ?? const [],
-                      attachmentCount: attachmentSnapshot.data ?? 0,
-                      deviceContact: deviceContact,
-                      showCallButton: showCallButton,
-                      showPhoneNumber: showPhoneNumber,
-                      showName: showName,
-                    );
-                  },
+    final Widget cardContent = settings != null
+        ? _buildContentWithSettings(settings)
+        : StreamBuilder<Setting>(
+            stream: db.watchSettings(),
+            builder: (context, settingsSnapshot) {
+              return _buildContentWithSettings(settingsSnapshot.data);
+            },
+          );
+
+    return RepaintBoundary(child: cardContent);
+  }
+
+  Widget _buildContentWithSettings(Setting? settingsData) {
+    return StreamBuilder<CallDetail?>(
+      stream: db.watchDetailsForCall(call.id),
+      builder: (context, detailSnapshot) {
+        return StreamBuilder<List<Tag>>(
+          stream: db.watchTagsForCall(call.id),
+          builder: (context, tagsSnapshot) {
+            return StreamBuilder<int>(
+              stream: db.watchAttachmentCountForCall(call.id),
+              builder: (context, attachmentSnapshot) {
+                return CallCardContent(
+                  call: call,
+                  db: db,
+                  settings: settingsData,
+                  detail: detailSnapshot.data,
+                  tags: tagsSnapshot.data ?? const [],
+                  attachmentCount: attachmentSnapshot.data ?? 0,
+                  deviceContact: deviceContact,
+                  showCallButton: showCallButton,
+                  showPhoneNumber: showPhoneNumber,
+                  showName: showName,
                 );
               },
             );

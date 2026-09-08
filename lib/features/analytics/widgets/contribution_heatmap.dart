@@ -43,10 +43,11 @@ class ContributionHeatmap extends StatelessWidget {
       cursor = cursor.add(const Duration(days: 7));
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      reverse: true,
-      child: Row(
+    return RepaintBoundary(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        reverse: true,
+        child: Row(
         children: weeks.map((week) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 1.5),
@@ -75,6 +76,7 @@ class ContributionHeatmap extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
       ),
     );
   }

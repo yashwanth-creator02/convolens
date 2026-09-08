@@ -43,10 +43,11 @@ class RelationshipWeb extends StatelessWidget {
             .map((v) => v.toDouble())
             .toList();
 
-        return SizedBox(
-          width: size,
-          height: size,
-          child: Stack(
+        return RepaintBoundary(
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Stack(
             children: [
               CustomPaint(
                 size: Size(size, size),
@@ -101,6 +102,7 @@ class RelationshipWeb extends StatelessWidget {
                 );
               }),
             ],
+          ),
           ),
         );
       },

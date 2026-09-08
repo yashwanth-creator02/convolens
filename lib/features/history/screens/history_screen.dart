@@ -36,6 +36,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   late final CallsRepository _repository;
 
   StreamSubscription<Setting>? _settingsSubscription;
+  Setting? _currentSettings;
 
   final GlobalKey<SliverHistoryCallListState> _historyListKey =
       GlobalKey<SliverHistoryCallListState>();
@@ -61,6 +62,11 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     _settingsSubscription = widget.db.watchSettings().listen((settings) {
       Logger.devModeEnabled = settings.devMode;
+      if (mounted && _currentSettings != settings) {
+        setState(() {
+          _currentSettings = settings;
+        });
+      }
     });
 
     _loadContacts();
@@ -295,6 +301,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                     key: _historyListKey,
                     items: items,
                     db: widget.db,
+                    settings: _currentSettings,
                     deviceContacts: _deviceContacts,
                     boundaryKeys: boundaryKeys,
                   ),

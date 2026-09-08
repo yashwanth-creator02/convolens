@@ -181,7 +181,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: GlassSegmentedControl.scrollable(
-                      quality: GlassQuality.premium,
+                      quality: GlassQuality.standard,
                       selectedIndex: _selectedTab,
                       onSegmentSelected: (index) {
                         if (_selectedTab == index) {
