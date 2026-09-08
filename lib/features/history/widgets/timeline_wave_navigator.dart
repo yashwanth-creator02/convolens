@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../utils/year_index.dart';
 
@@ -18,52 +19,78 @@ class TimelineWaveNavigator extends StatefulWidget {
   State<TimelineWaveNavigator> createState() => _TimelineWaveNavigatorState();
 }
 
-class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator> {
+class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
+    with SingleTickerProviderStateMixin {
   static const double _activationZoneWidth = 32;
-  static const double _amplitude = 36;
+  static const double _amplitude = 56;
   static const double _spread = 90;
+  static const double _smoothingSpeed = 16.0;
 
   final ValueNotifier<_WaveState> _state = ValueNotifier(const _WaveState());
 
+  late final Ticker _ticker;
+  Duration _lastElapsed = Duration.zero;
+
+  double _targetY = 0;
+  double _availableHeight = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker(_onTick);
+  }
+
   @override
   void dispose() {
+    _ticker.dispose();
     _state.dispose();
     super.dispose();
   }
 
-  int _nearestYearIndexFor(double fingerY, double availableHeight) {
-    if (widget.yearIndex.isEmpty) return -1;
-    final slot = availableHeight / widget.yearIndex.length;
-    final raw = (fingerY / slot).floor().clamp(0, widget.yearIndex.length - 1);
-    return raw;
+  int? _nearestYearIndexFor(double y) {
+    if (widget.yearIndex.isEmpty || _availableHeight <= 0) return null;
+    final slot = _availableHeight / widget.yearIndex.length;
+    return (y / slot).floor().clamp(0, widget.yearIndex.length - 1);
+  }
+
+  void _onTick(Duration elapsed) {
+    final dt = (elapsed - _lastElapsed).inMicroseconds / 1e6;
+    _lastElapsed = elapsed;
+    if (dt <= 0 || dt > 0.1) return;
+
+    final current = _state.value;
+    final t = 1 - exp(-_smoothingSpeed * dt);
+    final newDisplayY = current.displayY + (_targetY - current.displayY) * t;
+    final newSelected = _nearestYearIndexFor(newDisplayY);
+
+    if ((newDisplayY - current.displayY).abs() > 0.05 ||
+        newSelected != current.selectedYearIndex) {
+      _state.value = current.copyWith(
+        displayY: newDisplayY,
+        selectedYearIndex: newSelected,
+      );
+    }
   }
 
   void _onPanStart(DragStartDetails details, double availableHeight) {
-    final nearest = _nearestYearIndexFor(
-      details.localPosition.dy,
-      availableHeight,
-    );
-    if (nearest == -1) return;
+    _availableHeight = availableHeight;
+    _targetY = details.localPosition.dy;
+    _lastElapsed = Duration.zero;
     _state.value = _WaveState(
       active: true,
-      fingerY: details.localPosition.dy,
-      selectedYearIndex: nearest,
+      displayY: details.localPosition.dy,
+      selectedYearIndex: _nearestYearIndexFor(details.localPosition.dy),
     );
+    _ticker.start();
   }
 
   void _onPanUpdate(DragUpdateDetails details, double availableHeight) {
-    if (!_state.value.active) return;
-    final nearest = _nearestYearIndexFor(
-      details.localPosition.dy,
-      availableHeight,
-    );
-    _state.value = _state.value.copyWith(
-      fingerY: details.localPosition.dy,
-      selectedYearIndex: nearest,
-    );
+    _availableHeight = availableHeight;
+    _targetY = details.localPosition.dy;
   }
 
-  void _onPanEnd(DragEndDetails details) {
+  void _endDrag() {
+    _ticker.stop();
     final selected = _state.value.selectedYearIndex;
     _state.value = const _WaveState();
 
@@ -72,6 +99,11 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator> {
         selected < widget.yearIndex.length) {
       widget.onCommit(widget.yearIndex[selected].itemIndex);
     }
+  }
+
+  void _cancelDrag() {
+    _ticker.stop();
+    _state.value = const _WaveState();
   }
 
   @override
@@ -94,8 +126,8 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator> {
                   behavior: HitTestBehavior.translucent,
                   onPanStart: (d) => _onPanStart(d, height),
                   onPanUpdate: (d) => _onPanUpdate(d, height),
-                  onPanEnd: _onPanEnd,
-                  onPanCancel: () => _state.value = const _WaveState(),
+                  onPanEnd: (_) => _endDrag(),
+                  onPanCancel: _cancelDrag,
                 ),
               ),
               RepaintBoundary(
@@ -128,19 +160,19 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator> {
 
 class _WaveState {
   final bool active;
-  final double fingerY;
+  final double displayY;
   final int? selectedYearIndex;
 
   const _WaveState({
     this.active = false,
-    this.fingerY = 0,
+    this.displayY = 0,
     this.selectedYearIndex,
   });
 
-  _WaveState copyWith({double? fingerY, int? selectedYearIndex}) {
+  _WaveState copyWith({double? displayY, int? selectedYearIndex}) {
     return _WaveState(
       active: true,
-      fingerY: fingerY ?? this.fingerY,
+      displayY: displayY ?? this.displayY,
       selectedYearIndex: selectedYearIndex ?? this.selectedYearIndex,
     );
   }
@@ -168,25 +200,21 @@ class _WavePainter extends CustomPainter {
     if (!state.active || years.isEmpty) return;
 
     final slot = availableHeight / years.length;
-    final peakY = state.fingerY;
+    final peakY = state.displayY;
 
     for (int i = 0; i < years.length; i++) {
       final labelY = slot * i + slot / 2;
       final isSelected = i == state.selectedYearIndex;
 
       final normalizedDistance = (labelY - peakY) / spread;
-      final displacement =
-          amplitude * exp(-(normalizedDistance * normalizedDistance));
+      final falloff = exp(-(normalizedDistance * normalizedDistance));
+      final displacement = amplitude * falloff;
 
       final edgeX = size.width;
       final labelX = edgeX - displacement - 20;
 
-      final opacity = isSelected
-          ? 1.0
-          : (0.35 + 0.55 * exp(-(normalizedDistance * normalizedDistance)));
-      final scale = isSelected
-          ? 1.15
-          : (0.85 + 0.2 * exp(-(normalizedDistance * normalizedDistance)));
+      final opacity = isSelected ? 1.0 : (0.35 + 0.55 * falloff);
+      final scale = isSelected ? 1.15 : (0.85 + 0.2 * falloff);
 
       final textPainter = TextPainter(
         text: TextSpan(
@@ -223,9 +251,9 @@ class _WavePainter extends CustomPainter {
     for (int i = 0; i < years.length; i++) {
       final labelY = slot * i + slot / 2;
       final normalizedDistance = (labelY - peakY) / spread;
-      final displacement =
+      final x =
+          size.width -
           amplitude * exp(-(normalizedDistance * normalizedDistance));
-      final x = size.width - displacement;
 
       if (i == 0) {
         path.moveTo(x, labelY);
