@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -11,7 +10,8 @@ import '../../../core/logger/logger.dart';
 import '../../../core/toast/toast_service.dart';
 import '../repository/calls_repository.dart';
 import '../utils/build_history_items.dart';
-import '../utils/group_calls_by_day.dart';
+import '../utils/date_index.dart';
+import '../utils/month_index.dart';
 import '../utils/year_index.dart';
 import '../widgets/history_call_list.dart';
 import '../widgets/history_permission_view.dart';
@@ -40,7 +40,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   final GlobalKey<SliverHistoryCallListState> _historyListKey =
       GlobalKey<SliverHistoryCallListState>();
 
-  final Map<int, GlobalKey> _yearBoundaryKeys = {};
+  final Map<int, GlobalKey> _itemBoundaryKeys = {};
 
   String? _visibleDate;
   bool _showScrollToTop = false;
@@ -254,14 +254,32 @@ class _HistoryScreenState extends State<HistoryScreen>
         final calls = snapshot.data ?? [];
         final items = buildHistoryItems(calls);
         final yearIndex = buildYearIndex(items);
+        final monthIndex = buildMonthIndexByYear(items);
+        final dateIndex = buildDateIndexByMonth(items);
 
-        final boundaryKeys = <int, GlobalKey>{
-          for (final entry in yearIndex)
-            entry.itemIndex: _yearBoundaryKeys.putIfAbsent(
+        final boundaryKeys = <int, GlobalKey>{};
+        for (final entry in yearIndex) {
+          boundaryKeys[entry.itemIndex] = _itemBoundaryKeys.putIfAbsent(
+            entry.itemIndex,
+            () => GlobalKey(),
+          );
+        }
+        monthIndex.forEach((_, monthList) {
+          for (final entry in monthList) {
+            boundaryKeys[entry.itemIndex] = _itemBoundaryKeys.putIfAbsent(
               entry.itemIndex,
               () => GlobalKey(),
-            ),
-        };
+            );
+          }
+        });
+        dateIndex.forEach((_, dateList) {
+          for (final entry in dateList) {
+            boundaryKeys[entry.itemIndex] = _itemBoundaryKeys.putIfAbsent(
+              entry.itemIndex,
+              () => GlobalKey(),
+            );
+          }
+        });
 
         final String? firstDate = items.isNotEmpty && items.first is String
             ? items.first as String
@@ -346,15 +364,47 @@ class _HistoryScreenState extends State<HistoryScreen>
                 bottom: 100,
                 child: TimelineWaveNavigator(
                   yearIndex: yearIndex,
-                  onCommit: (itemIndex) {
-                    final key = _yearBoundaryKeys[itemIndex];
+                  monthIndex: monthIndex,
+                  dateIndex: dateIndex,
+                  onCommit: (itemIndex) async {
+                    final key = _itemBoundaryKeys[itemIndex];
                     final targetContext = key?.currentContext;
                     if (targetContext != null) {
                       Scrollable.ensureVisible(
                         targetContext,
                         duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeOut,
+                        curve: Curves.easeOutCubic,
                       );
+                    } else {
+                      final scrollController =
+                          widget.titleController.scrollController;
+                      if (!scrollController.hasClients) return;
+
+                      const estimatedItemHeight = 72.0;
+                      final estimatedOffset = itemIndex * estimatedItemHeight;
+                      final maxOffset =
+                          scrollController.position.maxScrollExtent;
+                      final targetOffset = estimatedOffset.clamp(
+                        0.0,
+                        maxOffset,
+                      );
+
+                      await scrollController.animateTo(
+                        targetOffset,
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeOutCubic,
+                      );
+
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        final newContext = key?.currentContext;
+                        if (newContext != null) {
+                          Scrollable.ensureVisible(
+                            newContext,
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                      });
                     }
                   },
                 ),
