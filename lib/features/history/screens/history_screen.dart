@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -11,7 +10,6 @@ import '../../../core/logger/logger.dart';
 import '../../../core/toast/toast_service.dart';
 import '../repository/calls_repository.dart';
 import '../utils/build_history_items.dart';
-import '../utils/group_calls_by_day.dart';
 import '../utils/year_index.dart';
 import '../widgets/history_call_list.dart';
 import '../widgets/history_permission_view.dart';
@@ -42,6 +40,8 @@ class _HistoryScreenState extends State<HistoryScreen>
       GlobalKey<SliverHistoryCallListState>();
 
   final Map<int, GlobalKey> _yearBoundaryKeys = {};
+
+  int _commitId = 0;
 
   String? _visibleDate;
   bool _showScrollToTop = false;
@@ -226,6 +226,68 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
+  void _onCommitYear(int itemIndex) {
+    final currentCommitId = ++_commitId;
+
+    final key = _yearBoundaryKeys[itemIndex];
+    final targetContext = key?.currentContext;
+    if (targetContext != null) {
+      Scrollable.ensureVisible(
+        targetContext,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+
+    _performEstimatedFarJump(
+      itemIndex,
+      commitId: currentCommitId,
+      attemptsLeft: 2,
+    );
+  }
+
+  void _performEstimatedFarJump(
+    int itemIndex, {
+    required int commitId,
+    required int attemptsLeft,
+  }) {
+    if (attemptsLeft <= 0 || !mounted || commitId != _commitId) return;
+
+    final scrollController = widget.titleController.scrollController;
+    if (!scrollController.hasClients) return;
+
+    final avg = _historyListKey.currentState?.averageItemHeight ?? 72.0;
+    final maxExtent = scrollController.position.maxScrollExtent;
+    final estimatedOffset = (itemIndex * avg).clamp(0.0, maxExtent);
+
+    scrollController.jumpTo(estimatedOffset);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || commitId != _commitId) return;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || commitId != _commitId) return;
+
+        final key = _yearBoundaryKeys[itemIndex];
+        final targetContext = key?.currentContext;
+        if (targetContext != null) {
+          Scrollable.ensureVisible(
+            targetContext,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+          );
+        } else {
+          _performEstimatedFarJump(
+            itemIndex,
+            commitId: commitId,
+            attemptsLeft: attemptsLeft - 1,
+          );
+        }
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isFirstLaunchLoading) {
@@ -352,18 +414,9 @@ class _HistoryScreenState extends State<HistoryScreen>
                 top: MediaQuery.of(context).padding.top + kToolbarHeight,
                 bottom: 100,
                 child: TimelineWaveNavigator(
+                  items: items,
                   yearIndex: yearIndex,
-                  onCommit: (itemIndex) {
-                    final key = _yearBoundaryKeys[itemIndex];
-                    final targetContext = key?.currentContext;
-                    if (targetContext != null) {
-                      Scrollable.ensureVisible(
-                        targetContext,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeOut,
-                      );
-                    }
-                  },
+                  onCommit: _onCommitYear,
                 ),
               ),
               Positioned(
