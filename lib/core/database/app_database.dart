@@ -120,6 +120,10 @@ class AppDatabase extends _$AppDatabase {
 
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');
+        await customStatement('PRAGMA journal_mode = WAL');
+        await customStatement('PRAGMA synchronous = NORMAL');
+        await customStatement('PRAGMA temp_store = MEMORY');
+        await customStatement('PRAGMA cache_size = -32000');
 
         await into(
           settings,

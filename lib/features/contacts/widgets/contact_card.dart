@@ -19,7 +19,11 @@ class ContactCard extends StatelessWidget {
         leading: CircleAvatar(
           radius: 24,
           backgroundImage: contact.deviceContact?.thumbnail != null
-              ? MemoryImage(contact.deviceContact!.thumbnail!)
+              ? ResizeImage(
+                  MemoryImage(contact.deviceContact!.thumbnail!),
+                  width: 96,
+                  height: 96,
+                )
               : null,
           child: contact.deviceContact?.thumbnail == null
               ? Text(_getInitials(contact.displayName))

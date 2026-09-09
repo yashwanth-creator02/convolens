@@ -6,11 +6,15 @@ import 'app/app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await LiquidGlassWidgets.initialize();
+  await LiquidGlassWidgets.initialize(enablePerformanceMonitor: true);
   runApp(
     LiquidGlassWidgets.wrap(
+      adaptiveQuality: true,
       theme: GlassThemeData.simple(quality: GlassQuality.standard),
-      child: const App(),
+      child: const GlassAdaptiveScope(
+        maxQuality: GlassQuality.standard,
+        child: App(),
+      ),
       brightnessResolver: Theme.maybeBrightnessOf,
     ),
   );

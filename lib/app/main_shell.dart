@@ -331,6 +331,8 @@ class _MainShellState extends State<MainShell> {
 
   Widget _buildBottomNavigationBar() {
     return GlassTabBar.minimizable(
+      quality: GlassQuality.standard,
+
       tabs: const [
         GlassTab(
           label: 'History',
@@ -357,20 +359,12 @@ class _MainShellState extends State<MainShell> {
       selectedIndex: _selectedIndex,
       onTabSelected: _onNavigationItemSelected,
 
-      // -----------------------------------------------------------------------
       // Minimization
-      // -----------------------------------------------------------------------
       minimizeController: _tabBarMinimizeController,
-
-      // The active large-title controller and tab-bar controller are both
-      // listening to the same scroll position.
       scrollController: _activeScrollController,
-
       onMinimizedTabTap: _tabBarMinimizeController.expand,
 
-      // -----------------------------------------------------------------------
       // Contextual action
-      // -----------------------------------------------------------------------
       trailingButton: _trailingButton,
     );
   }
