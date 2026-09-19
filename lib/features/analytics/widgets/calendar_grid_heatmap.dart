@@ -67,7 +67,7 @@ class CalendarGridHeatmap extends StatelessWidget {
                         ? Theme.of(context).colorScheme.surfaceContainerHighest
                         : Theme.of(
                             context,
-                          ).colorScheme.primary.withOpacity(intensity),
+                          ).colorScheme.primary.withValues(alpha: intensity),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Center(

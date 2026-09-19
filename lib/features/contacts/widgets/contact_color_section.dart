@@ -31,9 +31,9 @@ class ContactColorSection extends StatelessWidget {
       runSpacing: 10,
       children: [
         ...contactColorSwatches.map((color) {
-          final isSelected = colorValue == color.value;
+          final isSelected = colorValue == color.toARGB32();
           return GestureDetector(
-            onTap: () => onColorSelected(color.value),
+            onTap: () => onColorSelected(color.toARGB32()),
             child: CircleAvatar(
               radius: 16,
               backgroundColor: color,

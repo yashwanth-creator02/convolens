@@ -122,12 +122,12 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   late final Ticker _ticker;
   Duration _lastElapsed = Duration.zero;
 
-  double _startDx = 0;
   double _currentDx = 0;
   double _targetY = 0;
   double _availableHeight = 0;
   bool _isRetracting = false;
   double _retractionProgress = 1.0;
+  double _entryProgress = 0.0;
   bool _hasTriggered = false;
 
   int? _frozenYear;
@@ -156,8 +156,12 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
     _lastElapsed = elapsed;
     if (dt <= 0 || dt > 0.1) return;
 
+    if (_entryProgress < 1.0) {
+      _entryProgress = (_entryProgress + dt * 9.0).clamp(0.0, 1.0);
+    }
+
     if (_isRetracting) {
-      _retractionProgress -= dt * 5.0;
+      _retractionProgress -= dt * 5.5;
       if (_retractionProgress <= 0) {
         _isRetracting = false;
         _ticker.stop();
@@ -180,10 +184,12 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   ) {
     if (_availableHeight <= 0) return;
 
-    // Pull depth: distance finger has traveled inward from start touch (towards middle)
-    double rawPullDepth = (_startDx - currentDx).clamp(0.0, 320.0);
+    // Pull depth physically referenced to the screen's right bezel
+    double rawPullDepth = (_activationZoneWidth - currentDx).clamp(0.0, 320.0);
     if (_isRetracting) {
       rawPullDepth *= _retractionProgress;
+    } else {
+      rawPullDepth *= _entryProgress;
     }
 
     WaveLevel targetLevel;
@@ -339,12 +345,12 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
 
   void _onPanStart(DragStartDetails details, double availableHeight) {
     _availableHeight = availableHeight;
-    _startDx = details.localPosition.dx;
     _currentDx = details.localPosition.dx;
     _targetY = details.localPosition.dy;
     _lastElapsed = Duration.zero;
     _isRetracting = false;
     _retractionProgress = 1.0;
+    _entryProgress = 0.0;
     _hasTriggered = false;
     _frozenYear = null;
     _frozenMonth = null;
@@ -734,45 +740,64 @@ class _LiquidWavePainter extends CustomPainter {
     required bool isAbort,
     required bool isTriggered,
   }) {
+    String levelTag = '';
     String badgeText = '';
     String subText = '';
-
     if (isAbort) {
+      levelTag = 'CANCEL';
       badgeText = 'Release to Cancel';
-      subText = 'Return to edge';
+      subText = 'Return to screen edge';
     } else if (isTriggered) {
-      badgeText = 'Jumping!';
-      subText = 'Release';
+      levelTag = 'JUMPING';
+      badgeText = 'Instant Jump!';
+      subText = 'Releasing to date';
     } else {
       switch (state.level) {
         case WaveLevel.year:
+          levelTag = 'YEAR';
           if (state.selectedIndex != null &&
               state.selectedIndex! < state.years.length) {
             badgeText = '${state.years[state.selectedIndex!].year}';
-            subText = 'Pull left for Month';
+            subText = 'Pull inward for Month  →';
           }
           break;
         case WaveLevel.month:
+          levelTag = 'MONTH';
           if (state.selectedIndex != null &&
               state.selectedIndex! < state.months.length) {
             final m = state.months[state.selectedIndex!].month;
             badgeText = '${_formatMonth(m)} ${state.frozenYear ?? ''}';
-            subText = 'Pull left for Day';
+            subText = 'Pull inward for Day  →';
           }
           break;
         case WaveLevel.date:
+          levelTag = 'DATE';
           if (state.selectedIndex != null &&
               state.selectedIndex! < state.dates.length) {
             final d = state.dates[state.selectedIndex!].day;
             final m = state.frozenMonth ?? 1;
             badgeText = '$d ${_formatMonth(m)} ${state.frozenYear ?? ''}';
-            subText = 'Pull left to jump';
+            subText = 'Pull further to Jump  ⚡';
           }
           break;
       }
     }
 
     if (badgeText.isEmpty) return;
+
+    // Level tag painter
+    final tagPainter = TextPainter(
+      text: TextSpan(
+        text: levelTag,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.75),
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.2,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
 
     // Layout typography
     final titlePainter = TextPainter(
@@ -791,8 +816,8 @@ class _LiquidWavePainter extends CustomPainter {
     final subPainter = TextPainter(
       text: TextSpan(
         text: subText,
-        style: const TextStyle(
-          color: Colors.white70,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.8),
           fontSize: 10,
           fontWeight: FontWeight.w500,
         ),
@@ -803,8 +828,14 @@ class _LiquidWavePainter extends CustomPainter {
     const paddingH = 16.0;
     const paddingV = 8.0;
     final badgeWidth =
-        max(titlePainter.width, subPainter.width) + paddingH * 2 + 14.0;
-    final badgeHeight = titlePainter.height + subPainter.height + paddingV * 2 + 2.0;
+        max(tagPainter.width, max(titlePainter.width, subPainter.width)) +
+            paddingH * 2 +
+            10.0;
+    final badgeHeight = tagPainter.height +
+        titlePainter.height +
+        subPainter.height +
+        paddingV * 2 +
+        4.0;
 
     // Pop out position: elevated floating capsule projecting leftward from the crest peak
     final badgeCenterX = peakX - badgeWidth / 2 - 14.0;
@@ -862,19 +893,27 @@ class _LiquidWavePainter extends CustomPainter {
     );
 
     // Text layout inside the popped-out badge
+    final startY = badgeCenterY -
+        (tagPainter.height + titlePainter.height + subPainter.height + 4.0) / 2;
+
+    tagPainter.paint(
+      canvas,
+      Offset(badgeCenterX - tagPainter.width / 2, startY),
+    );
+
     titlePainter.paint(
       canvas,
       Offset(
-        badgeCenterX - titlePainter.width / 2 + 4.0,
-        badgeCenterY - (titlePainter.height + subPainter.height) / 2,
+        badgeCenterX - titlePainter.width / 2,
+        startY + tagPainter.height + 2.0,
       ),
     );
 
     subPainter.paint(
       canvas,
       Offset(
-        badgeCenterX - subPainter.width / 2 + 4.0,
-        badgeCenterY + (titlePainter.height - subPainter.height) / 2,
+        badgeCenterX - subPainter.width / 2,
+        startY + tagPainter.height + titlePainter.height + 4.0,
       ),
     );
   }

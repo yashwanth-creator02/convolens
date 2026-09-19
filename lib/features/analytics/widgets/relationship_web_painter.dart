@@ -18,7 +18,7 @@ class RelationshipWebPainter extends CustomPainter {
     for (int i = 0; i < nodePositions.length; i++) {
       final strength = strengths[i].clamp(0.1, 1.0);
       final paint = Paint()
-        ..color = lineColor.withOpacity(0.2 + (strength * 0.6))
+        ..color = lineColor.withValues(alpha: 0.2 + (strength * 0.6))
         ..strokeWidth = 1.5 + (strength * 5)
         ..strokeCap = StrokeCap.round;
 

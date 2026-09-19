@@ -44,7 +44,7 @@ CommunicationStrength computeStrength({
   }
 
   if (daysSinceLastCall > 30) {
-    reasons.add('Last call was ${daysSinceLastCall} days ago');
+    reasons.add('Last call was $daysSinceLastCall days ago');
     reasons.add('Used to call ${callsPerMonth.toStringAsFixed(1)} times/month');
     return CommunicationStrength(StrengthLevel.fading, 'Fading', reasons);
   }
@@ -58,6 +58,6 @@ CommunicationStrength computeStrength({
   }
 
   reasons.add('${callsPerMonth.toStringAsFixed(1)} calls/month');
-  reasons.add('Last call ${daysSinceLastCall} days ago');
+  reasons.add('Last call $daysSinceLastCall days ago');
   return CommunicationStrength(StrengthLevel.steady, 'Steady', reasons);
 }

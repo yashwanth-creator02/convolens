@@ -65,8 +65,8 @@ class HourClockFace extends StatelessWidget {
                     height: dotRadius * 2,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Theme.of(context).colorScheme.primary.withOpacity(
-                        0.2 + (intensity * 0.8),
+                      color: Theme.of(context).colorScheme.primary.withValues(
+                        alpha: 0.2 + (intensity * 0.8),
                       ),
                     ),
                   ),

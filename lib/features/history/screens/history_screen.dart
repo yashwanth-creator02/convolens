@@ -41,7 +41,6 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   final Map<int, GlobalKey> _yearBoundaryKeys = {};
 
-  int _commitId = 0;
 
   final ValueNotifier<String?> _visibleDateNotifier =
       ValueNotifier<String?>(null);
@@ -231,66 +230,52 @@ class _HistoryScreenState extends State<HistoryScreen>
     );
   }
 
+  double _calculateExactOffset(int targetIndex) {
+    if (targetIndex <= 0 || _cachedItems.isEmpty) return 0.0;
+
+    final showBottomTab = (_currentSettings?.showCallType ?? true) ||
+        (_currentSettings?.showDuration ?? true) ||
+        (_currentSettings?.showTime ?? true);
+    final cardHeight = showBottomTab ? 116.0 : 86.0;
+    const headerHeight = 42.0;
+
+    double offset = 0.0;
+    final limit = targetIndex.clamp(0, _cachedItems.length);
+    for (int i = 0; i < limit; i++) {
+      final item = _cachedItems[i];
+      if (item is String) {
+        offset += headerHeight;
+      } else {
+        offset += cardHeight;
+      }
+    }
+    return offset;
+  }
+
   void _onCommitYear(int itemIndex) {
-    final currentCommitId = ++_commitId;
+    if (!mounted || _cachedItems.isEmpty) return;
+    final scrollController = widget.titleController.scrollController;
+    if (!scrollController.hasClients) return;
 
     final key = _cachedBoundaryKeys[itemIndex];
     final targetContext = key?.currentContext;
     if (targetContext != null) {
       Scrollable.ensureVisible(
         targetContext,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOut,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
       );
       return;
     }
 
-    _performEstimatedFarJump(
-      itemIndex,
-      commitId: currentCommitId,
-      attemptsLeft: 2,
-    );
-  }
-
-  void _performEstimatedFarJump(
-    int itemIndex, {
-    required int commitId,
-    required int attemptsLeft,
-  }) {
-    if (attemptsLeft <= 0 || !mounted || commitId != _commitId) return;
-
-    final scrollController = widget.titleController.scrollController;
-    if (!scrollController.hasClients) return;
-
-    final avg = _historyListKey.currentState?.averageItemHeight ?? 88.0;
     final maxExtent = scrollController.position.maxScrollExtent;
-    final estimatedOffset = (itemIndex * avg).clamp(0.0, maxExtent);
+    final targetOffset = _calculateExactOffset(itemIndex).clamp(0.0, maxExtent);
 
-    scrollController.jumpTo(estimatedOffset);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || commitId != _commitId) return;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || commitId != _commitId) return;
-
-        final key = _cachedBoundaryKeys[itemIndex];
-        final targetContext = key?.currentContext;
-        if (targetContext != null) {
-          Scrollable.ensureVisible(
-            targetContext,
-            duration: const Duration(milliseconds: 150),
-            curve: Curves.easeOut,
-          );
-        } else {
-          _performEstimatedFarJump(
-            itemIndex,
-            commitId: commitId,
-            attemptsLeft: attemptsLeft - 1,
-          );
-        }
-      });
-    });
+    scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override

@@ -441,17 +441,6 @@ class ContactsScreenState extends State<ContactsScreen>
     );
   }
 
-  Widget _buildErrorView(Object? error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'Failed to load contacts.\n$error',
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
 
   Widget _buildPermissionView() {
     return Center(

@@ -12,16 +12,11 @@ class ContributionHeatmap extends StatelessWidget {
           2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   Color _colorFor(BuildContext context, int count, int maxCount) {
-    if (count == 0) return Theme
-        .of(context)
-        .colorScheme
-        .surfaceContainerHighest;
+    if (count == 0) {
+      return Theme.of(context).colorScheme.surfaceContainerHighest;
+    }
     final intensity = (count / maxCount).clamp(0.15, 1.0);
-    return Theme
-        .of(context)
-        .colorScheme
-        .primary
-        .withOpacity(intensity);
+    return Theme.of(context).colorScheme.primary.withValues(alpha: intensity);
   }
 
   @override
