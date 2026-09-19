@@ -43,14 +43,22 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   int _commitId = 0;
 
-  String? _visibleDate;
-  bool _showScrollToTop = false;
+  final ValueNotifier<String?> _visibleDateNotifier =
+      ValueNotifier<String?>(null);
+  final ValueNotifier<bool> _showScrollToTopNotifier =
+      ValueNotifier<bool>(false);
 
   List<Contact> _deviceContacts = [];
 
   bool _isFirstLaunchLoading = false;
   bool _permissionDenied = false;
   bool _permissionPermanentlyDenied = false;
+
+  // Cached computation of items and yearIndex to avoid recomputing on build
+  List<Call>? _lastCalls;
+  List<Object> _cachedItems = [];
+  List<YearIndexEntry> _cachedYearIndex = [];
+  Map<int, GlobalKey> _cachedBoundaryKeys = {};
 
   @override
   void initState() {
@@ -81,10 +89,8 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     final scrollController = widget.titleController.scrollController;
     final showScrollToTop = scrollController.offset > 300;
-    if (showScrollToTop != _showScrollToTop) {
-      setState(() {
-        _showScrollToTop = showScrollToTop;
-      });
+    if (showScrollToTop != _showScrollToTopNotifier.value) {
+      _showScrollToTopNotifier.value = showScrollToTop;
     }
 
     final listState = _historyListKey.currentState;
@@ -93,11 +99,8 @@ class _HistoryScreenState extends State<HistoryScreen>
     listState.updateVisibleDate();
 
     final date = listState.visibleDate;
-
-    if (date != null && date != _visibleDate) {
-      setState(() {
-        _visibleDate = date;
-      });
+    if (date != null && date != _visibleDateNotifier.value) {
+      _visibleDateNotifier.value = date;
     }
   }
 
@@ -121,6 +124,8 @@ class _HistoryScreenState extends State<HistoryScreen>
     widget.titleController.scrollController.removeListener(_updateVisibleDate);
     WidgetsBinding.instance.removeObserver(this);
     _settingsSubscription?.cancel();
+    _visibleDateNotifier.dispose();
+    _showScrollToTopNotifier.dispose();
 
     super.dispose();
   }
@@ -229,7 +234,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   void _onCommitYear(int itemIndex) {
     final currentCommitId = ++_commitId;
 
-    final key = _yearBoundaryKeys[itemIndex];
+    final key = _cachedBoundaryKeys[itemIndex];
     final targetContext = key?.currentContext;
     if (targetContext != null) {
       Scrollable.ensureVisible(
@@ -257,7 +262,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     final scrollController = widget.titleController.scrollController;
     if (!scrollController.hasClients) return;
 
-    final avg = _historyListKey.currentState?.averageItemHeight ?? 72.0;
+    final avg = _historyListKey.currentState?.averageItemHeight ?? 88.0;
     final maxExtent = scrollController.position.maxScrollExtent;
     final estimatedOffset = (itemIndex * avg).clamp(0.0, maxExtent);
 
@@ -269,7 +274,7 @@ class _HistoryScreenState extends State<HistoryScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || commitId != _commitId) return;
 
-        final key = _yearBoundaryKeys[itemIndex];
+        final key = _cachedBoundaryKeys[itemIndex];
         final targetContext = key?.currentContext;
         if (targetContext != null) {
           Scrollable.ensureVisible(
@@ -304,151 +309,227 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     return StreamBuilder<List<Call>>(
       stream: widget.db.watchAllCalls(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting &&
-            !snapshot.hasData) {
+      builder: (context, callsSnapshot) {
+        if (callsSnapshot.connectionState == ConnectionState.waiting &&
+            !callsSnapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (snapshot.hasError) {
+        if (callsSnapshot.hasError) {
           return Center(
             child: Text(
-              'Failed to load call history.\n${snapshot.error}',
+              'Failed to load call history.\n${callsSnapshot.error}',
               textAlign: TextAlign.center,
             ),
           );
         }
 
-        final calls = snapshot.data ?? [];
-        final items = buildHistoryItems(calls);
-        final yearIndex = buildYearIndex(items);
+        final calls = callsSnapshot.data ?? [];
 
-        final boundaryKeys = <int, GlobalKey>{
-          for (final entry in yearIndex)
-            entry.itemIndex: _yearBoundaryKeys.putIfAbsent(
-              entry.itemIndex,
-              () => GlobalKey(),
-            ),
-        };
+        // Memoize calculation of items and yearIndex
+        if (!identical(_lastCalls, calls)) {
+          _lastCalls = calls;
+          _cachedItems = buildHistoryItems(calls);
+          _cachedYearIndex = buildYearIndex(_cachedItems);
+          _cachedBoundaryKeys = <int, GlobalKey>{
+            for (final entry in _cachedYearIndex)
+              entry.itemIndex: _yearBoundaryKeys.putIfAbsent(
+                entry.itemIndex,
+                () => GlobalKey(),
+              ),
+          };
 
-        final String? firstDate = items.isNotEmpty && items.first is String
-            ? items.first as String
-            : null;
+          final String? firstDate =
+              _cachedItems.isNotEmpty && _cachedItems.first is String
+                  ? _cachedItems.first as String
+                  : null;
 
-        if (items.isNotEmpty && _visibleDate == null) {
-          _visibleDate = firstDate;
+          if (_visibleDateNotifier.value == null && firstDate != null) {
+            _visibleDateNotifier.value = firstDate;
+          }
         }
 
-        final bool isAtTopDate =
-            _visibleDate != null && _visibleDate == firstDate;
+        return StreamBuilder<Map<int, CallDetail>>(
+          stream: widget.db.watchAllCallDetailsMap(),
+          builder: (context, detailsSnapshot) {
+            final detailsMap = detailsSnapshot.data ?? const {};
 
-        return Material(
-          type: MaterialType.transparency,
-          child: Stack(
-            children: [
-              CustomScrollView(
-                controller: widget.titleController.scrollController,
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height:
-                          MediaQuery.of(context).padding.top + kToolbarHeight,
-                    ),
-                  ),
-                  GlassLargeTitle(
-                    text: 'History',
-                    controller: widget.titleController,
-                  ),
-                  SliverHistoryCallList(
-                    key: _historyListKey,
-                    items: items,
-                    db: widget.db,
-                    settings: _currentSettings,
-                    deviceContacts: _deviceContacts,
-                    boundaryKeys: boundaryKeys,
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                ],
-              ),
-              if (_visibleDate != null)
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + kToolbarHeight + 12,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Center(
-                      child: AnimatedOpacity(
-                        opacity: isAtTopDate ? 0.0 : 1.0,
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeInOut,
-                        child: AnimatedScale(
-                          scale: isAtTopDate ? 0.8 : 1.0,
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeOutBack,
-                          child: GlassContainer(
-                            quality: GlassQuality.standard,
-                            useOwnLayer: true,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 7,
-                            ),
-                            shape: const LiquidRoundedSuperellipse(
-                              borderRadius: 18,
-                            ),
-                            child: Text(
-                              _visibleDate!,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+            return StreamBuilder<Map<int, List<Tag>>>(
+              stream: widget.db.watchAllCallTagsMap(),
+              builder: (context, tagsSnapshot) {
+                final tagsMap = tagsSnapshot.data ?? const {};
+
+                return StreamBuilder<Map<int, int>>(
+                  stream: widget.db.watchAllCallAttachmentCountsMap(),
+                  builder: (context, attachmentsSnapshot) {
+                    final attachmentCountsMap =
+                        attachmentsSnapshot.data ?? const {};
+
+                    return Material(
+                      type: MaterialType.transparency,
+                      child: Stack(
+                        children: [
+                          CustomScrollView(
+                            controller:
+                                widget.titleController.scrollController,
+                            slivers: [
+                              SliverToBoxAdapter(
+                                child: SizedBox(
+                                  height:
+                                      MediaQuery.of(context).padding.top +
+                                      kToolbarHeight,
+                                ),
                               ),
+                              GlassLargeTitle(
+                                text: 'History',
+                                controller: widget.titleController,
+                              ),
+                              SliverHistoryCallList(
+                                key: _historyListKey,
+                                items: _cachedItems,
+                                db: widget.db,
+                                settings: _currentSettings,
+                                deviceContacts: _deviceContacts,
+                                boundaryKeys: _cachedBoundaryKeys,
+                                callDetailsMap: detailsMap,
+                                callTagsMap: tagsMap,
+                                attachmentCountsMap: attachmentCountsMap,
+                              ),
+                              const SliverToBoxAdapter(
+                                child: SizedBox(height: 120),
+                              ),
+                            ],
+                          ),
+                          ValueListenableBuilder<String?>(
+                            valueListenable: _visibleDateNotifier,
+                            builder: (context, visibleDate, _) {
+                              if (visibleDate == null) {
+                                return const SizedBox.shrink();
+                              }
+
+                              final String? firstDate =
+                                  _cachedItems.isNotEmpty &&
+                                          _cachedItems.first is String
+                                      ? _cachedItems.first as String
+                                      : null;
+                              final bool isAtTopDate =
+                                  visibleDate == firstDate;
+
+                              return Positioned(
+                                top: MediaQuery.of(context).padding.top +
+                                    kToolbarHeight +
+                                    12,
+                                left: 0,
+                                right: 0,
+                                child: IgnorePointer(
+                                  child: Center(
+                                    child: AnimatedOpacity(
+                                      opacity: isAtTopDate ? 0.0 : 1.0,
+                                      duration: const Duration(
+                                        milliseconds: 250,
+                                      ),
+                                      curve: Curves.easeInOut,
+                                      child: AnimatedScale(
+                                        scale: isAtTopDate ? 0.8 : 1.0,
+                                        duration: const Duration(
+                                          milliseconds: 250,
+                                        ),
+                                        curve: Curves.easeOutBack,
+                                        child: GlassContainer(
+                                          quality: GlassQuality.standard,
+                                          useOwnLayer: false,
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 14,
+                                                vertical: 7,
+                                              ),
+                                          shape:
+                                              const LiquidRoundedSuperellipse(
+                                                borderRadius: 18,
+                                              ),
+                                          child: Text(
+                                            visibleDate,
+                                            style: TextStyle(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: MediaQuery.of(context).padding.top +
+                                kToolbarHeight,
+                            bottom: 100,
+                            child: TimelineWaveNavigator(
+                              items: _cachedItems,
+                              yearIndex: _cachedYearIndex,
+                              onCommit: _onCommitYear,
                             ),
                           ),
-                        ),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: _showScrollToTopNotifier,
+                            builder: (context, showScrollToTop, _) {
+                              return Positioned(
+                                right: 21,
+                                bottom: 100,
+                                child: AnimatedSlide(
+                                  offset: showScrollToTop
+                                      ? Offset.zero
+                                      : const Offset(2, 0),
+                                  duration: const Duration(
+                                    milliseconds: 300,
+                                  ),
+                                  curve: Curves.easeOutCubic,
+                                  child: AnimatedOpacity(
+                                    opacity: showScrollToTop ? 1.0 : 0.0,
+                                    duration: const Duration(
+                                      milliseconds: 250,
+                                    ),
+                                    child: GlassContainer(
+                                      quality: GlassQuality.standard,
+                                      useOwnLayer: false,
+                                      shape: const LiquidOval(),
+                                      child: IconButton(
+                                        icon: const Icon(
+                                          Icons.arrow_upward,
+                                        ),
+                                        onPressed: () {
+                                          widget.titleController
+                                              .scrollController
+                                              .animateTo(
+                                                0,
+                                                duration: const Duration(
+                                                  milliseconds: 500,
+                                                ),
+                                                curve:
+                                                    Curves.easeOutCubic,
+                                              );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                ),
-              Positioned(
-                right: 0,
-                top: MediaQuery.of(context).padding.top + kToolbarHeight,
-                bottom: 100,
-                child: TimelineWaveNavigator(
-                  items: items,
-                  yearIndex: yearIndex,
-                  onCommit: _onCommitYear,
-                ),
-              ),
-              Positioned(
-                right: 21,
-                bottom: 100,
-                child: AnimatedSlide(
-                  offset: _showScrollToTop ? Offset.zero : const Offset(2, 0),
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  child: AnimatedOpacity(
-                    opacity: _showScrollToTop ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 250),
-                    child: GlassContainer(
-                      quality: GlassQuality.standard,
-                      useOwnLayer: true,
-                      shape: const LiquidOval(),
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_upward),
-                        onPressed: () {
-                          widget.titleController.scrollController.animateTo(
-                            0,
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeOutCubic,
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+                    );
+                  },
+                );
+              },
+            );
+          },
         );
       },
     );

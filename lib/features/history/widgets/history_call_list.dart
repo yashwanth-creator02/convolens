@@ -12,6 +12,9 @@ class SliverHistoryCallList extends StatefulWidget {
   final List<Contact> deviceContacts;
   final Setting? settings;
   final Map<int, GlobalKey>? boundaryKeys;
+  final Map<int, CallDetail> callDetailsMap;
+  final Map<int, List<Tag>> callTagsMap;
+  final Map<int, int> attachmentCountsMap;
 
   const SliverHistoryCallList({
     super.key,
@@ -20,6 +23,9 @@ class SliverHistoryCallList extends StatefulWidget {
     required this.deviceContacts,
     this.settings,
     this.boundaryKeys,
+    this.callDetailsMap = const {},
+    this.callTagsMap = const {},
+    this.attachmentCountsMap = const {},
   });
 
   @override
@@ -27,21 +33,18 @@ class SliverHistoryCallList extends StatefulWidget {
 }
 
 class SliverHistoryCallListState extends State<SliverHistoryCallList> {
-  static const double _fallbackAverage = 72.0;
-
   final GlobalKey _sliverKey = GlobalKey();
 
   late List<String> _datesByIndex;
   String? _currentDate;
   Map<String, Contact> _contactMap = {};
 
-  double _totalMeasuredHeight = 0;
-  int _measuredCount = 0;
-  final Set<int> _measuredIndices = {};
-
-  double get averageItemHeight => _measuredCount == 0
-      ? _fallbackAverage
-      : _totalMeasuredHeight / _measuredCount;
+  double get averageItemHeight {
+    final showTabs = (widget.settings?.showCallType ?? true) ||
+        (widget.settings?.showDuration ?? true) ||
+        (widget.settings?.showTime ?? true);
+    return showTabs ? 116.0 : 88.0;
+  }
 
   String? get visibleDate => _currentDate;
 
@@ -57,9 +60,6 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.items != widget.items) {
       _buildDateIndex();
-      _measuredIndices.clear();
-      _totalMeasuredHeight = 0;
-      _measuredCount = 0;
     }
     if (oldWidget.deviceContacts != widget.deviceContacts) {
       _buildContactMap();
@@ -114,10 +114,8 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
         foundIndex >= 0 &&
         foundIndex < _datesByIndex.length) {
       final date = _datesByIndex[foundIndex];
-      if (date.isNotEmpty && date != _currentDate) {
-        setState(() {
-          _currentDate = date;
-        });
+      if (date.isNotEmpty) {
+        _currentDate = date;
       }
     }
   }
@@ -152,22 +150,15 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
             db: widget.db,
             settings: widget.settings,
             deviceContact: _findContact(call.number),
+            detail: widget.callDetailsMap[call.id],
+            tags: widget.callTagsMap[call.id],
+            attachmentCount: widget.attachmentCountsMap[call.id],
           );
         }
 
-        final wrappedChild = boundaryKey != null
+        return boundaryKey != null
             ? KeyedSubtree(key: boundaryKey, child: child)
             : child;
-
-        return _MeasuredItem(
-          onMeasured: (height) {
-            if (_measuredIndices.contains(index)) return;
-            _measuredIndices.add(index);
-            _totalMeasuredHeight += height;
-            _measuredCount++;
-          },
-          child: wrappedChild,
-        );
       }, childCount: widget.items.length),
     );
   }
@@ -176,24 +167,5 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
     if (number == null || number.isEmpty) return null;
     final normalized = normalizePhoneNumber(number);
     return _contactMap[normalized];
-  }
-}
-
-class _MeasuredItem extends StatelessWidget {
-  final Widget child;
-  final ValueChanged<double> onMeasured;
-
-  const _MeasuredItem({required this.child, required this.onMeasured});
-
-  @override
-  Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!context.mounted) return;
-      final renderObject = context.findRenderObject();
-      if (renderObject is RenderBox && renderObject.hasSize) {
-        onMeasured(renderObject.size.height);
-      }
-    });
-    return child;
   }
 }

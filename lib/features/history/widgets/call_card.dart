@@ -9,6 +9,9 @@ class CallCard extends StatelessWidget {
   final AppDatabase db;
   final Contact? deviceContact;
   final Setting? settings;
+  final CallDetail? detail;
+  final List<Tag>? tags;
+  final int? attachmentCount;
   final bool showCallButton;
   final bool showPhoneNumber;
   final bool showName;
@@ -19,6 +22,9 @@ class CallCard extends StatelessWidget {
     required this.db,
     this.deviceContact,
     this.settings,
+    this.detail,
+    this.tags,
+    this.attachmentCount,
     this.showCallButton = true,
     this.showPhoneNumber = true,
     this.showName = true,
@@ -26,6 +32,24 @@ class CallCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // If metadata is already provided (e.g. from parent batch stream), render directly with zero StreamBuilders!
+    if (detail != null || tags != null || attachmentCount != null) {
+      return RepaintBoundary(
+        child: CallCardContent(
+          call: call,
+          db: db,
+          settings: settings,
+          detail: detail,
+          tags: tags ?? const [],
+          attachmentCount: attachmentCount ?? 0,
+          deviceContact: deviceContact,
+          showCallButton: showCallButton,
+          showPhoneNumber: showPhoneNumber,
+          showName: showName,
+        ),
+      );
+    }
+
     final Widget cardContent = settings != null
         ? _buildContentWithSettings(settings)
         : StreamBuilder<Setting>(

@@ -436,17 +436,19 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
 
             const SizedBox(height: 8),
 
-            _useCalendarGrid
-                ? CalendarGridHeatmap(
-                    countsByDate: summary.heatmapData,
-                    month: DateTime.now().month,
-                    year: DateTime.now().year,
-                  )
-                : ContributionHeatmap(
-                    countsByDate: summary.heatmapData,
-                    onDayTap: (day, count) =>
-                        _showDayDetail(context, day, count),
-                  ),
+            RepaintBoundary(
+              child: _useCalendarGrid
+                  ? CalendarGridHeatmap(
+                      countsByDate: summary.heatmapData,
+                      month: DateTime.now().month,
+                      year: DateTime.now().year,
+                    )
+                  : ContributionHeatmap(
+                      countsByDate: summary.heatmapData,
+                      onDayTap: (day, count) =>
+                          _showDayDetail(context, day, count),
+                    ),
+            ),
 
             const SizedBox(height: 24),
 
@@ -502,11 +504,13 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            _buildBarChart(
-              _showDuration
-                  ? summary.durationTrend.map((s) => (s / 60).round()).toList()
-                  : summary.callsPerDay,
-              summary.dayLabels,
+            RepaintBoundary(
+              child: _buildBarChart(
+                _showDuration
+                    ? summary.durationTrend.map((s) => (s / 60).round()).toList()
+                    : summary.callsPerDay,
+                summary.dayLabels,
+              ),
             ),
 
             const SizedBox(height: 24),
@@ -515,7 +519,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            TalkRatioBar(callTypeCounts: summary.callTypeCounts),
+            RepaintBoundary(
+              child: TalkRatioBar(callTypeCounts: summary.callTypeCounts),
+            ),
 
             const SizedBox(height: 24),
             const Text(
@@ -523,7 +529,11 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            AnsweredMissedDeclinedBars(callTypeCounts: summary.callTypeCounts),
+            RepaintBoundary(
+              child: AnsweredMissedDeclinedBars(
+                callTypeCounts: summary.callTypeCounts,
+              ),
+            ),
 
             const SizedBox(height: 24),
             const Text(
@@ -531,7 +541,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            WeekdayChart(weekdayCounts: summary.weekdayCounts),
+            RepaintBoundary(
+              child: WeekdayChart(weekdayCounts: summary.weekdayCounts),
+            ),
 
             const SizedBox(height: 24),
             Row(
@@ -549,9 +561,11 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            _useClockFace
-                ? HourClockFace(hourCounts: summary.hourCounts)
-                : HourHistogram(hourCounts: summary.hourCounts),
+            RepaintBoundary(
+              child: _useClockFace
+                  ? HourClockFace(hourCounts: summary.hourCounts)
+                  : HourHistogram(hourCounts: summary.hourCounts),
+            ),
 
             const SizedBox(height: 24),
             const Text(
@@ -614,9 +628,11 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
             const SizedBox(height: 12),
-            RelationshipWeb(
-              contacts: summary.mostContacted,
-              onContactTap: _openContact,
+            RepaintBoundary(
+              child: RelationshipWeb(
+                contacts: summary.mostContacted,
+                onContactTap: _openContact,
+              ),
             ),
 
             const SizedBox(height: 24),

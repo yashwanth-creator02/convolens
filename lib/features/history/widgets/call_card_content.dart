@@ -81,7 +81,6 @@ class CallCardContent extends StatelessWidget {
 
     final hasReminder = detail?.reminderAt != null;
     final visibleTags = tags.take(2).toList();
-    final remainingTagCount = tags.length - visibleTags.length;
 
     final showIndicators =
         (hasReminder && showReminderIndicator) ||

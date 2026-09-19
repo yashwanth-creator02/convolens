@@ -76,18 +76,26 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   late final List<Widget> _screens = [
-    HistoryScreen(db: _db, titleController: _historyTitleController),
-    AnalyticsScreen(
-      key: _analyticsScreenKey,
-      db: _db,
-      titleController: _analyticsTitleController,
+    RepaintBoundary(
+      child: HistoryScreen(db: _db, titleController: _historyTitleController),
     ),
-    ContactsScreen(
-      key: _contactsScreenKey,
-      db: _db,
-      titleController: _contactsTitleController,
+    RepaintBoundary(
+      child: AnalyticsScreen(
+        key: _analyticsScreenKey,
+        db: _db,
+        titleController: _analyticsTitleController,
+      ),
     ),
-    ProfileScreen(db: _db, titleController: _profileTitleController),
+    RepaintBoundary(
+      child: ContactsScreen(
+        key: _contactsScreenKey,
+        db: _db,
+        titleController: _contactsTitleController,
+      ),
+    ),
+    RepaintBoundary(
+      child: ProfileScreen(db: _db, titleController: _profileTitleController),
+    ),
   ];
 
   // ---------------------------------------------------------------------------
@@ -160,11 +168,14 @@ class _MainShellState extends State<MainShell> {
 
     _tabBarMinimizeController.expand();
 
-    _analyticsScreenKey.currentState?.setActive(index == 1);
-    _contactsScreenKey.currentState?.setActive(index == 2);
-
     setState(() {
       _selectedIndex = index;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _analyticsScreenKey.currentState?.setActive(index == 1);
+      _contactsScreenKey.currentState?.setActive(index == 2);
     });
   }
 
