@@ -383,8 +383,8 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
       return;
     }
 
-    // If released past the date depth or in commit zone, trigger scrolling jump
-    if (!_hasTriggered && currentState.pullDepth >= _yearDepthMax) {
+    // If released in active zone (not aborted) and not already triggered during drag, commit selection
+    if (!_hasTriggered && currentState.pullDepth >= _abortThreshold) {
       _commitSelection(currentState.level, currentState.selectedIndex);
       HapticFeedback.mediumImpact();
     }
@@ -838,7 +838,8 @@ class _LiquidWavePainter extends CustomPainter {
         4.0;
 
     // Pop out position: elevated floating capsule projecting leftward from the crest peak
-    final badgeCenterX = peakX - badgeWidth / 2 - 14.0;
+    final minCenterX = badgeWidth / 2 + 12.0;
+    final badgeCenterX = max(minCenterX, peakX - badgeWidth / 2 - 14.0);
     final badgeCenterY = peakY.clamp(
       badgeHeight / 2 + 16.0,
       availableHeight - badgeHeight / 2 - 16.0,

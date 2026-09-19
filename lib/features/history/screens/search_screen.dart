@@ -194,15 +194,21 @@ class _SearchScreenState extends State<SearchScreen> {
                           child: Center(child: Text('No matching calls.')),
                         );
                       }
-                      return SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) => CallCard(
-                            call: results[index],
-                            db: widget.db,
-                            deviceContact: _findContact(results[index].number),
-                          ),
-                          childCount: results.length,
-                        ),
+                      return StreamBuilder<Setting>(
+                        stream: widget.db.watchSettings(),
+                        builder: (context, settingsSnapshot) {
+                          return SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) => CallCard(
+                                call: results[index],
+                                db: widget.db,
+                                settings: settingsSnapshot.data,
+                                deviceContact: _findContact(results[index].number),
+                              ),
+                              childCount: results.length,
+                            ),
+                          );
+                        },
                       );
                     },
                   ),

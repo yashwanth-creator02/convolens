@@ -57,12 +57,22 @@ class ContactCallHistory extends StatelessWidget {
           );
         }
 
-        return SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final call = calls[index];
+        return StreamBuilder<Setting>(
+          stream: db.watchSettings(),
+          builder: (context, settingsSnapshot) {
+            return SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final call = calls[index];
 
-            return CallCard(call: call, db: db, deviceContact: deviceContact);
-          }, childCount: calls.length),
+                return CallCard(
+                  call: call,
+                  db: db,
+                  settings: settingsSnapshot.data,
+                  deviceContact: deviceContact,
+                );
+              }, childCount: calls.length),
+            );
+          },
         );
       },
     );

@@ -43,15 +43,21 @@ class ContactCallHistoryList extends StatelessWidget {
           );
         }
 
-        return ListView.builder(
-          itemCount: calls.length,
-          itemBuilder: (context, index) => CallCard(
-            call: calls[index],
-            db: db,
-            deviceContact: deviceContact,
-            showCallButton: false,
-            showName: false,
-          ),
+        return StreamBuilder<Setting>(
+          stream: db.watchSettings(),
+          builder: (context, settingsSnapshot) {
+            return ListView.builder(
+              itemCount: calls.length,
+              itemBuilder: (context, index) => CallCard(
+                call: calls[index],
+                db: db,
+                settings: settingsSnapshot.data,
+                deviceContact: deviceContact,
+                showCallButton: false,
+                showName: false,
+              ),
+            );
+          },
         );
       },
     );

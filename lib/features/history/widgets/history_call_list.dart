@@ -151,8 +151,9 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
             settings: widget.settings,
             deviceContact: _findContact(call.number),
             detail: widget.callDetailsMap[call.id],
-            tags: widget.callTagsMap[call.id],
-            attachmentCount: widget.attachmentCountsMap[call.id],
+            tags: widget.callTagsMap[call.id] ?? const [],
+            attachmentCount: widget.attachmentCountsMap[call.id] ?? 0,
+            hasBatchMetadata: true,
           );
         }
 
