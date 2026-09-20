@@ -12,16 +12,11 @@ class ContributionHeatmap extends StatelessWidget {
           2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   Color _colorFor(BuildContext context, int count, int maxCount) {
-    if (count == 0) return Theme
-        .of(context)
-        .colorScheme
-        .surfaceContainerHighest;
+    if (count == 0) {
+      return Theme.of(context).colorScheme.surfaceContainerHighest;
+    }
     final intensity = (count / maxCount).clamp(0.15, 1.0);
-    return Theme
-        .of(context)
-        .colorScheme
-        .primary
-        .withOpacity(intensity);
+    return Theme.of(context).colorScheme.primary.withValues(alpha: intensity);
   }
 
   @override
@@ -43,10 +38,11 @@ class ContributionHeatmap extends StatelessWidget {
       cursor = cursor.add(const Duration(days: 7));
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      reverse: true,
-      child: Row(
+    return RepaintBoundary(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        reverse: true,
+        child: Row(
         children: weeks.map((week) {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 1.5),
@@ -75,6 +71,7 @@ class ContributionHeatmap extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../widgets/contact_call_history_list.dart';
@@ -7,11 +8,13 @@ import '../widgets/contact_timeline_section.dart';
 class ContactActivityTab extends StatelessWidget {
   final String normalizedNumber;
   final AppDatabase db;
+  final Contact? deviceContact;
 
   const ContactActivityTab({
     super.key,
     required this.normalizedNumber,
     required this.db,
+    this.deviceContact,
   });
 
   @override
@@ -86,6 +89,7 @@ class ContactActivityTab extends StatelessWidget {
             child: ContactCallHistoryList(
               normalizedNumber: normalizedNumber,
               db: db,
+              deviceContact: deviceContact,
             ),
           ),
         ),

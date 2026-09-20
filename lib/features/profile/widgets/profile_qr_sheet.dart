@@ -97,7 +97,7 @@ class _ProfileQrSheetState extends State<ProfileQrSheet> {
                     ),
                     const SizedBox(height: 24),
                     GlassSegmentedControl(
-                      quality: GlassQuality.premium,
+                      quality: GlassQuality.standard,
                       selectedIndex: ShareQrType.values.indexOf(_selectedType),
                       onSegmentSelected: (index) => _selectType(
                         ShareQrType.values[index],

@@ -76,18 +76,26 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   late final List<Widget> _screens = [
-    HistoryScreen(db: _db, titleController: _historyTitleController),
-    AnalyticsScreen(
-      key: _analyticsScreenKey,
-      db: _db,
-      titleController: _analyticsTitleController,
+    RepaintBoundary(
+      child: HistoryScreen(db: _db, titleController: _historyTitleController),
     ),
-    ContactsScreen(
-      key: _contactsScreenKey,
-      db: _db,
-      titleController: _contactsTitleController,
+    RepaintBoundary(
+      child: AnalyticsScreen(
+        key: _analyticsScreenKey,
+        db: _db,
+        titleController: _analyticsTitleController,
+      ),
     ),
-    ProfileScreen(db: _db, titleController: _profileTitleController),
+    RepaintBoundary(
+      child: ContactsScreen(
+        key: _contactsScreenKey,
+        db: _db,
+        titleController: _contactsTitleController,
+      ),
+    ),
+    RepaintBoundary(
+      child: ProfileScreen(db: _db, titleController: _profileTitleController),
+    ),
   ];
 
   // ---------------------------------------------------------------------------
@@ -160,11 +168,14 @@ class _MainShellState extends State<MainShell> {
 
     _tabBarMinimizeController.expand();
 
-    _analyticsScreenKey.currentState?.setActive(index == 1);
-    _contactsScreenKey.currentState?.setActive(index == 2);
-
     setState(() {
       _selectedIndex = index;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _analyticsScreenKey.currentState?.setActive(index == 1);
+      _contactsScreenKey.currentState?.setActive(index == 2);
     });
   }
 
@@ -331,6 +342,8 @@ class _MainShellState extends State<MainShell> {
 
   Widget _buildBottomNavigationBar() {
     return GlassTabBar.minimizable(
+      quality: GlassQuality.standard,
+
       tabs: const [
         GlassTab(
           label: 'History',
@@ -357,20 +370,12 @@ class _MainShellState extends State<MainShell> {
       selectedIndex: _selectedIndex,
       onTabSelected: _onNavigationItemSelected,
 
-      // -----------------------------------------------------------------------
       // Minimization
-      // -----------------------------------------------------------------------
       minimizeController: _tabBarMinimizeController,
-
-      // The active large-title controller and tab-bar controller are both
-      // listening to the same scroll position.
       scrollController: _activeScrollController,
-
       onMinimizedTabTap: _tabBarMinimizeController.expand,
 
-      // -----------------------------------------------------------------------
       // Contextual action
-      // -----------------------------------------------------------------------
       trailingButton: _trailingButton,
     );
   }

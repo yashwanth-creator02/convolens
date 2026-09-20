@@ -527,7 +527,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('system'),
+    defaultValue: const Constant('dark'),
   );
   static const VerificationMeta _showContactNameMeta = const VerificationMeta(
     'showContactName',

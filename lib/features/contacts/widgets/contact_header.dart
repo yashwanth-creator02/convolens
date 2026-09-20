@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:url_launcher/url_launcher.dart';
+
+import '../../../core/utils/call_launcher.dart';
 
 class ContactHeader extends StatefulWidget {
   final String displayName;
@@ -50,18 +51,12 @@ class _ContactHeaderState extends State<ContactHeader>
 
   Future<void> _call() async {
     if (widget.displayNumber.isEmpty) return;
-
-    final uri = Uri(scheme: 'tel', path: widget.displayNumber);
-
-    await launchUrl(uri);
+    await CallLauncher.call(widget.displayNumber);
   }
 
   Future<void> _message() async {
     if (widget.displayNumber.isEmpty) return;
-
-    final uri = Uri(scheme: 'sms', path: widget.displayNumber);
-
-    await launchUrl(uri);
+    await CallLauncher.message(widget.displayNumber);
   }
 
   @override
@@ -176,13 +171,25 @@ class _ContactHeaderState extends State<ContactHeader>
       backgroundImage: thumbnail != null ? MemoryImage(thumbnail) : null,
       child: thumbnail == null
           ? Text(
-              widget.displayName.isNotEmpty
-                  ? widget.displayName[0].toUpperCase()
-                  : '?',
+              _getInitials(widget.displayName),
               style: const TextStyle(fontSize: 22),
             )
           : null,
     );
+  }
+
+  String _getInitials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
   }
 
   Widget _buildContactInfo(Organization? organization, String? email) {
@@ -210,7 +217,7 @@ class _ContactHeaderState extends State<ContactHeader>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
@@ -225,14 +232,6 @@ class _ContactHeaderState extends State<ContactHeader>
             ],
           ],
         ),
-
-        if (widget.displayNumber.isNotEmpty)
-          Text(
-            widget.displayNumber,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
 
         if (organization != null &&
             (organization.company.isNotEmpty || organization.title.isNotEmpty))

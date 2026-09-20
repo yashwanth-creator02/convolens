@@ -41,24 +41,22 @@ class _AppState extends State<App> {
 
       case 'system':
       default:
-        return AppThemeType.system;
+        return AppThemeType.dark;
     }
   }
 
   Widget _buildAppWithTheme({
     required AppThemeType themeType,
-    ThemeMode themeMode = ThemeMode.light,
+    ThemeMode themeMode = ThemeMode.dark,
     AppDatabase? db,
     Widget? home,
   }) {
     return MaterialApp(
-      title: 'ConvoLens',
+      title: 'Point',
       theme: AppTheme.getTheme(
-        themeType == AppThemeType.system ? AppThemeType.light : themeType,
+        themeType == AppThemeType.system ? AppThemeType.dark : themeType,
       ),
-      darkTheme: themeType == AppThemeType.system
-          ? AppTheme.getTheme(AppThemeType.dark)
-          : null,
+      darkTheme: AppTheme.getTheme(AppThemeType.dark),
       themeMode: themeMode,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
@@ -86,7 +84,10 @@ class _AppState extends State<App> {
       stream: _db.watchSettings(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return _buildAppWithTheme(themeType: AppThemeType.light);
+          return _buildAppWithTheme(
+            themeType: AppThemeType.dark,
+            themeMode: ThemeMode.dark,
+          );
         }
 
         final settings = snapshot.data!;
@@ -94,9 +95,9 @@ class _AppState extends State<App> {
 
         return _buildAppWithTheme(
           themeType: themeType,
-          themeMode: themeType == AppThemeType.system
-              ? ThemeMode.system
-              : ThemeMode.light,
+          themeMode: themeType == AppThemeType.light
+              ? ThemeMode.light
+              : ThemeMode.dark,
           db: _db,
         );
       },

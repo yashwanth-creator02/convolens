@@ -267,7 +267,7 @@ class _AnalyticsFilterSheetState extends State<AnalyticsFilterSheet> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<CallTypeFilter>(
-              value: _filters.callType,
+              initialValue: _filters.callType,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 contentPadding: EdgeInsets.symmetric(horizontal: 12),

@@ -41,6 +41,64 @@ class ContactsScreenState extends State<ContactsScreen>
   Set<String> _cachedFavorites = {};
   int _cachedArchivedCount = 0;
 
+  List<Object> _computedItems = [];
+  List<String> _computedOrderedLetters = [];
+
+  void _recomputeListItems() {
+    if (_cachedContacts.isEmpty) {
+      _computedItems = [];
+      _computedOrderedLetters = [];
+      return;
+    }
+
+    final favorites =
+        _cachedContacts
+            .where(
+              (contact) => _cachedFavorites.contains(contact.normalizedNumber),
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.displayName.toLowerCase().compareTo(
+              b.displayName.toLowerCase(),
+            ),
+          );
+
+    final remaining = _cachedContacts
+        .where(
+          (contact) => !_cachedFavorites.contains(contact.normalizedNumber),
+        )
+        .toList();
+
+    final grouped = groupContactsByLetter(remaining);
+
+    final orderedLetters = grouped.keys.toList()
+      ..sort((a, b) {
+        if (a == '#') return 1;
+        if (b == '#') return -1;
+        return a.compareTo(b);
+      });
+
+    final items = <Object>[];
+
+    if (favorites.isNotEmpty) {
+      items.add(const _FavoritesSectionMarker());
+      items.addAll(favorites);
+    }
+
+    for (final letter in orderedLetters) {
+      _letterKeys.putIfAbsent(letter, () => GlobalKey());
+      items.add(letter);
+      items.addAll(grouped[letter]!);
+    }
+
+    if (_cachedArchivedCount > 0) {
+      items.add(_ArchivedSectionMarker(_cachedArchivedCount));
+    }
+
+    _computedItems = items;
+    _computedOrderedLetters = orderedLetters;
+  }
+
   StreamSubscription<List<ContactSummary>>? _contactsSub;
   StreamSubscription<Set<String>>? _favoritesSub;
   StreamSubscription<List<ContactSummary>>? _archivedSub;
@@ -75,18 +133,29 @@ class ContactsScreenState extends State<ContactsScreen>
         setState(() {
           _cachedContacts = data;
           _contactsLoaded = true;
+          _recomputeListItems();
         });
       }
     });
 
     _favoritesSub = widget.db.watchFavoriteNumbers().listen((data) {
-      if (mounted) setState(() => _cachedFavorites = data);
+      if (mounted) {
+        setState(() {
+          _cachedFavorites = data;
+          _recomputeListItems();
+        });
+      }
     });
 
     _archivedSub = _repository.watchArchivedContacts(_deviceContacts).listen((
       data,
     ) {
-      if (mounted) setState(() => _cachedArchivedCount = data.length);
+      if (mounted) {
+        setState(() {
+          _cachedArchivedCount = data.length;
+          _recomputeListItems();
+        });
+      }
     });
   }
 
@@ -255,57 +324,12 @@ class ContactsScreenState extends State<ContactsScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
-    final contacts = _cachedContacts;
-    final favoriteNumbers = _cachedFavorites;
-    final archivedCount = _cachedArchivedCount;
-
-    if (contacts.isEmpty) {
+    if (_cachedContacts.isEmpty) {
       return const Center(child: Text('No contacts found.'));
     }
 
-    final favorites =
-        contacts
-            .where(
-              (contact) => favoriteNumbers.contains(contact.normalizedNumber),
-            )
-            .toList()
-          ..sort(
-            (a, b) => a.displayName.toLowerCase().compareTo(
-              b.displayName.toLowerCase(),
-            ),
-          );
-
-    final remaining = contacts
-        .where((contact) => !favoriteNumbers.contains(contact.normalizedNumber))
-        .toList();
-
-    final grouped = groupContactsByLetter(remaining);
-
-    final orderedLetters = grouped.keys.toList()
-      ..sort((a, b) {
-        if (a == '#') return 1;
-        if (b == '#') return -1;
-
-        return a.compareTo(b);
-      });
-
-    final items = <Object>[];
-
-    if (favorites.isNotEmpty) {
-      items.add(const _FavoritesSectionMarker());
-      items.addAll(favorites);
-    }
-
-    for (final letter in orderedLetters) {
-      _letterKeys.putIfAbsent(letter, () => GlobalKey());
-
-      items.add(letter);
-      items.addAll(grouped[letter]!);
-    }
-
-    if (archivedCount > 0) {
-      items.add(_ArchivedSectionMarker(archivedCount));
-    }
+    final items = _computedItems;
+    final orderedLetters = _computedOrderedLetters;
 
     return Stack(
       children: [
@@ -417,17 +441,6 @@ class ContactsScreenState extends State<ContactsScreen>
     );
   }
 
-  Widget _buildErrorView(Object? error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'Failed to load contacts.\n$error',
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
 
   Widget _buildPermissionView() {
     return Center(

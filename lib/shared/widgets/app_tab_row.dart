@@ -155,6 +155,7 @@ class _AppTabRowState extends State<AppTabRow> with TickerProviderStateMixin {
 class _PillTabIndicator extends Decoration {
   final Color color;
   final BorderRadius borderRadius;
+  @override
   final EdgeInsetsGeometry padding;
 
   const _PillTabIndicator({

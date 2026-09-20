@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../history/widgets/call_card.dart';
@@ -6,11 +7,13 @@ import '../../history/widgets/call_card.dart';
 class ContactCallHistoryList extends StatelessWidget {
   final String normalizedNumber;
   final AppDatabase db;
+  final Contact? deviceContact;
 
   const ContactCallHistoryList({
     super.key,
     required this.normalizedNumber,
     required this.db,
+    this.deviceContact,
   });
 
   @override
@@ -40,9 +43,21 @@ class ContactCallHistoryList extends StatelessWidget {
           );
         }
 
-        return ListView.builder(
-          itemCount: calls.length,
-          itemBuilder: (context, index) => CallCard(call: calls[index], db: db),
+        return StreamBuilder<Setting>(
+          stream: db.watchSettings(),
+          builder: (context, settingsSnapshot) {
+            return ListView.builder(
+              itemCount: calls.length,
+              itemBuilder: (context, index) => CallCard(
+                call: calls[index],
+                db: db,
+                settings: settingsSnapshot.data,
+                deviceContact: deviceContact,
+                showCallButton: false,
+                showName: false,
+              ),
+            );
+          },
         );
       },
     );

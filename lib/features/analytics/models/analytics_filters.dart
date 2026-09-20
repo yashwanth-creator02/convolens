@@ -58,8 +58,9 @@ class AnalyticsFilters {
   }
 
   DateTime resolveEndDate() {
-    if (dateRange == DateRangeOption.custom && customEnd != null)
+    if (dateRange == DateRangeOption.custom && customEnd != null) {
       return customEnd!;
+    }
     return DateTime.now();
   }
 

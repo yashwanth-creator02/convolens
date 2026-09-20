@@ -13,39 +13,55 @@ class ContactCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final lastCallAt = contact.lastCallAt;
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: CircleAvatar(
-        radius: 24,
-        backgroundImage: contact.deviceContact?.thumbnail != null
-            ? MemoryImage(contact.deviceContact!.thumbnail!)
+    return RepaintBoundary(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        leading: CircleAvatar(
+          radius: 24,
+          backgroundImage: contact.deviceContact?.thumbnail != null
+              ? ResizeImage(
+                  MemoryImage(contact.deviceContact!.thumbnail!),
+                  width: 96,
+                  height: 96,
+                )
+              : null,
+          child: contact.deviceContact?.thumbnail == null
+              ? Text(_getInitials(contact.displayName))
+              : null,
+        ),
+        title: Text(
+          contact.displayName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          lastCallAt != null
+              ? '${contact.callCount} '
+                    'call${contact.callCount == 1 ? '' : 's'}'
+                    ' • ${formatLastContacted(lastCallAt)}'
+              : 'No calls yet',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: contact.displayNumber.isNotEmpty
+            ? const Icon(Icons.chevron_right)
             : null,
-        child: contact.deviceContact?.thumbnail == null
-            ? Text(
-                contact.displayName.isNotEmpty
-                    ? contact.displayName[0].toUpperCase()
-                    : '?',
-              )
-            : null,
+        onTap: onTap,
       ),
-      title: Text(
-        contact.displayName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        lastCallAt != null
-            ? '${contact.callCount} '
-                  'call${contact.callCount == 1 ? '' : 's'}'
-                  ' • ${formatLastContacted(lastCallAt)}'
-            : 'No calls yet',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: contact.displayNumber.isNotEmpty
-          ? const Icon(Icons.chevron_right)
-          : null,
-      onTap: onTap,
     );
+  }
+
+  String _getInitials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
+
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
   }
 }

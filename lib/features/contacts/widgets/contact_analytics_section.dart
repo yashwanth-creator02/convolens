@@ -131,7 +131,7 @@ class ContactAnalyticsSection extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: strengthColor.withOpacity(0.15),
+                  color: strengthColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: strengthColor),
                 ),

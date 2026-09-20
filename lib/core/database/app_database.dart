@@ -120,6 +120,10 @@ class AppDatabase extends _$AppDatabase {
 
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON');
+        await customStatement('PRAGMA journal_mode = WAL');
+        await customStatement('PRAGMA synchronous = NORMAL');
+        await customStatement('PRAGMA temp_store = MEMORY');
+        await customStatement('PRAGMA cache_size = -32000');
 
         await into(
           settings,
@@ -335,6 +339,12 @@ class AppDatabase extends _$AppDatabase {
     )..where((d) => d.callId.equals(callId))).watchSingleOrNull();
   }
 
+  Stream<Map<int, CallDetail>> watchAllCallDetailsMap() {
+    return select(callDetails).watch().map((list) => {
+      for (final d in list) d.callId: d,
+    });
+  }
+
   Future<void> saveNote(int callId, String note) async {
     final existing = await (select(
       callDetails,
@@ -424,6 +434,21 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Stream<Map<int, List<Tag>>> watchAllCallTagsMap() {
+    final query = select(callTags).join([
+      innerJoin(tags, tags.id.equalsExp(callTags.tagId)),
+    ]);
+    return query.watch().map((rows) {
+      final result = <int, List<Tag>>{};
+      for (final row in rows) {
+        final ct = row.readTable(callTags);
+        final tag = row.readTable(tags);
+        result.putIfAbsent(ct.callId, () => []).add(tag);
+      }
+      return result;
+    });
+  }
+
   Future<void> addTagToCall(int callId, String tagName) async {
     final normalizedName = tagName.trim();
 
@@ -491,6 +516,24 @@ class AppDatabase extends _$AppDatabase {
     return query.watchSingle().map(
       (row) => row.read(callAttachments.id.count()) ?? 0,
     );
+  }
+
+  Stream<Map<int, int>> watchAllCallAttachmentCountsMap() {
+    final countCol = callAttachments.id.count();
+    final query = selectOnly(callAttachments)
+      ..addColumns([callAttachments.callId, countCol])
+      ..groupBy([callAttachments.callId]);
+    return query.watch().map((rows) {
+      final result = <int, int>{};
+      for (final row in rows) {
+        final callId = row.read(callAttachments.callId);
+        final count = row.read(countCol) ?? 0;
+        if (callId != null) {
+          result[callId] = count;
+        }
+      }
+      return result;
+    });
   }
 
   // ============================================================

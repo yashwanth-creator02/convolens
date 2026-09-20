@@ -33,8 +33,8 @@ class StretchRevealRoute<T> extends PageRouteBuilder<T> {
             return Transform(
               alignment: Alignment.topCenter,
               transform: Matrix4.identity()
-                ..translate(0.0, -40 * (1 - t))
-                ..scale(1.0, 0.85 + 0.15 * t),
+                ..translateByDouble(0.0, -40 * (1 - t), 0.0, 1.0)
+                ..scaleByDouble(1.0, 0.85 + 0.15 * t, 1.0, 1.0),
               child: child,
             );
           },

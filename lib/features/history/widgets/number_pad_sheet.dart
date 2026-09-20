@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/utils/call_launcher.dart';
+
 Future<String?> showNumberPadSheet(BuildContext context) {
   return showModalBottomSheet<String>(
     context: context,
@@ -27,6 +29,16 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
     setState(() => _digits = _digits.substring(0, _digits.length - 1));
   }
 
+  Future<void> _callDigits() async {
+    final success = await CallLauncher.call(_digits);
+    if (mounted) Navigator.pop(context);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not place call.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -41,15 +53,26 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
           const SizedBox(height: 16),
           _NumberPadGrid(onDigit: _addDigit, onBackspace: _backspace),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _digits.isEmpty
-                  ? null
-                  : () => Navigator.pop(context, _digits),
-              icon: const Icon(Icons.search),
-              label: const Text('Search'),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _digits.isEmpty ? null : _callDigits,
+                  icon: const Icon(Icons.call),
+                  label: const Text('Call'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _digits.isEmpty
+                      ? null
+                      : () => Navigator.pop(context, _digits),
+                  icon: const Icon(Icons.search),
+                  label: const Text('Search'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
