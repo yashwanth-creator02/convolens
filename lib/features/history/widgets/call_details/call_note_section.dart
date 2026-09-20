@@ -6,6 +6,7 @@ class CallNoteSection extends StatefulWidget {
   final ValueChanged<String>? onSave;
   final VoidCallback? onAdd;
   final VoidCallback? onEdit;
+  final VoidCallback? onClear;
 
   const CallNoteSection({
     super.key,
@@ -13,6 +14,7 @@ class CallNoteSection extends StatefulWidget {
     this.onSave,
     this.onAdd,
     this.onEdit,
+    this.onClear,
   });
 
   @override
@@ -122,8 +124,33 @@ class _CallNoteSectionState extends State<CallNoteSection> {
         if (_isModified) ...[
           const SizedBox(height: 10),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              if (widget.onClear != null &&
+                  widget.note != null &&
+                  widget.note!.trim().isNotEmpty) ...[
+                TextButton.icon(
+                  onPressed: _isSaving ? null : widget.onClear,
+                  icon: Icon(
+                    Icons.delete_outline_rounded,
+                    size: 15,
+                    color: scheme.error,
+                  ),
+                  label: Text(
+                    'Delete Note',
+                    style: TextStyle(
+                      color: scheme.error,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+                const Spacer(),
+              ] else
+                const Spacer(),
               TextButton(
                 onPressed: _isSaving ? null : _handleCancel,
                 style: TextButton.styleFrom(

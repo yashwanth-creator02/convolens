@@ -13,9 +13,7 @@ import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
 import '../../../core/utils/normalize_number.dart';
-import '../../../shared/widgets/add_tag_dialog.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
-import '../../../shared/widgets/text_input_dialog.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../../contacts/widgets/add_contact_screen.dart';
 import '../repository/attachment_storage.dart';
@@ -26,8 +24,11 @@ import '../widgets/call_details/call_attachments_section.dart';
 import '../widgets/call_details/call_developer_info.dart';
 import '../widgets/call_details/call_info_section.dart';
 import '../widgets/call_details/call_note_section.dart';
+import '../widgets/call_details/call_recording_section.dart';
 import '../widgets/call_details/call_reminder_section.dart';
 import '../widgets/call_details/call_tags_section.dart';
+import '../widgets/call_details/reminder_glass_sheet.dart';
+import '../widgets/call_details/tag_selection_glass_sheet.dart';
 import '../widgets/voice_note_player_sheet.dart';
 import '../widgets/voice_recorder_dialog.dart';
 
@@ -156,128 +157,158 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     }
   }
 
-  Future<void> _addTag(BuildContext context) async {
-    final existingTags = await widget.db.getAllTags();
-
-    if (!context.mounted) return;
-
-    final result = await showDialog<String>(
+  Future<void> _clearNote(BuildContext context) async {
+    final confirmed = await showConfirmDialog(
       context: context,
-      builder: (context) {
-        return AddTagDialog(existingTags: existingTags);
-      },
+      title: 'Clear Note?',
+      message: 'Are you sure you want to remove the note for this call?',
+      confirmLabel: 'Clear',
+      isDestructive: true,
     );
 
-    if (result == null || result.isEmpty) return;
+    if (!confirmed || !context.mounted) return;
 
-    await widget.db.addTagToCall(widget.call.id, result);
+    try {
+      await widget.db.saveNote(widget.call.id, '');
+
+      if (!context.mounted) return;
+      ToastService.success(context, 'Note cleared.');
+    } catch (e) {
+      if (!context.mounted) return;
+      ToastService.error(context, 'Failed to clear note.');
+    }
+  }
+
+  Future<void> _addTag(BuildContext context) async {
+    await TagSelectionGlassSheet.show(
+      context: context,
+      db: widget.db,
+      callId: widget.call.id,
+    );
   }
 
   Future<void> _setReminder(BuildContext context) async {
-    final now = DateTime.now();
-
-    final pickedDate = await showDatePicker(
+    await ReminderGlassSheet.show(
       context: context,
-      initialDate: now,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-    );
+      onSet: (scheduledTime, label) async {
+        final notificationsGranted =
+            await NotificationService.areNotificationsGranted();
 
-    if (pickedDate == null || !context.mounted) return;
-
-    final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (pickedTime == null || !context.mounted) return;
-
-    final reminderTime = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
-
-    if (reminderTime.isBefore(DateTime.now())) {
-      ToastService.error(context, 'Please pick a time in the future.');
-      return;
-    }
-
-    final label = await showTextInputDialog(
-      context: context,
-      title: 'Reminder Note',
-      hintText: 'e.g. Call back about project',
-      confirmLabel: 'Set Reminder',
-    );
-
-    if (label == null || !context.mounted) return;
-
-    final notificationsGranted =
-        await NotificationService.areNotificationsGranted();
-
-    if (!notificationsGranted) {
-      final granted = await NotificationService.requestNotificationPermission();
-
-      if (!granted) {
-        if (context.mounted) {
-          ToastService.error(
-            context,
-            'Notification permission is required to set reminders.',
-          );
+        if (!notificationsGranted) {
+          final granted =
+              await NotificationService.requestNotificationPermission();
+          if (!granted) {
+            if (context.mounted) {
+              ToastService.error(
+                context,
+                'Notification permission is required to set reminders.',
+              );
+            }
+            return;
+          }
         }
-        return;
-      }
-    }
 
-    final displayName = widget.call.name?.isNotEmpty == true
-        ? widget.call.name!
-        : (widget.call.number ?? 'Unknown');
+        final displayName = widget.call.name?.isNotEmpty == true
+            ? widget.call.name!
+            : (widget.call.number ?? 'Unknown');
 
-    final reminderTitle = label.trim().isNotEmpty
-        ? label.trim()
-        : 'Call reminder: $displayName';
+        final reminderTitle = (label != null && label.isNotEmpty)
+            ? label
+            : 'Call reminder: $displayName';
 
-    await NotificationService.scheduleReminder(
-      callId: widget.call.id,
-      scheduledTime: reminderTime,
-      title: reminderTitle,
-      body: 'Follow up on your call with $displayName',
+        await NotificationService.scheduleReminder(
+          callId: widget.call.id,
+          scheduledTime: scheduledTime,
+          title: reminderTitle,
+          body: 'Follow up on your call with $displayName',
+        );
+
+        await widget.db.saveReminder(
+          widget.call.id,
+          scheduledTime,
+          label,
+        );
+
+        if (!context.mounted) return;
+
+        final remaining = scheduledTime.difference(DateTime.now());
+        String remainingText;
+        if (remaining.inDays > 0) {
+          final days = remaining.inDays;
+          remainingText = '$days ${days == 1 ? 'day' : 'days'}';
+        } else if (remaining.inHours > 0) {
+          final hours = remaining.inHours;
+          remainingText = '$hours ${hours == 1 ? 'hour' : 'hours'}';
+        } else {
+          final minutes = remaining.inMinutes;
+          remainingText = minutes <= 1 ? '1 minute' : '$minutes minutes';
+        }
+
+        ToastService.success(
+          context,
+          'Reminder set. You\'ll be notified in $remainingText.',
+        );
+      },
+    );
+  }
+
+  Future<void> _importRecording(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['m4a', 'mp3', 'aac', 'wav', 'ogg', 'opus', 'amr'],
     );
 
-    await widget.db.saveReminder(
-      widget.call.id,
-      reminderTime,
-      label.trim().isNotEmpty ? label.trim() : null,
-    );
-
+    if (result == null || result.files.single.path == null) return;
     if (!context.mounted) return;
 
-    final remaining = reminderTime.difference(DateTime.now());
+    final pickedFile = result.files.single;
+    final sourcePath = pickedFile.path!;
 
-    String remainingText;
+    try {
+      final copiedPath = await AttachmentStorage.copyToAppStorage(
+        sourcePath,
+        widget.call.id,
+      );
 
-    if (remaining.inDays > 0) {
-      final days = remaining.inDays;
-      remainingText = '$days ${days == 1 ? 'day' : 'days'}';
-    } else if (remaining.inHours > 0) {
-      final hours = remaining.inHours;
-      remainingText = '$hours ${hours == 1 ? 'hour' : 'hours'}';
-    } else {
-      final minutes = remaining.inMinutes;
+      await widget.db.addAttachment(
+        callId: widget.call.id,
+        filePath: copiedPath,
+        originalFileName: pickedFile.name,
+        fileType: 'call_recording',
+      );
 
-      if (minutes <= 1) {
-        remainingText = '1 minute';
-      } else {
-        remainingText = '$minutes minutes';
-      }
+      if (!context.mounted) return;
+      ToastService.success(context, 'Call recording linked.');
+    } catch (e) {
+      if (!context.mounted) return;
+      ToastService.error(context, 'Failed to import recording.');
     }
+  }
 
-    ToastService.success(
-      context,
-      'Reminder set. You’ll be notified in $remainingText.',
+  Future<void> _deleteRecording(
+    BuildContext context,
+    CallAttachment attachment,
+  ) async {
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: 'Remove Recording?',
+      message: 'This will unlink and delete the recording file.',
+      confirmLabel: 'Remove',
+      isDestructive: true,
     );
+
+    if (!confirmed) return;
+
+    try {
+      await AttachmentStorage.deleteFile(attachment.filePath);
+      await widget.db.deleteAttachment(attachment.id);
+
+      if (!context.mounted) return;
+      ToastService.success(context, 'Recording removed.');
+    } catch (e) {
+      if (!context.mounted) return;
+      ToastService.error(context, 'Failed to remove recording.');
+    }
   }
 
   Future<void> _clearReminder(BuildContext context) async {
@@ -839,17 +870,70 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       child: CallInfoSection(call: widget.call, db: widget.db),
                     ),
                     const SizedBox(height: 16),
+                    // ── Call Recording (only when a recording exists) ──────
+                    StreamBuilder<List<CallAttachment>>(
+                      stream: widget.db.watchAttachmentsForCall(widget.call.id),
+                      builder: (context, attachSnap) {
+                        final allAttachments = attachSnap.data ?? const [];
+                        final recording = allAttachments
+                            .where((a) => a.fileType == 'call_recording')
+                            .firstOrNull;
+
+                        // Always render when loading so the card can show
+                        // the import prompt even before data arrives
+                        return _buildCard(
+                          context,
+                          title: 'Call Recording',
+                          icon: Icons.fiber_smart_record_rounded,
+                          titleColor: recording != null
+                              ? Colors.redAccent
+                              : null,
+                          child: CallRecordingSection(
+                            recording: recording,
+                            onImport: () => _importRecording(context),
+                            onDelete: () => _deleteRecording(context, recording!),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
                     StreamBuilder<CallDetail?>(
                       stream: widget.db.watchDetailsForCall(widget.call.id),
                       builder: (context, detailSnapshot) {
                         final detail = detailSnapshot.data;
+                        final hasNote = detail?.note != null &&
+                            detail!.note!.trim().isNotEmpty;
+                        final scheme = Theme.of(context).colorScheme;
                         return _buildCard(
                           context,
                           title: 'Call Note',
                           icon: Icons.edit_note_rounded,
+                          trailing: hasNote
+                              ? TextButton.icon(
+                                  onPressed: () => _clearNote(context),
+                                  icon: Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 14,
+                                    color: scheme.error,
+                                  ),
+                                  label: Text(
+                                    'Clear',
+                                    style: TextStyle(
+                                      color: scheme.error,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                )
+                              : null,
                           child: CallNoteSection(
                             note: detail?.note,
                             onSave: (note) => _saveNote(context, note),
+                            onClear: () => _clearNote(context),
                           ),
                         );
                       },
@@ -866,8 +950,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                           trailing: tags.isNotEmpty
                               ? TextButton.icon(
                                   onPressed: () => _addTag(context),
-                                  icon: const Icon(Icons.add, size: 14),
-                                  label: const Text('Add'),
+                                  icon: const Icon(Icons.edit_outlined, size: 14),
+                                  label: const Text('Edit'),
                                   style: TextButton.styleFrom(
                                     visualDensity: VisualDensity.compact,
                                     padding: EdgeInsets.zero,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/database/app_database.dart';
 
+/// Displays the active reminder or an empty-state prompt inside the
+/// "Follow-up Reminder" card on [CallDetailScreen].
 class CallReminderSection extends StatelessWidget {
   final CallDetail? reminder;
   final VoidCallback onSet;
@@ -30,18 +32,8 @@ class CallReminderSection extends StatelessWidget {
     if (difference == 1) return 'Tomorrow at $timeStr';
 
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${dt.day} ${months[dt.month - 1]} at $timeStr';
   }
@@ -69,19 +61,23 @@ class CallReminderSection extends StatelessWidget {
     final reminderAt = reminder?.reminderAt;
     final hasReminder = reminderAt != null;
 
+    // ── Active reminder card ─────────────────────────────────────────────────
     if (hasReminder) {
       final dt = DateTime.fromMillisecondsSinceEpoch(reminderAt);
       final label = reminder?.reminderLabel?.trim();
       final hasLabel = label != null && label.isNotEmpty;
+      final isPastDue = dt.isBefore(DateTime.now());
 
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          color: (isPastDue ? scheme.error : Colors.amber)
+              .withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: Colors.amber.withValues(alpha: 0.3),
+            color: (isPastDue ? scheme.error : Colors.amber)
+                .withValues(alpha: 0.28),
           ),
         ),
         child: Row(
@@ -89,13 +85,16 @@ class CallReminderSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.15),
+                color: (isPastDue ? scheme.error : Colors.amber)
+                    .withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.alarm_on_rounded,
+              child: Icon(
+                isPastDue
+                    ? Icons.alarm_off_rounded
+                    : Icons.alarm_on_rounded,
                 size: 20,
-                color: Colors.amber,
+                color: isPastDue ? scheme.error : Colors.amber,
               ),
             ),
             const SizedBox(width: 14),
@@ -114,13 +113,16 @@ class CallReminderSection extends StatelessWidget {
                     ),
                   Row(
                     children: [
-                      Text(
-                        _formatReminderTime(dt),
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: scheme.onSurfaceVariant,
-                          fontWeight:
-                              hasLabel ? FontWeight.normal : FontWeight.w600,
+                      Flexible(
+                        child: Text(
+                          _formatReminderTime(dt),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: hasLabel
+                                ? FontWeight.normal
+                                : FontWeight.w600,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -130,15 +132,16 @@ class CallReminderSection extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.2),
+                          color: (isPastDue ? scheme.error : Colors.amber)
+                              .withValues(alpha: 0.18),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           _relativeRemaining(dt),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: Colors.amber,
+                            color: isPastDue ? scheme.error : Colors.amber,
                           ),
                         ),
                       ),
@@ -161,6 +164,7 @@ class CallReminderSection extends StatelessWidget {
       );
     }
 
+    // ── Empty state ──────────────────────────────────────────────────────────
     return InkWell(
       onTap: onSet,
       borderRadius: BorderRadius.circular(14),
@@ -179,7 +183,7 @@ class CallReminderSection extends StatelessWidget {
             Icon(
               Icons.alarm_add_outlined,
               size: 20,
-              color: scheme.primary.withValues(alpha: 0.8),
+              color: Colors.amber.withValues(alpha: 0.8),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -202,4 +206,3 @@ class CallReminderSection extends StatelessWidget {
     );
   }
 }
-

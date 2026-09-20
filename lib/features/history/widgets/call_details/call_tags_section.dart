@@ -24,38 +24,49 @@ class CallTagsSection extends StatelessWidget {
     if (tags.isEmpty) {
       return InkWell(
         onTap: onAdd,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           decoration: BoxDecoration(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(14),
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.2),
+              color: scheme.outlineVariant.withValues(alpha: 0.22),
             ),
           ),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.local_offer_outlined,
-                size: 18,
-                color: scheme.primary.withValues(alpha: 0.8),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'No tags assigned — tap to add tags…',
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                    fontSize: 13.5,
-                  ),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.local_offer_outlined,
+                  size: 18,
+                  color: scheme.primary,
                 ),
               ),
-              Icon(
-                Icons.add_rounded,
-                size: 18,
-                color: scheme.primary,
+              const SizedBox(height: 8),
+              Text(
+                'No tags added',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface.withValues(alpha: 0.85),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Tap to categorize this call with tags',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
               ),
             ],
           ),
@@ -67,61 +78,31 @@ class CallTagsSection extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        ...tags.map((tag) {
-          return GlassChip(
-            label: tag.name,
-            icon: Icon(
-              Icons.tag,
-              size: 14,
-              color: scheme.primary.withValues(alpha: 0.9),
-            ),
-            onDeleted: () => onRemove(tag),
-            deleteIcon: Icon(
-              CupertinoIcons.xmark_circle_fill,
-              size: 16,
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
-            ),
-            quality: GlassQuality.standard,
-            useOwnLayer: false,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            labelStyle: TextStyle(
-              color: scheme.onSurface,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          );
-        }),
-        InkWell(
-          onTap: onAdd,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest.withValues(alpha: 0.25),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: scheme.primary.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.add, size: 14, color: scheme.primary),
-                const SizedBox(width: 4),
-                Text(
-                  'Add Tag',
-                  style: TextStyle(
-                    color: scheme.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+      children: tags.map((tag) {
+        return GlassChip(
+          label: tag.name,
+          icon: Icon(
+            Icons.tag,
+            size: 14,
+            color: scheme.primary.withValues(alpha: 0.9),
           ),
-        ),
-      ],
+          onTap: onAdd,
+          onDeleted: () => onRemove(tag),
+          deleteIcon: Icon(
+            CupertinoIcons.xmark_circle_fill,
+            size: 16,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
+          quality: GlassQuality.standard,
+          useOwnLayer: false,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          labelStyle: TextStyle(
+            color: scheme.onSurface,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        );
+      }).toList(),
     );
   }
 }
