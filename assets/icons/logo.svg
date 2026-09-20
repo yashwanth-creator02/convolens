@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
+  <defs>
+    <!-- Liquid Glass / Neon Cyan-Blue-Purple Gradients -->
+    <linearGradient id="phoneGlow" x1="100" y1="120" x2="380" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="35%" stop-color="#3B82F6"/>
+      <stop offset="70%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+
+    <linearGradient id="phoneHighlight" x1="140" y1="100" x2="300" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E0F2FE" stop-opacity="0.9"/>
+      <stop offset="20%" stop-color="#BAE6FD" stop-opacity="0.5"/>
+      <stop offset="60%" stop-color="#C7D2FE" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#F5D0FE" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <linearGradient id="innerRefraction" x1="160" y1="160" x2="260" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#38BDF8" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#A855F7" stop-opacity="0.4"/>
+    </linearGradient>
+
+    <!-- Bar Gradients -->
+    <linearGradient id="bar1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <linearGradient id="bar2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="bar3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <linearGradient id="bar4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C084FC"/>
+      <stop offset="100%" stop-color="#9333EA"/>
+    </linearGradient>
+
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Ambient Glow Backing -->
+  <g filter="url(#softGlow)" opacity="0.35">
+    <path d="M148 114 C192 100, 236 128, 222 178 L204 216 C198 228, 202 242, 212 252 L260 300 C270 310, 284 314, 296 308 L334 290 C384 276, 412 320, 398 364 C388 398, 350 422, 312 416 C224 402, 114 292, 100 204 C94 166, 116 124, 148 114 Z"
+          fill="url(#phoneGlow)"/>
+    <rect x="254" y="228" width="22" height="54" rx="11" fill="url(#bar1)"/>
+    <rect x="290" y="190" width="22" height="92" rx="11" fill="url(#bar2)"/>
+    <rect x="326" y="148" width="22" height="134" rx="11" fill="url(#bar3)"/>
+    <rect x="362" y="104" width="22" height="178" rx="11" fill="url(#bar4)"/>
+  </g>
+
+  <!-- Phone Handset Silhouette -->
+  <!-- Main Glass Body -->
+  <path d="M148 114 C192 100, 236 128, 222 178 L204 216 C198 228, 202 242, 212 252 L260 300 C270 310, 284 314, 296 308 L334 290 C384 276, 412 320, 398 364 C388 398, 350 422, 312 416 C224 402, 114 292, 100 204 C94 166, 116 124, 148 114 Z"
+        fill="url(#phoneGlow)"/>
+
+  <!-- Glass Highlight Bevel Overlay -->
+  <path d="M148 114 C192 100, 236 128, 222 178 L204 216 C198 228, 202 242, 212 252 L260 300 C270 310, 284 314, 296 308 L334 290 C384 276, 412 320, 398 364 C388 398, 350 422, 312 416 C224 402, 114 292, 100 204 C94 166, 116 124, 148 114 Z"
+        fill="url(#phoneHighlight)"/>
+
+  <!-- Inner Glass Specular Ridge -->
+  <path d="M152 124 C184 114, 216 136, 206 174 L190 212 C184 226, 188 244, 200 256 L248 304 C260 316, 278 320, 292 314 L330 298 C368 288, 390 322, 380 354 C372 380, 344 398, 314 394 C236 384, 134 282, 122 204 C118 174, 134 130, 152 124 Z"
+        stroke="url(#innerRefraction)" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+  <!-- Analytics Signal/Bar Pillars -->
+  <!-- Bar 1 -->
+  <rect x="254" y="228" width="22" height="54" rx="11" fill="url(#bar1)"/>
+  <rect x="256" y="230" width="18" height="50" rx="9" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" fill="none"/>
+
+  <!-- Bar 2 -->
+  <rect x="290" y="190" width="22" height="92" rx="11" fill="url(#bar2)"/>
+  <rect x="292" y="192" width="18" height="88" rx="9" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" fill="none"/>
+
+  <!-- Bar 3 -->
+  <rect x="326" y="148" width="22" height="134" rx="11" fill="url(#bar3)"/>
+  <rect x="328" y="150" width="18" height="130" rx="9" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" fill="none"/>
+
+  <!-- Bar 4 -->
+  <rect x="362" y="104" width="22" height="178" rx="11" fill="url(#bar4)"/>
+  <rect x="364" y="106" width="18" height="174" rx="9" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" fill="none"/>
+
+  <!-- Top Glass Sheen on Bars -->
+  <ellipse cx="265" cy="239" rx="7" ry="5" fill="rgba(255,255,255,0.5)"/>
+  <ellipse cx="301" cy="201" rx="7" ry="5" fill="rgba(255,255,255,0.5)"/>
+  <ellipse cx="337" cy="159" rx="7" ry="5" fill="rgba(255,255,255,0.5)"/>
+  <ellipse cx="373" cy="115" rx="7" ry="5" fill="rgba(255,255,255,0.5)"/>
+</svg>
