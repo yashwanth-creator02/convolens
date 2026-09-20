@@ -9,7 +9,7 @@ class Settings extends Table {
 
   BoolColumn get devMode => boolean().withDefault(const Constant(false))();
 
-  TextColumn get theme => text().withDefault(const Constant('system'))();
+  TextColumn get theme => text().withDefault(const Constant('dark'))();
 
   BoolColumn get showContactName =>
       boolean().withDefault(const Constant(true))();
