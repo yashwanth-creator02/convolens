@@ -42,19 +42,12 @@ class CallDetailScreen extends StatefulWidget {
 }
 
 class _CallDetailScreenState extends State<CallDetailScreen> {
-  final GlassLargeTitleController _titleController = GlassLargeTitleController();
   Contact? _deviceContact;
 
   @override
   void initState() {
     super.initState();
     _loadDeviceContact();
-  }
-
-  @override
-  void dispose() {
-    _titleController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadDeviceContact() async {
@@ -467,7 +460,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     OpenFilex.open(attachment.filePath);
   }
 
-  Widget _buildGlassCard(
+  Widget _buildCard(
     BuildContext context, {
     required String title,
     required IconData icon,
@@ -478,10 +471,22 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    return GlassContainer(
-      quality: GlassQuality.standard,
-      useOwnLayer: false,
-      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,7 +536,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -539,10 +544,10 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
+                    color: color.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: color.withValues(alpha: 0.25),
+                      color: color.withValues(alpha: 0.22),
                     ),
                   ),
                   child: Icon(icon, size: 20, color: color),
@@ -576,29 +581,35 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     final scheme = theme.colorScheme;
     final initials = _getInitials(displayName);
 
-    return GlassContainer(
-      quality: GlassQuality.standard,
-      useOwnLayer: false,
-      shape: const LiquidRoundedSuperellipse(borderRadius: 24),
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       child: Column(
         children: [
           Container(
-            width: 72,
-            height: 72,
+            width: 68,
+            height: 68,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  callTypeColor.withValues(alpha: 0.28),
-                  scheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                ],
-              ),
+              color: Color.lerp(scheme.surfaceContainer, callTypeColor, 0.12) ??
+                  scheme.surfaceContainer,
               border: Border.all(
-                color: callTypeColor.withValues(alpha: 0.4),
-                width: 2.2,
+                color: callTypeColor.withValues(alpha: 0.35),
+                width: 2,
               ),
             ),
             child: Center(
@@ -606,15 +617,14 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   ? Text(
                       initials,
                       style: TextStyle(
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: scheme.onSurface,
-                        letterSpacing: -0.5,
                       ),
                     )
                   : Icon(
                       Icons.person_outline_rounded,
-                      size: 32,
+                      size: 30,
                       color: scheme.onSurface,
                     ),
             ),
@@ -627,7 +637,6 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: scheme.onSurface,
-              letterSpacing: -0.2,
             ),
           ),
           if (phoneNumber.isNotEmpty && phoneNumber != displayName) ...[
@@ -646,10 +655,11 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: callTypeColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
+              color: Color.lerp(scheme.surfaceContainer, callTypeColor, 0.08) ??
+                  scheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: callTypeColor.withValues(alpha: 0.28),
+                color: callTypeColor.withValues(alpha: 0.25),
               ),
             ),
             child: Row(
@@ -709,7 +719,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
             ),
           ),
           if (phoneNumber.isNotEmpty) ...[
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Divider(
               height: 1,
               color: scheme.outlineVariant.withValues(alpha: 0.3),
@@ -776,7 +786,6 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     return GlassScaffold(
       appBar: GlassAppBar.pinned(
         title: const Text('Call Details'),
-        largeTitleController: _titleController,
         actions: [
           if (phoneNumber.isNotEmpty) ...[
             GlassBarItem.icon(
@@ -786,22 +795,25 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
               onTap: () => CallLauncher.call(phoneNumber),
             ),
             GlassBarItem.icon(
-              icon: Icon(
-                _deviceContact != null
-                    ? Icons.person_outline
-                    : Icons.person_add_outlined,
-              ),
+              icon: const Icon(Icons.person_outline),
               id: 'context_action',
-              label: _deviceContact != null ? 'View Contact' : 'Add Contact',
-              onTap: () => _openContact(context, displayName, phoneNumber),
-            ),
-            GlassBarItem.icon(
-              icon: const Icon(Icons.copy_outlined),
-              id: 'copy_action',
-              label: 'Copy Number',
-              onTap: () {
-                Clipboard.setData(ClipboardData(text: phoneNumber));
-                ToastService.info(context, 'Number copied to clipboard');
+              label: 'View Contact',
+              onTap: () async {
+                final deviceContact = await _findDeviceContact(phoneNumber);
+
+                if (!context.mounted) return;
+
+                Navigator.of(context).push(
+                  CupertinoPageRoute(
+                    builder: (context) => ContactDetailScreen(
+                      normalizedNumber: normalizePhoneNumber(phoneNumber),
+                      displayName: displayName,
+                      displayNumber: phoneNumber,
+                      deviceContact: deviceContact,
+                      db: widget.db,
+                    ),
+                  ),
+                );
               },
             ),
           ],
@@ -813,16 +825,11 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
           top: false,
           bottom: false,
           child: CustomScrollView(
-            controller: _titleController.scrollController,
             slivers: [
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                  height: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
                 ),
-              ),
-              GlassLargeTitle(
-                text: displayName,
-                controller: _titleController,
               ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -835,7 +842,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       callTypeColor,
                     ),
                     const SizedBox(height: 16),
-                    _buildGlassCard(
+                    _buildCard(
                       context,
                       title: 'Call Information',
                       icon: Icons.info_outline_rounded,
@@ -846,7 +853,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       stream: widget.db.watchDetailsForCall(widget.call.id),
                       builder: (context, detailSnapshot) {
                         final detail = detailSnapshot.data;
-                        return _buildGlassCard(
+                        return _buildCard(
                           context,
                           title: 'Call Note',
                           icon: Icons.edit_note_rounded,
@@ -874,7 +881,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       stream: widget.db.watchTagsForCall(widget.call.id),
                       builder: (context, tagSnapshot) {
                         final tags = tagSnapshot.data ?? const [];
-                        return _buildGlassCard(
+                        return _buildCard(
                           context,
                           title: 'Tags',
                           icon: Icons.local_offer_outlined,
@@ -906,7 +913,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                     StreamBuilder<CallDetail?>(
                       stream: widget.db.watchReminderForCall(widget.call.id),
                       builder: (context, reminderSnapshot) {
-                        return _buildGlassCard(
+                        return _buildCard(
                           context,
                           title: 'Follow-up Reminder',
                           icon: Icons.alarm_rounded,
@@ -923,7 +930,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       stream: widget.db.watchAttachmentsForCall(widget.call.id),
                       builder: (context, attachmentSnapshot) {
                         final attachments = attachmentSnapshot.data ?? const [];
-                        return _buildGlassCard(
+                        return _buildCard(
                           context,
                           title: 'Attachments',
                           icon: Icons.attach_file_rounded,
@@ -959,7 +966,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                         return Column(
                           children: [
                             const SizedBox(height: 16),
-                            _buildGlassCard(
+                            _buildCard(
                               context,
                               title: 'Developer Diagnostics',
                               icon: Icons.bug_report_outlined,
