@@ -12,6 +12,7 @@ class CallCard extends StatelessWidget {
   final CallDetail? detail;
   final List<Tag>? tags;
   final int? attachmentCount;
+  final bool? hasRecording;
   final bool hasBatchMetadata;
   final bool showCallButton;
   final bool showPhoneNumber;
@@ -26,6 +27,7 @@ class CallCard extends StatelessWidget {
     this.detail,
     this.tags,
     this.attachmentCount,
+    this.hasRecording,
     this.hasBatchMetadata = false,
     this.showCallButton = true,
     this.showPhoneNumber = true,
@@ -34,8 +36,12 @@ class CallCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // If metadata is already provided (e.g. from parent batch stream), render directly with zero StreamBuilders!
-    if (hasBatchMetadata || detail != null || tags != null || attachmentCount != null) {
+    // If metadata is already provided (e.g. from parent batch stream), render
+    // directly with zero StreamBuilders!
+    if (hasBatchMetadata ||
+        detail != null ||
+        tags != null ||
+        attachmentCount != null) {
       return RepaintBoundary(
         child: CallCardContent(
           call: call,
@@ -44,6 +50,7 @@ class CallCard extends StatelessWidget {
           detail: detail,
           tags: tags ?? const [],
           attachmentCount: attachmentCount ?? 0,
+          hasRecording: hasRecording ?? false,
           deviceContact: deviceContact,
           showCallButton: showCallButton,
           showPhoneNumber: showPhoneNumber,
@@ -74,17 +81,26 @@ class CallCard extends StatelessWidget {
             return StreamBuilder<int>(
               stream: db.watchAttachmentCountForCall(call.id),
               builder: (context, attachmentSnapshot) {
-                return CallCardContent(
-                  call: call,
-                  db: db,
-                  settings: settingsData,
-                  detail: detailSnapshot.data,
-                  tags: tagsSnapshot.data ?? const [],
-                  attachmentCount: attachmentSnapshot.data ?? 0,
-                  deviceContact: deviceContact,
-                  showCallButton: showCallButton,
-                  showPhoneNumber: showPhoneNumber,
-                  showName: showName,
+                // Stream to check if a call_recording attachment exists
+                return StreamBuilder<List<CallAttachment>>(
+                  stream: db.watchAttachmentsForCall(call.id),
+                  builder: (context, recordingSnapshot) {
+                    final hasRec = (recordingSnapshot.data ?? const [])
+                        .any((a) => a.fileType == 'call_recording');
+                    return CallCardContent(
+                      call: call,
+                      db: db,
+                      settings: settingsData,
+                      detail: detailSnapshot.data,
+                      tags: tagsSnapshot.data ?? const [],
+                      attachmentCount: attachmentSnapshot.data ?? 0,
+                      hasRecording: hasRec,
+                      deviceContact: deviceContact,
+                      showCallButton: showCallButton,
+                      showPhoneNumber: showPhoneNumber,
+                      showName: showName,
+                    );
+                  },
                 );
               },
             );
