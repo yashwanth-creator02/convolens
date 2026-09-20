@@ -37,6 +37,7 @@ part 'app_database.g.dart';
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
+  AppDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 15;
@@ -473,8 +474,16 @@ class AppDatabase extends _$AppDatabase {
     )..where((t) => t.callId.equals(callId) & t.tagId.equals(tagId))).go();
   }
 
+  Future<void> clearAllTagsForCall(int callId) async {
+    await (delete(callTags)..where((t) => t.callId.equals(callId))).go();
+  }
+
   Future<List<Tag>> getAllTags() {
     return select(tags).get();
+  }
+
+  Stream<List<Tag>> watchAllTags() {
+    return (select(tags)..orderBy([(t) => OrderingTerm(expression: t.name)])).watch();
   }
 
   // ============================================================
