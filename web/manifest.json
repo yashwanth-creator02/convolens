@@ -1,6 +1,6 @@
 {
-    "name": "convolens",
-    "short_name": "convolens",
+    "name": "Point",
+    "short_name": "Point",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

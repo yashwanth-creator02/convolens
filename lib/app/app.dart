@@ -52,7 +52,7 @@ class _AppState extends State<App> {
     Widget? home,
   }) {
     return MaterialApp(
-      title: 'ConvoLens',
+      title: 'Point',
       theme: AppTheme.getTheme(
         themeType == AppThemeType.system ? AppThemeType.light : themeType,
       ),
