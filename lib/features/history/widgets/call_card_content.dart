@@ -16,6 +16,7 @@ class CallCardContent extends StatelessWidget {
   final CallDetail? detail;
   final List<Tag> tags;
   final int attachmentCount;
+  final bool hasRecording;
   final Contact? deviceContact;
   final bool showCallButton;
   final bool showPhoneNumber;
@@ -29,6 +30,7 @@ class CallCardContent extends StatelessWidget {
     required this.detail,
     required this.tags,
     required this.attachmentCount,
+    this.hasRecording = false,
     this.deviceContact,
     this.showCallButton = true,
     this.showPhoneNumber = true,
@@ -83,6 +85,7 @@ class CallCardContent extends StatelessWidget {
     final visibleTags = tags.take(2).toList();
 
     final showIndicators =
+        (hasRecording) ||
         (hasReminder && showReminderIndicator) ||
         (attachmentCount > 0 && showAttachmentCount) ||
         (showTags && visibleTags.isNotEmpty);
@@ -146,6 +149,19 @@ class CallCardContent extends StatelessWidget {
                             ),
                           ),
                         if (hasNote && showNotePreview && showIndicators)
+                          const _MetaDivider(),
+                        if (hasRecording)
+                          const Flexible(
+                            child: _CallMetaItem(
+                              icon: Icons.fiber_smart_record_rounded,
+                              value: 'Recorded',
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        if (hasRecording &&
+                            (hasReminder && showReminderIndicator ||
+                                (attachmentCount > 0 && showAttachmentCount) ||
+                                (showTags && visibleTags.isNotEmpty)))
                           const _MetaDivider(),
                         if (hasReminder && showReminderIndicator)
                           Flexible(
