@@ -1,7 +1,9 @@
 import 'package:convolens/core/database/app_database.dart';
 import 'package:convolens/features/history/widgets/call_details/call_detail_row.dart';
 import 'package:convolens/features/history/widgets/call_details/call_info_section.dart';
+import 'package:convolens/features/history/widgets/call_details/call_note_section.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -64,5 +66,40 @@ void main() {
     expect(find.text('Duration'), findsOneWidget);
     expect(find.text('2m (120s)'), findsOneWidget);
     expect(find.text('+1234567890'), findsOneWidget);
+  });
+
+  testWidgets('CallNoteSection renders GlassTextArea and triggers onSave', (
+    WidgetTester tester,
+  ) async {
+    String? savedNote;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CallNoteSection(
+            note: 'Initial note',
+            onSave: (val) {
+              savedNote = val;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Initial note'), findsOneWidget);
+
+    // Enter text into the text area
+    await tester.enterText(find.byType(CupertinoTextField), 'Updated call note');
+    await tester.pump();
+
+    // Verify Save Note button appears
+    expect(find.text('Save Note'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+
+    // Tap Save Note
+    await tester.tap(find.text('Save Note'));
+    await tester.pump();
+
+    expect(savedNote, 'Updated call note');
   });
 }

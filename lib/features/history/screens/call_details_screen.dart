@@ -142,19 +142,9 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     }
   }
 
-  Future<void> _editNote(BuildContext context, String? currentNote) async {
-    final result = await showTextInputDialog(
-      context: context,
-      title: 'Call Note',
-      initialValue: currentNote,
-      hintText: 'Add a note about this call…',
-      maxLines: 4,
-    );
-
-    if (result == null) return;
-
+  Future<void> _saveNote(BuildContext context, String note) async {
     try {
-      await widget.db.saveNote(widget.call.id, result);
+      await widget.db.saveNote(widget.call.id, note);
 
       if (!context.mounted) return;
 
@@ -857,21 +847,9 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                           context,
                           title: 'Call Note',
                           icon: Icons.edit_note_rounded,
-                          trailing: detail?.note?.trim().isNotEmpty == true
-                              ? TextButton(
-                                  onPressed: () =>
-                                      _editNote(context, detail?.note),
-                                  style: TextButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                  child: const Text('Edit'),
-                                )
-                              : null,
                           child: CallNoteSection(
                             note: detail?.note,
-                            onAdd: () => _editNote(context, detail?.note),
-                            onEdit: () => _editNote(context, detail?.note),
+                            onSave: (note) => _saveNote(context, note),
                           ),
                         );
                       },
