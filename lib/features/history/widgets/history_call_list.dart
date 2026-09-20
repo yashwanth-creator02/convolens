@@ -40,7 +40,8 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
   Map<String, Contact> _contactMap = {};
 
   double get averageItemHeight {
-    final showTabs = (widget.settings?.showCallType ?? true) ||
+    final showTabs =
+        (widget.settings?.showCallType ?? true) ||
         (widget.settings?.showDuration ?? true) ||
         (widget.settings?.showTime ?? true);
     return showTabs ? 116.0 : 88.0;
@@ -130,37 +131,45 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
 
     return SliverList(
       key: _sliverKey,
-      delegate: SliverChildBuilderDelegate((context, index) {
-        final item = widget.items[index];
-        final boundaryKey = widget.boundaryKeys?[index];
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          final item = widget.items[index];
+          final boundaryKey = widget.boundaryKeys?[index];
 
-        Widget child;
-        if (item is String) {
-          child = Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: Text(
-              item,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-          );
-        } else {
-          final call = item as Call;
-          child = CallCard(
-            call: call,
-            db: widget.db,
-            settings: widget.settings,
-            deviceContact: _findContact(call.number),
-            detail: widget.callDetailsMap[call.id],
-            tags: widget.callTagsMap[call.id] ?? const [],
-            attachmentCount: widget.attachmentCountsMap[call.id] ?? 0,
-            hasBatchMetadata: true,
-          );
-        }
+          Widget child;
+          if (item is String) {
+            child = Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Text(
+                item,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            );
+          } else {
+            final call = item as Call;
+            child = CallCard(
+              call: call,
+              db: widget.db,
+              settings: widget.settings,
+              deviceContact: _findContact(call.number),
+              detail: widget.callDetailsMap[call.id],
+              tags: widget.callTagsMap[call.id] ?? const [],
+              attachmentCount: widget.attachmentCountsMap[call.id] ?? 0,
+              hasBatchMetadata: true,
+            );
+          }
 
-        return boundaryKey != null
-            ? KeyedSubtree(key: boundaryKey, child: child)
-            : child;
-      }, childCount: widget.items.length),
+          return boundaryKey != null
+              ? KeyedSubtree(key: boundaryKey, child: child)
+              : child;
+        },
+        childCount: widget.items.length,
+        addAutomaticKeepAlives: false,
+        addRepaintBoundaries: false,
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -41,11 +42,12 @@ class _HistoryScreenState extends State<HistoryScreen>
 
   final Map<int, GlobalKey> _yearBoundaryKeys = {};
 
-
-  final ValueNotifier<String?> _visibleDateNotifier =
-      ValueNotifier<String?>(null);
-  final ValueNotifier<bool> _showScrollToTopNotifier =
-      ValueNotifier<bool>(false);
+  final ValueNotifier<String?> _visibleDateNotifier = ValueNotifier<String?>(
+    null,
+  );
+  final ValueNotifier<bool> _showScrollToTopNotifier = ValueNotifier<bool>(
+    false,
+  );
 
   List<Contact> _deviceContacts = [];
 
@@ -233,7 +235,8 @@ class _HistoryScreenState extends State<HistoryScreen>
   double _calculateExactOffset(int targetIndex) {
     if (targetIndex <= 0 || _cachedItems.isEmpty) return 0.0;
 
-    final showBottomTab = (_currentSettings?.showCallType ?? true) ||
+    final showBottomTab =
+        (_currentSettings?.showCallType ?? true) ||
         (_currentSettings?.showDuration ?? true) ||
         (_currentSettings?.showTime ?? true);
     final cardHeight = showBottomTab ? 116.0 : 86.0;
@@ -326,50 +329,47 @@ class _HistoryScreenState extends State<HistoryScreen>
 
           final String? firstDate =
               _cachedItems.isNotEmpty && _cachedItems.first is String
-                  ? _cachedItems.first as String
-                  : null;
+              ? _cachedItems.first as String
+              : null;
 
           if (_visibleDateNotifier.value == null && firstDate != null) {
             _visibleDateNotifier.value = firstDate;
           }
         }
 
-        return StreamBuilder<Map<int, CallDetail>>(
-          stream: widget.db.watchAllCallDetailsMap(),
-          builder: (context, detailsSnapshot) {
-            final detailsMap = detailsSnapshot.data ?? const {};
-
-            return StreamBuilder<Map<int, List<Tag>>>(
-              stream: widget.db.watchAllCallTagsMap(),
-              builder: (context, tagsSnapshot) {
-                final tagsMap = tagsSnapshot.data ?? const {};
-
-                return StreamBuilder<Map<int, int>>(
-                  stream: widget.db.watchAllCallAttachmentCountsMap(),
-                  builder: (context, attachmentsSnapshot) {
-                    final attachmentCountsMap =
-                        attachmentsSnapshot.data ?? const {};
-
-                    return Material(
-                      type: MaterialType.transparency,
-                      child: Stack(
-                        children: [
-                          CustomScrollView(
-                            controller:
-                                widget.titleController.scrollController,
-                            slivers: [
-                              SliverToBoxAdapter(
-                                child: SizedBox(
-                                  height:
-                                      MediaQuery.of(context).padding.top +
-                                      kToolbarHeight,
-                                ),
-                              ),
-                              GlassLargeTitle(
-                                text: 'History',
-                                controller: widget.titleController,
-                              ),
-                              SliverHistoryCallList(
+        return Material(
+          type: MaterialType.transparency,
+          child: Stack(
+            children: [
+              CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                scrollCacheExtent: const ScrollCacheExtent.pixels(250.0),
+                controller: widget.titleController.scrollController,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height:
+                          MediaQuery.of(context).padding.top + kToolbarHeight,
+                    ),
+                  ),
+                  GlassLargeTitle(
+                    text: 'History',
+                    controller: widget.titleController,
+                  ),
+                  StreamBuilder<Map<int, CallDetail>>(
+                    stream: widget.db.watchAllCallDetailsMap(),
+                    builder: (context, detailsSnapshot) {
+                      final detailsMap = detailsSnapshot.data ?? const {};
+                      return StreamBuilder<Map<int, List<Tag>>>(
+                        stream: widget.db.watchAllCallTagsMap(),
+                        builder: (context, tagsSnapshot) {
+                          final tagsMap = tagsSnapshot.data ?? const {};
+                          return StreamBuilder<Map<int, int>>(
+                            stream: widget.db.watchAllCallAttachmentCountsMap(),
+                            builder: (context, attachmentsSnapshot) {
+                              final attachmentCountsMap =
+                                  attachmentsSnapshot.data ?? const {};
+                              return SliverHistoryCallList(
                                 key: _historyListKey,
                                 items: _cachedItems,
                                 db: widget.db,
@@ -379,142 +379,121 @@ class _HistoryScreenState extends State<HistoryScreen>
                                 callDetailsMap: detailsMap,
                                 callTagsMap: tagsMap,
                                 attachmentCountsMap: attachmentCountsMap,
-                              ),
-                              const SliverToBoxAdapter(
-                                child: SizedBox(height: 120),
-                              ),
-                            ],
-                          ),
-                          ValueListenableBuilder<String?>(
-                            valueListenable: _visibleDateNotifier,
-                            builder: (context, visibleDate, _) {
-                              if (visibleDate == null) {
-                                return const SizedBox.shrink();
-                              }
-
-                              final String? firstDate =
-                                  _cachedItems.isNotEmpty &&
-                                          _cachedItems.first is String
-                                      ? _cachedItems.first as String
-                                      : null;
-                              final bool isAtTopDate =
-                                  visibleDate == firstDate;
-
-                              return Positioned(
-                                top: MediaQuery.of(context).padding.top +
-                                    kToolbarHeight +
-                                    12,
-                                left: 0,
-                                right: 0,
-                                child: IgnorePointer(
-                                  child: Center(
-                                    child: AnimatedOpacity(
-                                      opacity: isAtTopDate ? 0.0 : 1.0,
-                                      duration: const Duration(
-                                        milliseconds: 250,
-                                      ),
-                                      curve: Curves.easeInOut,
-                                      child: AnimatedScale(
-                                        scale: isAtTopDate ? 0.8 : 1.0,
-                                        duration: const Duration(
-                                          milliseconds: 250,
-                                        ),
-                                        curve: Curves.easeOutBack,
-                                        child: GlassContainer(
-                                          quality: GlassQuality.standard,
-                                          useOwnLayer: false,
-                                          padding:
-                                              const EdgeInsets.symmetric(
-                                                horizontal: 14,
-                                                vertical: 7,
-                                              ),
-                                          shape:
-                                              const LiquidRoundedSuperellipse(
-                                                borderRadius: 18,
-                                              ),
-                                          child: Text(
-                                            visibleDate,
-                                            style: TextStyle(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               );
                             },
-                          ),
-                          Positioned(
-                            right: 0,
-                            top: MediaQuery.of(context).padding.top +
-                                kToolbarHeight,
-                            bottom: 100,
-                            child: TimelineWaveNavigator(
-                              items: _cachedItems,
-                              yearIndex: _cachedYearIndex,
-                              onCommit: _onCommitYear,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                ],
+              ),
+              ValueListenableBuilder<String?>(
+                valueListenable: _visibleDateNotifier,
+                builder: (context, visibleDate, _) {
+                  if (visibleDate == null) {
+                    return const SizedBox.shrink();
+                  }
+
+                  final String? firstDate =
+                      _cachedItems.isNotEmpty && _cachedItems.first is String
+                      ? _cachedItems.first as String
+                      : null;
+                  final bool isAtTopDate = visibleDate == firstDate;
+
+                  return Positioned(
+                    top:
+                        MediaQuery.of(context).padding.top +
+                        kToolbarHeight +
+                        12,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: Center(
+                        child: AnimatedOpacity(
+                          opacity: isAtTopDate ? 0.0 : 1.0,
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeInOut,
+                          child: AnimatedScale(
+                            scale: isAtTopDate ? 0.8 : 1.0,
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOutBack,
+                            child: GlassContainer(
+                              quality: GlassQuality.standard,
+                              useOwnLayer: false,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 7,
+                              ),
+                              shape: const LiquidRoundedSuperellipse(
+                                borderRadius: 18,
+                              ),
+                              child: Text(
+                                visibleDate,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ),
                           ),
-                          ValueListenableBuilder<bool>(
-                            valueListenable: _showScrollToTopNotifier,
-                            builder: (context, showScrollToTop, _) {
-                              return Positioned(
-                                right: 21,
-                                bottom: 100,
-                                child: AnimatedSlide(
-                                  offset: showScrollToTop
-                                      ? Offset.zero
-                                      : const Offset(2, 0),
-                                  duration: const Duration(
-                                    milliseconds: 300,
-                                  ),
-                                  curve: Curves.easeOutCubic,
-                                  child: AnimatedOpacity(
-                                    opacity: showScrollToTop ? 1.0 : 0.0,
-                                    duration: const Duration(
-                                      milliseconds: 250,
-                                    ),
-                                    child: GlassContainer(
-                                      quality: GlassQuality.standard,
-                                      useOwnLayer: false,
-                                      shape: const LiquidOval(),
-                                      child: IconButton(
-                                        icon: const Icon(
-                                          Icons.arrow_upward,
-                                        ),
-                                        onPressed: () {
-                                          widget.titleController
-                                              .scrollController
-                                              .animateTo(
-                                                0,
-                                                duration: const Duration(
-                                                  milliseconds: 500,
-                                                ),
-                                                curve:
-                                                    Curves.easeOutCubic,
-                                              );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Positioned(
+                right: 0,
+                top: MediaQuery.of(context).padding.top + kToolbarHeight,
+                bottom: 100,
+                child: TimelineWaveNavigator(
+                  items: _cachedItems,
+                  yearIndex: _cachedYearIndex,
+                  onCommit: _onCommitYear,
+                ),
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: _showScrollToTopNotifier,
+                builder: (context, showScrollToTop, _) {
+                  return Positioned(
+                    right: 21,
+                    bottom: 100,
+                    child: AnimatedSlide(
+                      offset: showScrollToTop
+                          ? Offset.zero
+                          : const Offset(2, 0),
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      child: AnimatedOpacity(
+                        opacity: showScrollToTop ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 250),
+                        child: GlassContainer(
+                          quality: GlassQuality.standard,
+                          useOwnLayer: false,
+                          shape: const LiquidOval(),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_upward),
+                            onPressed: () {
+                              widget.titleController.scrollController.animateTo(
+                                0,
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeOutCubic,
                               );
                             },
                           ),
-                        ],
+                        ),
                       ),
-                    );
-                  },
-                );
-              },
-            );
-          },
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         );
       },
     );

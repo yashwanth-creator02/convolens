@@ -5,7 +5,7 @@ import 'app/app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await LiquidGlassWidgets.initialize(enablePerformanceMonitor: true);
+  await LiquidGlassWidgets.initialize(enablePerformanceMonitor: false);
   runApp(
     LiquidGlassWidgets.wrap(
       adaptiveQuality: true,

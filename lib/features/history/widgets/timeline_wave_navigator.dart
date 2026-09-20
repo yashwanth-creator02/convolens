@@ -6,11 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../utils/year_index.dart';
 
-enum WaveLevel {
-  year,
-  month,
-  date,
-}
+enum WaveLevel { year, month, date }
 
 enum WaveNavState {
   idle,
@@ -105,14 +101,15 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   // Geometry Thresholds
   // ---------------------------------------------------------------------------
   // Width of the touch activation area along the screen's right edge
-  static const double _activationZoneWidth = 48.0;
+  static const double _activationZoneWidth = 64.0;
 
   // Horizontal depth thresholds (distance pulled inward from the right bezel)
   static const double _abortThreshold = 36.0; // < 36px is the abort/cancel zone
   static const double _yearDepthMax = 95.0; // 36..95px: Year selection
   static const double _monthDepthMax = 160.0; // 95..160px: Month selection
   static const double _dateDepthMax = 220.0; // 160..220px: Date selection
-  static const double _triggerDepth = 220.0; // >= 220px: Trigger scrolling instant!
+  static const double _triggerDepth =
+      220.0; // >= 220px: Trigger scrolling instant!
 
   static const double _spread = 115.0; // Gaussian curve vertical spread
   static const double _smoothingSpeed = 22.0;
@@ -177,11 +174,7 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
     _updateWaveState(displayY, _currentDx, elapsed.inMilliseconds / 1000.0);
   }
 
-  void _updateWaveState(
-    double displayY,
-    double currentDx,
-    double timeSeconds,
-  ) {
+  void _updateWaveState(double displayY, double currentDx, double timeSeconds) {
     if (_availableHeight <= 0) return;
 
     // Pull depth physically referenced to the screen's right bezel
@@ -260,8 +253,7 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
         }
 
         if (_frozenMonth == null && _cachedMonthIndex.isNotEmpty) {
-          final monthIdx =
-              _nearestIndexFor(displayY, _cachedMonthIndex.length);
+          final monthIdx = _nearestIndexFor(displayY, _cachedMonthIndex.length);
           if (monthIdx != null &&
               monthIdx >= 0 &&
               monthIdx < _cachedMonthIndex.length) {
@@ -270,8 +262,11 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
         }
 
         if (_frozenMonth != null && _cachedDateIndex.isEmpty) {
-          _cachedDateIndex =
-              buildDateIndex(widget.items, _frozenYear!, _frozenMonth!);
+          _cachedDateIndex = buildDateIndex(
+            widget.items,
+            _frozenYear!,
+            _frozenMonth!,
+          );
         }
       }
     }
@@ -306,14 +301,17 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
       if (targetLevel != _lastHapticLevel) {
         _lastHapticLevel = targetLevel;
         HapticFeedback.lightImpact();
-      } else if (currentHapticVal != null && currentHapticVal != _lastHapticItem) {
+      } else if (currentHapticVal != null &&
+          currentHapticVal != _lastHapticItem) {
         _lastHapticItem = currentHapticVal;
         HapticFeedback.selectionClick();
       }
     }
 
     // Inching closer trigger check
-    if (navState == WaveNavState.triggerReady && !_hasTriggered && !_isRetracting) {
+    if (navState == WaveNavState.triggerReady &&
+        !_hasTriggered &&
+        !_isRetracting) {
       _hasTriggered = true;
       HapticFeedback.mediumImpact();
       _commitSelection(targetLevel, selectedIndex);
@@ -443,24 +441,28 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
           child: Stack(
             children: [
               // Wave Painter Layer
-              RepaintBoundary(
-                child: ValueListenableBuilder<_WaveState>(
-                  valueListenable: _state,
-                  builder: (context, state, _) {
-                    return CustomPaint(
-                      size: Size(320, height),
-                      painter: _LiquidWavePainter(
-                        state: state,
-                        theme: waveTheme,
-                        spread: _spread,
-                        availableHeight: height,
-                        abortThreshold: _abortThreshold,
-                        yearDepthMax: _yearDepthMax,
-                        monthDepthMax: _monthDepthMax,
-                        triggerDepth: _triggerDepth,
-                      ),
-                    );
-                  },
+              IgnorePointer(
+                child: RepaintBoundary(
+                  child: ValueListenableBuilder<_WaveState>(
+                    valueListenable: _state,
+                    builder: (context, state, _) {
+                      return CustomPaint(
+                        isComplex: true,
+                        willChange: true,
+                        size: Size(320, height),
+                        painter: _LiquidWavePainter(
+                          state: state,
+                          theme: waveTheme,
+                          spread: _spread,
+                          availableHeight: height,
+                          abortThreshold: _abortThreshold,
+                          yearDepthMax: _yearDepthMax,
+                          monthDepthMax: _monthDepthMax,
+                          triggerDepth: _triggerDepth,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
 
@@ -472,10 +474,10 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
                 width: _activationZoneWidth,
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onPanStart: (d) => _onPanStart(d, height),
-                  onPanUpdate: (d) => _onPanUpdate(d, height),
-                  onPanEnd: (_) => _endDrag(),
-                  onPanCancel: _cancelDrag,
+                  onHorizontalDragStart: (d) => _onPanStart(d, height),
+                  onHorizontalDragUpdate: (d) => _onPanUpdate(d, height),
+                  onHorizontalDragEnd: (_) => _endDrag(),
+                  onHorizontalDragCancel: _cancelDrag,
                 ),
               ),
             ],
@@ -576,13 +578,17 @@ class _LiquidWavePainter extends CustomPainter {
     // Amplitude calculation for waves rising from the right bezel (size.width)
     final yearAmp = (pullDepth * 0.75).clamp(12.0, 70.0);
     final monthProgress =
-        ((pullDepth - yearDepthMax) / (monthDepthMax - yearDepthMax))
-            .clamp(0.0, 1.0);
+        ((pullDepth - yearDepthMax) / (monthDepthMax - yearDepthMax)).clamp(
+          0.0,
+          1.0,
+        );
     final monthAmp = monthProgress * 55.0;
 
     final dateProgress =
-        ((pullDepth - monthDepthMax) / (triggerDepth - monthDepthMax))
-            .clamp(0.0, 1.0);
+        ((pullDepth - monthDepthMax) / (triggerDepth - monthDepthMax)).clamp(
+          0.0,
+          1.0,
+        );
     final dateAmp = dateProgress * 55.0;
 
     final totalAmp = yearAmp + monthAmp + dateAmp;
@@ -598,18 +604,20 @@ class _LiquidWavePainter extends CustomPainter {
       size,
       amplitude: totalAmp,
       peakY: state.displayY,
-      style: isAbort ? WaveStyle(
-        waveColor: theme.abortColor,
-        textColor: Colors.white,
-        highlightColor: theme.abortColor,
-        strokeWidth: 2.0,
-      ) : activeStyle,
+      style: isAbort
+          ? WaveStyle(
+              waveColor: theme.abortColor,
+              textColor: Colors.white,
+              highlightColor: theme.abortColor,
+              strokeWidth: 2.0,
+            )
+          : activeStyle,
       isTriggered: isTriggered,
     );
 
     // 2. Draw Subtle Year Indicators along the Edge Wave
-    if (state.years.isNotEmpty && !isAbort) {
-      _drawStageMarkers(canvas, size, baseAmp: yearAmp);
+    if (!isAbort) {
+      _drawStageMarkers(canvas, size, baseAmp: totalAmp);
     }
 
     // 3. Draw Selected Item POPPING OUT of the Wave at the Peak
@@ -618,12 +626,14 @@ class _LiquidWavePainter extends CustomPainter {
       size,
       peakX: size.width - totalAmp,
       peakY: state.displayY,
-      style: isAbort ? WaveStyle(
-        waveColor: theme.abortColor,
-        textColor: Colors.white,
-        highlightColor: theme.abortColor,
-        strokeWidth: 2.0,
-      ) : activeStyle,
+      style: isAbort
+          ? WaveStyle(
+              waveColor: theme.abortColor,
+              textColor: Colors.white,
+              highlightColor: theme.abortColor,
+              strokeWidth: 2.0,
+            )
+          : activeStyle,
       isAbort: isAbort,
       isTriggered: isTriggered,
     );
@@ -637,7 +647,7 @@ class _LiquidWavePainter extends CustomPainter {
     required WaveStyle style,
     required bool isTriggered,
   }) {
-    const steps = 64;
+    const steps = 48;
     final dy = availableHeight / steps;
 
     final wavePath = Path();
@@ -690,43 +700,60 @@ class _LiquidWavePainter extends CustomPainter {
     }
 
     final crestPaint = Paint()
-      ..color = style.highlightColor.withValues(
-        alpha: isTriggered ? 1.0 : 0.85,
-      )
+      ..color = style.highlightColor.withValues(alpha: isTriggered ? 1.0 : 0.85)
       ..strokeWidth = isTriggered ? style.strokeWidth + 1.2 : style.strokeWidth
       ..style = PaintingStyle.stroke;
     canvas.drawPath(crestPath, crestPaint);
   }
 
-  void _drawStageMarkers(
-    Canvas canvas,
-    Size size, {
-    required double baseAmp,
-  }) {
-    if (state.level == WaveLevel.year) {
-      final slot = availableHeight / state.years.length;
-      for (int i = 0; i < state.years.length; i++) {
-        final y = slot * i + slot / 2;
-        final dist = (y - state.displayY).abs();
-        if (dist > 30.0) {
-          final bell = exp(-pow((y - state.displayY) / spread, 2));
-          final x = size.width - (baseAmp * bell) - 10.0;
-          final opacity = (0.35 + 0.35 * bell).clamp(0.0, 1.0);
+  void _drawStageMarkers(Canvas canvas, Size size, {required double baseAmp}) {
+    final int count;
+    final String Function(int index) labelFor;
+    final Color labelColor;
 
-          final tp = TextPainter(
-            text: TextSpan(
-              text: '${state.years[i].year}',
-              style: TextStyle(
-                color: theme.yearStyle.textColor.withValues(alpha: opacity),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
+    switch (state.level) {
+      case WaveLevel.year:
+        if (state.years.isEmpty) return;
+        count = state.years.length;
+        labelFor = (i) => '${state.years[i].year}';
+        labelColor = theme.yearStyle.textColor;
+        break;
+      case WaveLevel.month:
+        if (state.months.isEmpty) return;
+        count = state.months.length;
+        labelFor = (i) => _formatMonth(state.months[i].month);
+        labelColor = theme.monthStyle.textColor;
+        break;
+      case WaveLevel.date:
+        if (state.dates.isEmpty) return;
+        count = state.dates.length;
+        labelFor = (i) => '${state.dates[i].day}';
+        labelColor = theme.dateStyle.textColor;
+        break;
+    }
+
+    final slot = availableHeight / count;
+    for (int i = 0; i < count; i++) {
+      final y = slot * i + slot / 2;
+      final dist = (y - state.displayY).abs();
+      if (dist > 30.0) {
+        final bell = exp(-pow((y - state.displayY) / spread, 2));
+        final x = size.width - (baseAmp * bell) - 10.0;
+        final opacity = (0.35 + 0.35 * bell).clamp(0.0, 1.0);
+
+        final tp = TextPainter(
+          text: TextSpan(
+            text: labelFor(i),
+            style: TextStyle(
+              color: labelColor.withValues(alpha: opacity),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
             ),
-            textDirection: TextDirection.ltr,
-          )..layout();
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
 
-          tp.paint(canvas, Offset(x - tp.width, y - tp.height / 2));
-        }
+        tp.paint(canvas, Offset(x - tp.width, y - tp.height / 2));
       }
     }
   }
@@ -829,9 +856,10 @@ class _LiquidWavePainter extends CustomPainter {
     const paddingV = 8.0;
     final badgeWidth =
         max(tagPainter.width, max(titlePainter.width, subPainter.width)) +
-            paddingH * 2 +
-            10.0;
-    final badgeHeight = tagPainter.height +
+        paddingH * 2 +
+        10.0;
+    final badgeHeight =
+        tagPainter.height +
         titlePainter.height +
         subPainter.height +
         paddingV * 2 +
@@ -839,7 +867,7 @@ class _LiquidWavePainter extends CustomPainter {
 
     // Pop out position: elevated floating capsule projecting leftward from the crest peak
     final minCenterX = badgeWidth / 2 + 12.0;
-    final badgeCenterX = max(minCenterX, peakX - badgeWidth / 2 - 14.0);
+    final badgeCenterX = max(minCenterX, peakX - badgeWidth / 2 - 56.0);
     final badgeCenterY = peakY.clamp(
       badgeHeight / 2 + 16.0,
       availableHeight - badgeHeight / 2 - 16.0,
@@ -863,8 +891,8 @@ class _LiquidWavePainter extends CustomPainter {
       ..color = isAbort
           ? const Color(0xFF475569)
           : isTriggered
-              ? const Color(0xFF059669)
-              : style.highlightColor
+          ? const Color(0xFF059669)
+          : style.highlightColor
       ..style = PaintingStyle.fill;
     canvas.drawRRect(rrect, badgeBgPaint);
 
@@ -887,14 +915,11 @@ class _LiquidWavePainter extends CustomPainter {
     );
 
     // Peak dot
-    canvas.drawCircle(
-      Offset(peakX, peakY),
-      4.5,
-      Paint()..color = Colors.white,
-    );
+    canvas.drawCircle(Offset(peakX, peakY), 4.5, Paint()..color = Colors.white);
 
     // Text layout inside the popped-out badge
-    final startY = badgeCenterY -
+    final startY =
+        badgeCenterY -
         (tagPainter.height + titlePainter.height + subPainter.height + 4.0) / 2;
 
     tagPainter.paint(
