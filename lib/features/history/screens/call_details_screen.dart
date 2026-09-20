@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:open_filex/open_filex.dart';
@@ -16,7 +17,11 @@ import '../../../shared/widgets/add_tag_dialog.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../../shared/widgets/text_input_dialog.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
+import '../../contacts/widgets/add_contact_screen.dart';
 import '../repository/attachment_storage.dart';
+import '../utils/call_type_label.dart';
+import '../utils/format_call_time.dart';
+import '../utils/format_duration.dart';
 import '../widgets/call_details/call_attachments_section.dart';
 import '../widgets/call_details/call_developer_info.dart';
 import '../widgets/call_details/call_info_section.dart';
@@ -37,20 +42,111 @@ class CallDetailScreen extends StatefulWidget {
 }
 
 class _CallDetailScreenState extends State<CallDetailScreen> {
+  final GlassLargeTitleController _titleController = GlassLargeTitleController();
+  Contact? _deviceContact;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeviceContact();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadDeviceContact() async {
+    final number = widget.call.number?.trim();
+    if (number != null && number.isNotEmpty) {
+      final contact = await _findDeviceContact(number);
+      if (mounted) {
+        setState(() {
+          _deviceContact = contact;
+        });
+      }
+    }
+  }
+
   Future<Contact?> _findDeviceContact(String phoneNumber) async {
-    final normalized = normalizePhoneNumber(phoneNumber);
+    try {
+      final normalized = normalizePhoneNumber(phoneNumber);
+      final contacts = await FlutterContacts.getContacts(withProperties: true);
 
-    final contacts = await FlutterContacts.getContacts(withProperties: true);
+      for (final contact in contacts) {
+        for (final phone in contact.phones) {
+          if (normalizePhoneNumber(phone.number) == normalized) {
+            return contact;
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
 
-    for (final contact in contacts) {
-      for (final phone in contact.phones) {
-        if (normalizePhoneNumber(phone.number) == normalized) {
-          return contact;
+  Color _getCallTypeColor(int type, ColorScheme scheme) {
+    switch (type) {
+      case 3: // Missed
+      case 5: // Rejected
+      case 6: // Blocked
+        return scheme.error;
+      case 1: // Incoming
+        return scheme.tertiary;
+      case 2: // Outgoing
+        return scheme.primary;
+      default:
+        return scheme.onSurfaceVariant;
+    }
+  }
+
+  String _getInitials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '';
+    if (RegExp(r'^[+0-9\s\-()]+$').hasMatch(trimmed)) {
+      return '#';
+    }
+    final words =
+        trimmed.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    if (words.length >= 2) {
+      return '${words[0][0]}${words[1][0]}'.toUpperCase();
+    }
+    return words.first.substring(0, 1).toUpperCase();
+  }
+
+  Future<void> _openContact(
+    BuildContext context,
+    String displayName,
+    String phoneNumber,
+  ) async {
+    if (_deviceContact != null) {
+      Navigator.of(context).push(
+        CupertinoPageRoute(
+          builder: (context) => ContactDetailScreen(
+            normalizedNumber: normalizePhoneNumber(phoneNumber),
+            displayName: displayName,
+            displayNumber: phoneNumber,
+            deviceContact: _deviceContact,
+            db: widget.db,
+          ),
+        ),
+      );
+    } else {
+      final created = await showAddContactScreen(
+        context,
+        initialName: widget.call.name?.trim().isNotEmpty == true
+            ? widget.call.name!.trim()
+            : null,
+        initialPhone: phoneNumber,
+      );
+
+      if (created != null && mounted) {
+        setState(() => _deviceContact = created);
+        if (context.mounted) {
+          ToastService.success(context, 'Contact created.');
         }
       }
     }
-
-    return null;
   }
 
   Future<void> _editNote(BuildContext context, String? currentNote) async {
@@ -371,45 +467,341 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     OpenFilex.open(attachment.filePath);
   }
 
+  Widget _buildGlassCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Widget child,
+    Color? titleColor,
+    Widget? trailing,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return GlassContainer(
+      quality: GlassQuality.standard,
+      useOwnLayer: false,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: titleColor ?? scheme.primary.withValues(alpha: 0.9),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: titleColor ?? scheme.onSurface,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const Spacer(),
+              ?trailing,
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Icon(icon, size: 20, color: color),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroCard(
+    BuildContext context,
+    String displayName,
+    String phoneNumber,
+    Color callTypeColor,
+  ) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final initials = _getInitials(displayName);
+
+    return GlassContainer(
+      quality: GlassQuality.standard,
+      useOwnLayer: false,
+      shape: const LiquidRoundedSuperellipse(borderRadius: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  callTypeColor.withValues(alpha: 0.28),
+                  scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                ],
+              ),
+              border: Border.all(
+                color: callTypeColor.withValues(alpha: 0.4),
+                width: 2.2,
+              ),
+            ),
+            child: Center(
+              child: initials.isNotEmpty && initials != '#'
+                  ? Text(
+                      initials,
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.5,
+                      ),
+                    )
+                  : Icon(
+                      Icons.person_outline_rounded,
+                      size: 32,
+                      color: scheme.onSurface,
+                    ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            displayName,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+              letterSpacing: -0.2,
+            ),
+          ),
+          if (phoneNumber.isNotEmpty && phoneNumber != displayName) ...[
+            const SizedBox(height: 4),
+            Text(
+              phoneNumber,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: callTypeColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: callTypeColor.withValues(alpha: 0.28),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  callTypeIcon(widget.call.type),
+                  size: 14,
+                  color: callTypeColor,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  callTypeLabel(widget.call.type),
+                  style: TextStyle(
+                    color: callTypeColor,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (widget.call.duration > 0) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '•',
+                    style: TextStyle(
+                      color: callTypeColor.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    formatDuration(widget.call.duration),
+                    style: TextStyle(
+                      color: scheme.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+                const SizedBox(width: 6),
+                Text(
+                  '•',
+                  style: TextStyle(
+                    color: callTypeColor.withValues(alpha: 0.6),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  formatCallTime(widget.call.timestamp),
+                  style: TextStyle(
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (phoneNumber.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            Divider(
+              height: 1,
+              color: scheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildHeroActionButton(
+                  context,
+                  icon: Icons.call_rounded,
+                  label: 'Call',
+                  color: scheme.primary,
+                  onTap: () => CallLauncher.call(phoneNumber),
+                ),
+                _buildHeroActionButton(
+                  context,
+                  icon: Icons.message_rounded,
+                  label: 'Message',
+                  color: scheme.tertiary,
+                  onTap: () => CallLauncher.message(phoneNumber),
+                ),
+                _buildHeroActionButton(
+                  context,
+                  icon: _deviceContact != null
+                      ? Icons.person_rounded
+                      : Icons.person_add_rounded,
+                  label: _deviceContact != null ? 'Contact' : 'Save',
+                  color: Colors.deepPurpleAccent,
+                  onTap: () => _openContact(context, displayName, phoneNumber),
+                ),
+                _buildHeroActionButton(
+                  context,
+                  icon: Icons.copy_rounded,
+                  label: 'Copy',
+                  color: scheme.onSurfaceVariant,
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: phoneNumber));
+                    ToastService.info(context, 'Number copied to clipboard');
+                  },
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final phoneNumber = widget.call.number?.trim() ?? '';
+    final rawName = widget.call.name?.trim();
+
+    final displayName = (rawName != null && rawName.isNotEmpty)
+        ? rawName
+        : (_deviceContact?.displayName.trim().isNotEmpty == true
+            ? _deviceContact!.displayName.trim()
+            : (phoneNumber.isNotEmpty ? phoneNumber : 'Unknown'));
+
+    final callTypeColor = _getCallTypeColor(widget.call.type, scheme);
+
     return GlassScaffold(
       appBar: GlassAppBar.pinned(
         title: const Text('Call Details'),
+        largeTitleController: _titleController,
         actions: [
-          if (widget.call.number?.trim().isNotEmpty == true) ...[
+          if (phoneNumber.isNotEmpty) ...[
             GlassBarItem.icon(
               icon: const Icon(Icons.call_outlined),
               id: 'call_action',
               label: 'Call',
-              onTap: () => CallLauncher.call(widget.call.number!.trim()),
+              onTap: () => CallLauncher.call(phoneNumber),
             ),
             GlassBarItem.icon(
-              icon: const Icon(Icons.person_outline),
+              icon: Icon(
+                _deviceContact != null
+                    ? Icons.person_outline
+                    : Icons.person_add_outlined,
+              ),
               id: 'context_action',
-              label: 'View Contact',
-              onTap: () async {
-                final phoneNumber = widget.call.number!.trim();
-
-                final displayName = widget.call.name?.trim().isNotEmpty == true
-                    ? widget.call.name!.trim()
-                    : phoneNumber;
-
-                final deviceContact = await _findDeviceContact(phoneNumber);
-
-                if (!context.mounted) return;
-
-                Navigator.of(context).push(
-                  CupertinoPageRoute(
-                    builder: (context) => ContactDetailScreen(
-                      normalizedNumber: normalizePhoneNumber(phoneNumber),
-                      displayName: displayName,
-                      displayNumber: phoneNumber,
-                      deviceContact: deviceContact,
-                      db: widget.db,
-                    ),
-                  ),
-                );
+              label: _deviceContact != null ? 'View Contact' : 'Add Contact',
+              onTap: () => _openContact(context, displayName, phoneNumber),
+            ),
+            GlassBarItem.icon(
+              icon: const Icon(Icons.copy_outlined),
+              id: 'copy_action',
+              label: 'Copy Number',
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: phoneNumber));
+                ToastService.info(context, 'Number copied to clipboard');
               },
             ),
           ],
@@ -418,94 +810,171 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
       body: Material(
         type: MaterialType.transparency,
         child: SafeArea(
+          top: false,
           bottom: false,
-          child: StreamBuilder<Setting>(
-            stream: widget.db.watchSettings(),
-            builder: (context, settingsSnapshot) {
-              final devMode = settingsSnapshot.data?.devMode ?? false;
+          child: CustomScrollView(
+            controller: _titleController.scrollController,
+            slivers: [
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                ),
+              ),
+              GlassLargeTitle(
+                text: displayName,
+                controller: _titleController,
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _buildHeroCard(
+                      context,
+                      displayName,
+                      phoneNumber,
+                      callTypeColor,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildGlassCard(
+                      context,
+                      title: 'Call Information',
+                      icon: Icons.info_outline_rounded,
+                      child: CallInfoSection(call: widget.call, db: widget.db),
+                    ),
+                    const SizedBox(height: 16),
+                    StreamBuilder<CallDetail?>(
+                      stream: widget.db.watchDetailsForCall(widget.call.id),
+                      builder: (context, detailSnapshot) {
+                        final detail = detailSnapshot.data;
+                        return _buildGlassCard(
+                          context,
+                          title: 'Call Note',
+                          icon: Icons.edit_note_rounded,
+                          trailing: detail?.note?.trim().isNotEmpty == true
+                              ? TextButton(
+                                  onPressed: () =>
+                                      _editNote(context, detail?.note),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  child: const Text('Edit'),
+                                )
+                              : null,
+                          child: CallNoteSection(
+                            note: detail?.note,
+                            onAdd: () => _editNote(context, detail?.note),
+                            onEdit: () => _editNote(context, detail?.note),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    StreamBuilder<List<Tag>>(
+                      stream: widget.db.watchTagsForCall(widget.call.id),
+                      builder: (context, tagSnapshot) {
+                        final tags = tagSnapshot.data ?? const [];
+                        return _buildGlassCard(
+                          context,
+                          title: 'Tags',
+                          icon: Icons.local_offer_outlined,
+                          trailing: tags.isNotEmpty
+                              ? TextButton.icon(
+                                  onPressed: () => _addTag(context),
+                                  icon: const Icon(Icons.add, size: 14),
+                                  label: const Text('Add'),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                )
+                              : null,
+                          child: CallTagsSection(
+                            tags: tags,
+                            onAdd: () => _addTag(context),
+                            onRemove: (tag) {
+                              widget.db.removeTagFromCall(
+                                widget.call.id,
+                                tag.id,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    StreamBuilder<CallDetail?>(
+                      stream: widget.db.watchReminderForCall(widget.call.id),
+                      builder: (context, reminderSnapshot) {
+                        return _buildGlassCard(
+                          context,
+                          title: 'Follow-up Reminder',
+                          icon: Icons.alarm_rounded,
+                          child: CallReminderSection(
+                            reminder: reminderSnapshot.data,
+                            onSet: () => _setReminder(context),
+                            onClear: () => _clearReminder(context),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    StreamBuilder<List<CallAttachment>>(
+                      stream: widget.db.watchAttachmentsForCall(widget.call.id),
+                      builder: (context, attachmentSnapshot) {
+                        final attachments = attachmentSnapshot.data ?? const [];
+                        return _buildGlassCard(
+                          context,
+                          title: 'Attachments',
+                          icon: Icons.attach_file_rounded,
+                          trailing: attachments.isNotEmpty
+                              ? TextButton.icon(
+                                  onPressed: () =>
+                                      _chooseAttachmentType(context),
+                                  icon: const Icon(Icons.add, size: 14),
+                                  label: const Text('Add'),
+                                  style: TextButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                )
+                              : null,
+                          child: CallAttachmentsSection(
+                            attachments: attachments,
+                            onAdd: () => _chooseAttachmentType(context),
+                            onView: (attachment) =>
+                                _viewAttachment(context, attachment),
+                            onDelete: (attachment) =>
+                                _deleteAttachment(context, attachment),
+                          ),
+                        );
+                      },
+                    ),
+                    StreamBuilder<Setting>(
+                      stream: widget.db.watchSettings(),
+                      builder: (context, settingsSnapshot) {
+                        final devMode = settingsSnapshot.data?.devMode ?? false;
+                        if (!devMode) return const SizedBox.shrink();
 
-              return StreamBuilder<CallDetail?>(
-                stream: widget.db.watchDetailsForCall(widget.call.id),
-                builder: (context, detailSnapshot) {
-                  final detail = detailSnapshot.data;
-
-                  return CustomScrollView(
-                    slivers: [
-                      const SliverToBoxAdapter(
-                        child: SizedBox(height: kToolbarHeight),
-                      ),
-                      SliverPadding(
-                        padding: const EdgeInsets.all(16),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            CallInfoSection(call: widget.call, db: widget.db),
-                            const Divider(height: 32),
-                            CallNoteSection(
-                              note: detail?.note,
-                              onAdd: () => _editNote(context, detail?.note),
-                              onEdit: () => _editNote(context, detail?.note),
+                        return Column(
+                          children: [
+                            const SizedBox(height: 16),
+                            _buildGlassCard(
+                              context,
+                              title: 'Developer Diagnostics',
+                              icon: Icons.bug_report_outlined,
+                              titleColor: Colors.orangeAccent,
+                              child: CallDeveloperInfo(call: widget.call),
                             ),
-                            const Divider(height: 32),
-                            StreamBuilder<List<Tag>>(
-                              stream: widget.db.watchTagsForCall(
-                                widget.call.id,
-                              ),
-                              builder: (context, tagSnapshot) {
-                                return CallTagsSection(
-                                  tags: tagSnapshot.data ?? const [],
-                                  onAdd: () => _addTag(context),
-                                  onRemove: (tag) {
-                                    widget.db.removeTagFromCall(
-                                      widget.call.id,
-                                      tag.id,
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                            const Divider(height: 32),
-                            StreamBuilder<CallDetail?>(
-                              stream: widget.db.watchReminderForCall(
-                                widget.call.id,
-                              ),
-                              builder: (context, reminderSnapshot) {
-                                return CallReminderSection(
-                                  reminder: reminderSnapshot.data,
-                                  onSet: () => _setReminder(context),
-                                  onClear: () => _clearReminder(context),
-                                );
-                              },
-                            ),
-                            const Divider(height: 32),
-                            StreamBuilder<List<CallAttachment>>(
-                              stream: widget.db.watchAttachmentsForCall(
-                                widget.call.id,
-                              ),
-                              builder: (context, attachmentSnapshot) {
-                                return CallAttachmentsSection(
-                                  attachments:
-                                      attachmentSnapshot.data ?? const [],
-                                  onAdd: () => _chooseAttachmentType(context),
-                                  onView: (attachment) =>
-                                      _viewAttachment(context, attachment),
-                                  onDelete: (attachment) =>
-                                      _deleteAttachment(context, attachment),
-                                );
-                              },
-                            ),
-                            if (devMode) ...[
-                              const Divider(height: 32),
-                              CallDeveloperInfo(call: widget.call),
-                            ],
-                            const SizedBox(height: 40),
-                          ]),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 60),
+                  ]),
+                ),
+              ),
+            ],
           ),
         ),
       ),

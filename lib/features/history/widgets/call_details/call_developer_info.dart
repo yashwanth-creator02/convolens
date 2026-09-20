@@ -13,27 +13,29 @@ class CallDeveloperInfo extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Developer Info',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
-        ),
-
-        const SizedBox(height: 8),
-
-        CallDetailRow(label: 'Row ID', value: call.id.toString()),
-
-        CallDetailRow(label: 'Raw type code', value: call.type.toString()),
-
         CallDetailRow(
-          label: 'Raw timestamp (epoch ms)',
-          value: call.timestamp.toString(),
+          icon: Icons.tag_rounded,
+          label: 'Database ID',
+          value: '#${call.id}',
         ),
-
         CallDetailRow(
-          label: 'Removed from device',
-          value: call.removedFromDevice.toString(),
+          icon: Icons.code_rounded,
+          label: 'Type Code',
+          value: 'code ${call.type}',
+        ),
+        CallDetailRow(
+          icon: Icons.access_time_rounded,
+          label: 'Epoch (ms)',
+          value: '${call.timestamp}',
+        ),
+        CallDetailRow(
+          icon: Icons.sync_rounded,
+          label: 'Device Status',
+          value: call.removedFromDevice ? 'Removed from system' : 'Active in system',
+          valueColor: call.removedFromDevice ? Colors.redAccent : Colors.greenAccent,
         ),
       ],
     );
   }
 }
+
