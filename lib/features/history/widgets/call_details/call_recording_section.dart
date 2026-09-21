@@ -42,10 +42,6 @@ class _CallRecordingSectionState extends State<CallRecordingSection> {
   AudioPlayer? _player;
   bool _loadingPlayer = false;
 
-  // Scan state
-  bool _scanning = false;
-  List<DeviceRecordingMatch>? _scanResults; // null = not yet scanned
-
   @override
   void initState() {
     super.initState();
@@ -60,7 +56,6 @@ class _CallRecordingSectionState extends State<CallRecordingSection> {
     if (oldPath != newPath) {
       _player?.dispose();
       _player = null;
-      _scanResults = null;
       if (newPath != null) _initPlayer();
     }
   }
@@ -90,39 +85,7 @@ class _CallRecordingSectionState extends State<CallRecordingSection> {
     super.dispose();
   }
 
-  Future<void> _scanDevice() async {
-    setState(() {
-      _scanning = true;
-      _scanResults = null;
-    });
 
-    final granted = await CallRecordingScanner.requestPermission();
-    if (!granted) {
-      if (mounted) {
-        setState(() => _scanning = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Storage permission required to scan for recordings.',
-            ),
-          ),
-        );
-      }
-      return;
-    }
-
-    final matches = await CallRecordingScanner.findMatchesForCall(
-      callTimestampMs: widget.callTimestampMs,
-      phoneNumber: widget.callPhoneNumber,
-    );
-
-    if (mounted) {
-      setState(() {
-        _scanning = false;
-        _scanResults = matches;
-      });
-    }
-  }
 
   String _fmt(Duration? d) {
     if (d == null) return '0:00';
