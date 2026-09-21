@@ -12,6 +12,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
+import '../../../core/utils/call_recording_scanner.dart';
 import '../../../core/utils/normalize_number.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
@@ -282,6 +283,34 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     } catch (e) {
       if (!context.mounted) return;
       ToastService.error(context, 'Failed to import recording.');
+    }
+  }
+
+  /// Links an auto-detected device recording (from [CallRecordingScanner])
+  /// by copying it into app storage and saving as a [CallAttachment].
+  Future<void> _linkRecording(
+    BuildContext context,
+    String sourcePath,
+    String fileName,
+  ) async {
+    try {
+      final copiedPath = await AttachmentStorage.copyToAppStorage(
+        sourcePath,
+        widget.call.id,
+      );
+
+      await widget.db.addAttachment(
+        callId: widget.call.id,
+        filePath: copiedPath,
+        originalFileName: fileName,
+        fileType: 'call_recording',
+      );
+
+      if (!context.mounted) return;
+      ToastService.success(context, 'Recording linked.');
+    } catch (e) {
+      if (!context.mounted) return;
+      ToastService.error(context, 'Failed to link recording.');
     }
   }
 
@@ -890,8 +919,13 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                               : null,
                           child: CallRecordingSection(
                             recording: recording,
+                            callTimestampMs: widget.call.timestamp,
+                            callPhoneNumber: widget.call.number,
+                            onLink: (path, name) =>
+                                _linkRecording(context, path, name),
                             onImport: () => _importRecording(context),
-                            onDelete: () => _deleteRecording(context, recording!),
+                            onDelete: () =>
+                                _deleteRecording(context, recording!),
                           ),
                         );
                       },
