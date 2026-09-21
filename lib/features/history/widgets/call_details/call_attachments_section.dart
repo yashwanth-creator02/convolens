@@ -8,10 +8,9 @@ import 'package:record/record.dart';
 
 import '../../../../core/database/app_database.dart';
 
-/// Displays a list of call attachments plus an inline mic recorder for
-/// capturing voice memos directly (no dialog).  Supports multiple recordings.
-///
-/// Voice attachments use [fileType] = `'voice'`.
+/// Displays a list of call attachments plus an inline mic recorder styled with
+/// audio waveforms flanking the microphone (matching the waveform mic visual),
+/// supporting capturing voice memos directly without modal dialogs.
 class CallAttachmentsSection extends StatefulWidget {
   final List<CallAttachment> attachments;
   final VoidCallback onAdd;
@@ -40,21 +39,30 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
   final _recorder = AudioRecorder();
   bool _isRecording = false;
   bool _isSaving = false;
-  String? _recordingPath;
   Duration _elapsed = Duration.zero;
   Timer? _timer;
 
-  // Animated waveform bars
+  // Dynamic waveform bars for active recording state
   late AnimationController _waveController;
   final _waveRng = math.Random();
-  final List<double> _barHeights = List.generate(20, (_) => 0.3);
+  final List<double> _leftDynamicHeights = List.generate(14, (_) => 0.35);
+  final List<double> _rightDynamicHeights = List.generate(14, (_) => 0.35);
+
+  // Static normalized waveform heights matching the reference audio wave image
+  // (fluctuating wave with distinct peaks, flanking the center mic)
+  static const List<double> _leftStaticHeights = [
+    0.25, 0.38, 0.30, 0.55, 0.45, 0.72, 0.35, 0.98, 0.88, 0.38, 0.75, 0.60, 0.30, 0.48,
+  ];
+  static const List<double> _rightStaticHeights = [
+    0.48, 0.30, 0.60, 0.75, 0.38, 0.88, 0.98, 0.35, 0.72, 0.45, 0.55, 0.30, 0.38, 0.25,
+  ];
 
   @override
   void initState() {
     super.initState();
     _waveController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
+      duration: const Duration(milliseconds: 110),
     )..addListener(_updateBars);
   }
 
@@ -69,9 +77,9 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
   void _updateBars() {
     if (_isRecording && mounted) {
       setState(() {
-        for (var i = 0; i < _barHeights.length; i++) {
-          _barHeights[i] =
-              0.2 + _waveRng.nextDouble() * 0.8;
+        for (var i = 0; i < _leftDynamicHeights.length; i++) {
+          _leftDynamicHeights[i] = 0.2 + _waveRng.nextDouble() * 0.8;
+          _rightDynamicHeights[i] = 0.2 + _waveRng.nextDouble() * 0.8;
         }
       });
       _waveController.forward(from: 0);
@@ -93,7 +101,6 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
 
     setState(() {
       _isRecording = true;
-      _recordingPath = path;
       _elapsed = Duration.zero;
     });
 
@@ -117,7 +124,9 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
       await widget.onVoiceRecorded(path);
     }
 
-    setState(() => _isSaving = false);
+    if (mounted) {
+      setState(() => _isSaving = false);
+    }
   }
 
   String _fmtElapsed(Duration d) {
@@ -134,10 +143,7 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Existing attachments ──────────────────────────────────────────────
-        if (widget.attachments.isEmpty && !_isRecording && !_isSaving)
-          _buildEmptyState(scheme),
-
+        // ── Existing attachments list ─────────────────────────────────────────
         ...widget.attachments.map((attachment) {
           final isVoice = attachment.fileType == 'voice';
           final isPdf = attachment.fileType == 'pdf';
@@ -234,135 +240,190 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
           );
         }),
 
-        // ── Inline recording wave ─────────────────────────────────────────────
-        if (_isRecording) _buildWaveRecorder(scheme),
-        if (_isSaving) _buildSavingIndicator(scheme),
+        if (widget.attachments.isNotEmpty) const SizedBox(height: 4),
 
-        // ── Footer row: mic + attach ──────────────────────────────────────────
+        // ── Saving indicator ──────────────────────────────────────────────────
+        if (_isSaving)
+          _buildSavingIndicator(scheme)
+        else
+          // ── Waveform mic button (matches attachment reference) ───────────────
+          _buildWaveformMic(
+            scheme: scheme,
+            isRecording: _isRecording,
+          ),
+
+        // ── Secondary action: Attach file ────────────────────────────────────
         if (!_isRecording && !_isSaving) ...[
-          if (widget.attachments.isNotEmpty) const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // Mic button — tap to record inline
-              _MicButton(
-                onPressed: _startRecording,
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: widget.onAdd,
+              icon: const Icon(Icons.attach_file_rounded, size: 15),
+              label: const Text('Attach file'),
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                foregroundColor: scheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 8),
-              // Attach files button
-              TextButton.icon(
-                onPressed: widget.onAdd,
-                icon: const Icon(Icons.attach_file_rounded, size: 16),
-                label: const Text('Attach'),
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ],
     );
   }
 
-  Widget _buildEmptyState(ColorScheme scheme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: 0.18),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: scheme.outlineVariant.withValues(alpha: 0.2),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.mic_none_rounded,
-              size: 20,
-              color: Colors.purpleAccent.withValues(alpha: 0.8),
+  Widget _buildWaveformMic({
+    required ColorScheme scheme,
+    required bool isRecording,
+  }) {
+    const accentColor = Colors.purpleAccent;
+    final leftHeights = isRecording ? _leftDynamicHeights : _leftStaticHeights;
+    final rightHeights =
+        isRecording ? _rightDynamicHeights : _rightStaticHeights;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: isRecording ? _stopRecording : _startRecording,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: isRecording
+                ? accentColor.withValues(alpha: 0.08)
+                : scheme.surfaceContainerHighest.withValues(alpha: 0.22),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isRecording
+                  ? accentColor.withValues(alpha: 0.5)
+                  : scheme.outlineVariant.withValues(alpha: 0.28),
+              width: isRecording ? 1.5 : 1.0,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Tap the mic to record a voice note, or attach a file…',
-                style: TextStyle(
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  fontSize: 13.5,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── The exact waveform with central mic from the attachment ────
+              SizedBox(
+                height: 38,
+                child: Row(
+                  children: [
+                    // Left waveform bars
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: leftHeights.map((h) {
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 90),
+                            width: 3.0,
+                            height: (38 * h).clamp(5.0, 38.0),
+                            decoration: BoxDecoration(
+                              color: isRecording
+                                  ? accentColor.withValues(alpha: 0.9)
+                                  : scheme.onSurface.withValues(alpha: 0.8),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                    // Center microphone icon
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isRecording
+                              ? accentColor.withValues(alpha: 0.2)
+                              : scheme.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isRecording
+                                ? accentColor.withValues(alpha: 0.5)
+                                : scheme.primary.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.mic_rounded,
+                          size: 24,
+                          color: isRecording ? accentColor : scheme.primary,
+                        ),
+                      ),
+                    ),
+
+                    // Right waveform bars
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: rightHeights.map((h) {
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 90),
+                            width: 3.0,
+                            height: (38 * h).clamp(5.0, 38.0),
+                            decoration: BoxDecoration(
+                              color: isRecording
+                                  ? accentColor.withValues(alpha: 0.9)
+                                  : scheme.onSurface.withValues(alpha: 0.8),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildWaveRecorder(ColorScheme scheme) {
-    const waveColor = Colors.purpleAccent;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: waveColor.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: waveColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          // Waveform bars
-          Expanded(
-            child: SizedBox(
-              height: 36,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: _barHeights.map((h) {
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 100),
-                    width: 3,
-                    height: 36 * h,
-                    decoration: BoxDecoration(
-                      color: waveColor.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(4),
+              // Status line below waveform
+              const SizedBox(height: 6),
+              if (isRecording)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.redAccent,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _fmtElapsed(_elapsed),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: accentColor,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Tap anywhere to stop & save',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Text(
+                  'Tap to record voice note',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.65),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(width: 12),
-          // Timer
-          Text(
-            _fmtElapsed(_elapsed),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: waveColor,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Stop button
-          GestureDetector(
-            onTap: _stopRecording,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: waveColor.withValues(alpha: 0.18),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.stop_rounded,
-                size: 20,
-                color: waveColor,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -377,6 +438,7 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
         border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.2)),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(
             width: 16,
@@ -392,65 +454,6 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Mic button ────────────────────────────────────────────────────────────────
-
-class _MicButton extends StatefulWidget {
-  final VoidCallback onPressed;
-  const _MicButton({required this.onPressed});
-
-  @override
-  State<_MicButton> createState() => _MicButtonState();
-}
-
-class _MicButtonState extends State<_MicButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _pulse;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _pulse = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    )..repeat(reverse: true);
-    _scale = Tween<double>(begin: 1.0, end: 1.15).animate(
-      CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _pulse.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _scale,
-      child: GestureDetector(
-        onTap: widget.onPressed,
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.purpleAccent.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.purpleAccent.withValues(alpha: 0.4),
-            ),
-          ),
-          child: const Icon(
-            Icons.mic_rounded,
-            size: 18,
-            color: Colors.purpleAccent,
-          ),
-        ),
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
@@ -18,9 +19,6 @@ import '../../../shared/widgets/confirm_dialog.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../../contacts/widgets/add_contact_screen.dart';
 import '../repository/attachment_storage.dart';
-import '../utils/call_type_label.dart';
-import '../utils/format_call_time.dart';
-import '../utils/format_duration.dart';
 import '../widgets/call_details/call_attachments_section.dart';
 import '../widgets/call_details/call_developer_info.dart';
 import '../widgets/call_details/call_info_section.dart';
@@ -81,26 +79,65 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   }
 
   Future<void> _loadDeviceContact() async {
-    final number = widget.call.number?.trim();
-    if (number != null && number.isNotEmpty) {
-      final contact = await _findDeviceContact(number);
-      if (mounted) {
-        setState(() {
-          _deviceContact = contact;
-        });
-      }
+    final number = widget.call.number?.trim() ?? '';
+    final contact = await _findDeviceContact(number);
+    if (mounted && contact != null) {
+      setState(() {
+        _deviceContact = contact;
+      });
     }
   }
 
   Future<Contact?> _findDeviceContact(String phoneNumber) async {
     try {
-      final normalized = normalizePhoneNumber(phoneNumber);
-      final contacts = await FlutterContacts.getContacts(withProperties: true);
+      final status = await Permission.contacts.status;
+      if (!status.isGranted) {
+        final req = await Permission.contacts.request();
+        if (!req.isGranted) return null;
+      }
 
-      for (final contact in contacts) {
-        for (final phone in contact.phones) {
-          if (normalizePhoneNumber(phone.number) == normalized) {
-            return contact;
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withPhoto: true,
+        withThumbnail: true,
+      );
+
+      final normalized = normalizePhoneNumber(phoneNumber);
+
+      if (normalized.isNotEmpty) {
+        for (final contact in contacts) {
+          for (final phone in contact.phones) {
+            final contactNormalized = normalizePhoneNumber(phone.number);
+            if (contactNormalized == normalized ||
+                (normalized.length >= 7 &&
+                    contactNormalized.endsWith(normalized)) ||
+                (contactNormalized.length >= 7 &&
+                    normalized.endsWith(contactNormalized))) {
+              final fullContact = await FlutterContacts.getContact(
+                contact.id,
+                withPhoto: true,
+                withThumbnail: true,
+                withProperties: true,
+              );
+              return fullContact ?? contact;
+            }
+          }
+        }
+      }
+
+      // Fallback: match by contact name if available
+      final callName = widget.call.name?.trim();
+      if (callName != null && callName.isNotEmpty) {
+        for (final contact in contacts) {
+          if (contact.displayName.trim().toLowerCase() ==
+              callName.toLowerCase()) {
+            final fullContact = await FlutterContacts.getContact(
+              contact.id,
+              withPhoto: true,
+              withThumbnail: true,
+              withProperties: true,
+            );
+            return fullContact ?? contact;
           }
         }
       }
@@ -704,46 +741,17 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
           Stack(
             children: [
               // Image or gradient fill
-              if (photo != null)
+              if (photo != null && photo.isNotEmpty)
                 Image.memory(
                   photo,
                   width: double.infinity,
                   height: 180,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _buildDefaultHeroBanner(callTypeColor, scheme, initials),
                 )
               else
-                Container(
-                  width: double.infinity,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        callTypeColor.withValues(alpha: 0.55),
-                        Color.lerp(
-                              callTypeColor,
-                              scheme.surface,
-                              0.45,
-                            ) ??
-                            scheme.surface,
-                      ],
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      initials.isNotEmpty && initials != '#'
-                          ? initials
-                          : '?',
-                      style: TextStyle(
-                        fontSize: 56,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white.withValues(alpha: 0.85),
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
-                ),
+                _buildDefaultHeroBanner(callTypeColor, scheme, initials),
               // Dark scrim for readability
               Positioned.fill(
                 child: DecoratedBox(
@@ -829,6 +837,43 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildDefaultHeroBanner(
+    Color callTypeColor,
+    ColorScheme scheme,
+    String initials,
+  ) {
+    return Container(
+      width: double.infinity,
+      height: 180,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            callTypeColor.withValues(alpha: 0.55),
+            Color.lerp(
+                  callTypeColor,
+                  scheme.surface,
+                  0.45,
+                ) ??
+                scheme.surface,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initials.isNotEmpty && initials != '#' ? initials : '?',
+          style: TextStyle(
+            fontSize: 56,
+            fontWeight: FontWeight.w800,
+            color: Colors.white.withValues(alpha: 0.85),
+            letterSpacing: 2,
+          ),
+        ),
       ),
     );
   }
@@ -1047,18 +1092,16 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                           context,
                           title: 'Attachments',
                           icon: Icons.attach_file_rounded,
-                          trailing: attachments.isNotEmpty
-                              ? TextButton.icon(
-                                  onPressed: () =>
-                                      _chooseAttachmentType(context),
-                                  icon: const Icon(Icons.add, size: 14),
-                                  label: const Text('Add'),
-                                  style: TextButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    padding: EdgeInsets.zero,
-                                  ),
-                                )
-                              : null,
+                          trailing: TextButton.icon(
+                            onPressed: () =>
+                                _chooseAttachmentType(context),
+                            icon: const Icon(Icons.attach_file_rounded, size: 14),
+                            label: const Text('Attach'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
                           child: CallAttachmentsSection(
                             attachments: attachments,
                             onAdd: () => _chooseAttachmentType(context),
