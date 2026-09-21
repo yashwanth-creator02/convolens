@@ -29,7 +29,6 @@ import '../widgets/call_details/call_tags_section.dart';
 import '../widgets/call_details/reminder_glass_sheet.dart';
 import '../widgets/call_details/tag_selection_glass_sheet.dart';
 import '../widgets/voice_note_player_sheet.dart';
-import '../widgets/voice_recorder_dialog.dart';
 
 class CallDetailScreen extends StatefulWidget {
   final Call call;
@@ -421,37 +420,6 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     }
   }
 
-  Future<void> _chooseAttachmentType(BuildContext context) async {
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.attach_file),
-              title: const Text('Photo or PDF'),
-              onTap: () => Navigator.pop(context, 'file'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.mic),
-              title: const Text('Voice Note'),
-              onTap: () => Navigator.pop(context, 'voice'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (!context.mounted || choice == null) return;
-
-    if (choice == 'file') {
-      await _addFileAttachment(context);
-    } else {
-      await _recordVoiceNote(context);
-    }
-  }
-
   Future<void> _addFileAttachment(BuildContext context) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -491,35 +459,6 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
       if (!context.mounted) return;
 
       ToastService.error(context, 'Failed to add attachment.');
-    }
-  }
-
-  Future<void> _recordVoiceNote(BuildContext context) async {
-    final destinationPath = await AttachmentStorage.newVoiceNotePath(
-      widget.call.id,
-    );
-
-    if (!context.mounted) return;
-
-    final savedPath = await showVoiceRecorderDialog(context, destinationPath);
-
-    if (savedPath == null || !context.mounted) return;
-
-    try {
-      await widget.db.addAttachment(
-        callId: widget.call.id,
-        filePath: savedPath,
-        originalFileName: 'Voice note',
-        fileType: 'voice',
-      );
-
-      if (!context.mounted) return;
-
-      ToastService.success(context, 'Voice note added.');
-    } catch (e) {
-      if (!context.mounted) return;
-
-      ToastService.error(context, 'Failed to save voice note.');
     }
   }
 
@@ -1094,9 +1033,9 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                           icon: Icons.attach_file_rounded,
                           trailing: TextButton.icon(
                             onPressed: () =>
-                                _chooseAttachmentType(context),
+                                _addFileAttachment(context),
                             icon: const Icon(Icons.attach_file_rounded, size: 14),
-                            label: const Text('Attach'),
+                            label: const Text('Attach File'),
                             style: TextButton.styleFrom(
                               visualDensity: VisualDensity.compact,
                               padding: EdgeInsets.zero,
@@ -1104,7 +1043,6 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                           ),
                           child: CallAttachmentsSection(
                             attachments: attachments,
-                            onAdd: () => _chooseAttachmentType(context),
                             onView: (attachment) =>
                                 _viewAttachment(context, attachment),
                             onDelete: (attachment) =>
