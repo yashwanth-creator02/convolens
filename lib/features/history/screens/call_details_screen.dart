@@ -46,10 +46,38 @@ class CallDetailScreen extends StatefulWidget {
 class _CallDetailScreenState extends State<CallDetailScreen> {
   Contact? _deviceContact;
 
+  // Auto-detected recordings
+  List<DeviceRecordingMatch>? _autoScanResults;
+  bool _isScanning = false;
+
   @override
   void initState() {
     super.initState();
     _loadDeviceContact();
+    _autoScanRecording();
+  }
+
+  Future<void> _autoScanRecording() async {
+    setState(() => _isScanning = true);
+    try {
+      final granted = await CallRecordingScanner.requestPermission();
+      if (!granted) {
+        if (mounted) setState(() => _isScanning = false);
+        return;
+      }
+      final results = await CallRecordingScanner.findMatchesForCall(
+        callTimestampMs: widget.call.timestamp,
+        phoneNumber: widget.call.number,
+      );
+      if (mounted) {
+        setState(() {
+          _autoScanResults = results;
+          _isScanning = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isScanning = false);
+    }
   }
 
   Future<void> _loadDeviceContact() async {
@@ -458,6 +486,28 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     }
   }
 
+  /// Saves an inline voice recording captured by [CallAttachmentsSection].
+  Future<void> _saveInlineVoiceNote(
+    BuildContext context,
+    String recordedPath,
+  ) async {
+    try {
+      final copiedPath = await AttachmentStorage.copyToAppStorage(
+        recordedPath,
+        widget.call.id,
+      );
+      await widget.db.addAttachment(
+        callId: widget.call.id,
+        filePath: copiedPath,
+        originalFileName: 'Voice note',
+        fileType: 'voice',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ToastService.error(context, 'Failed to save voice note.');
+    }
+  }
+
   Future<void> _deleteAttachment(
     BuildContext context,
     CallAttachment attachment,
@@ -630,6 +680,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final initials = _getInitials(displayName);
+    final photo = _deviceContact?.photo ?? _deviceContact?.thumbnail;
 
     return Container(
       decoration: BoxDecoration(
@@ -647,170 +698,134 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
       child: Column(
         children: [
-          Container(
-            width: 68,
-            height: 68,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color.lerp(scheme.surfaceContainer, callTypeColor, 0.12) ??
-                  scheme.surfaceContainer,
-              border: Border.all(
-                color: callTypeColor.withValues(alpha: 0.35),
-                width: 2,
-              ),
-            ),
-            child: Center(
-              child: initials.isNotEmpty && initials != '#'
-                  ? Text(
-                      initials,
+          // ── Contact image / gradient hero banner ──────────────────────────
+          Stack(
+            children: [
+              // Image or gradient fill
+              if (photo != null)
+                Image.memory(
+                  photo,
+                  width: double.infinity,
+                  height: 180,
+                  fit: BoxFit.cover,
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        callTypeColor.withValues(alpha: 0.55),
+                        Color.lerp(
+                              callTypeColor,
+                              scheme.surface,
+                              0.45,
+                            ) ??
+                            scheme.surface,
+                      ],
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      initials.isNotEmpty && initials != '#'
+                          ? initials
+                          : '?',
                       style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: scheme.onSurface,
+                        fontSize: 56,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white.withValues(alpha: 0.85),
+                        letterSpacing: 2,
                       ),
-                    )
-                  : Icon(
-                      Icons.person_outline_rounded,
-                      size: 30,
-                      color: scheme.onSurface,
                     ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            displayName,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
-            ),
-          ),
-          if (phoneNumber.isNotEmpty && phoneNumber != displayName) ...[
-            const SizedBox(height: 4),
-            Text(
-              phoneNumber,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
+                  ),
+                ),
+              // Dark scrim for readability
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.55),
+                      ],
+                      stops: const [0.45, 1.0],
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Color.lerp(scheme.surfaceContainer, callTypeColor, 0.08) ??
-                  scheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: callTypeColor.withValues(alpha: 0.25),
+              // Name overlay — bottom-right
+              Positioned(
+                right: 14,
+                bottom: 12,
+                child: Text(
+                  displayName,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        blurRadius: 8,
+                        color: Colors.black54,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  callTypeIcon(widget.call.type),
-                  size: 14,
-                  color: callTypeColor,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  callTypeLabel(widget.call.type),
-                  style: TextStyle(
-                    color: callTypeColor,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (widget.call.duration > 0) ...[
-                  const SizedBox(width: 6),
-                  Text(
-                    '•',
-                    style: TextStyle(
-                      color: callTypeColor.withValues(alpha: 0.6),
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    formatDuration(widget.call.duration),
-                    style: TextStyle(
-                      color: scheme.onSurface,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-                const SizedBox(width: 6),
-                Text(
-                  '•',
-                  style: TextStyle(
-                    color: callTypeColor.withValues(alpha: 0.6),
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  formatCallTime(widget.call.timestamp),
-                  style: TextStyle(
-                    color: scheme.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
+          // ── Action row ─────────────────────────────────────────────────────
           if (phoneNumber.isNotEmpty) ...[
-            const SizedBox(height: 16),
             Divider(
               height: 1,
               color: scheme.outlineVariant.withValues(alpha: 0.3),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildHeroActionButton(
-                  context,
-                  icon: Icons.call_rounded,
-                  label: 'Call',
-                  color: scheme.primary,
-                  onTap: () => CallLauncher.call(phoneNumber),
-                ),
-                _buildHeroActionButton(
-                  context,
-                  icon: Icons.message_rounded,
-                  label: 'Message',
-                  color: scheme.tertiary,
-                  onTap: () => CallLauncher.message(phoneNumber),
-                ),
-                _buildHeroActionButton(
-                  context,
-                  icon: _deviceContact != null
-                      ? Icons.person_rounded
-                      : Icons.person_add_rounded,
-                  label: _deviceContact != null ? 'Contact' : 'Save',
-                  color: Colors.deepPurpleAccent,
-                  onTap: () => _openContact(context, displayName, phoneNumber),
-                ),
-                _buildHeroActionButton(
-                  context,
-                  icon: Icons.copy_rounded,
-                  label: 'Copy',
-                  color: scheme.onSurfaceVariant,
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: phoneNumber));
-                    ToastService.info(context, 'Number copied to clipboard');
-                  },
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                children: [
+                  _buildHeroActionButton(
+                    context,
+                    icon: Icons.call_rounded,
+                    label: 'Call',
+                    color: scheme.primary,
+                    onTap: () => CallLauncher.call(phoneNumber),
+                  ),
+                  _buildHeroActionButton(
+                    context,
+                    icon: Icons.message_rounded,
+                    label: 'Message',
+                    color: scheme.tertiary,
+                    onTap: () => CallLauncher.message(phoneNumber),
+                  ),
+                  _buildHeroActionButton(
+                    context,
+                    icon: _deviceContact != null
+                        ? Icons.person_rounded
+                        : Icons.person_add_rounded,
+                    label: _deviceContact != null ? 'Contact' : 'Save',
+                    color: Colors.deepPurpleAccent,
+                    onTap: () => _openContact(context, displayName, phoneNumber),
+                  ),
+                  _buildHeroActionButton(
+                    context,
+                    icon: Icons.copy_rounded,
+                    label: 'Copy',
+                    color: scheme.onSurfaceVariant,
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: phoneNumber));
+                      ToastService.info(context, 'Number copied to clipboard');
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -921,6 +936,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                             recording: recording,
                             callTimestampMs: widget.call.timestamp,
                             callPhoneNumber: widget.call.number,
+                            autoScanResults: _autoScanResults,
+                            isScanning: _isScanning,
                             onLink: (path, name) =>
                                 _linkRecording(context, path, name),
                             onImport: () => _importRecording(context),
@@ -1049,6 +1066,10 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                                 _viewAttachment(context, attachment),
                             onDelete: (attachment) =>
                                 _deleteAttachment(context, attachment),
+                            onVoiceRecorded: (path) => _saveInlineVoiceNote(
+                              context,
+                              path,
+                            ),
                           ),
                         );
                       },
