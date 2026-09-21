@@ -7,21 +7,19 @@ import '../../../../core/utils/call_recording_scanner.dart';
 /// Displays a call recording section.
 ///
 /// When [recording] is non-null: shows an inline audio player.
-/// When [recording] is null: shows two actions —
-///   1. "Find on device" — scans OEM recording folders and auto-matches
-///   2. "Browse files"  — opens file picker for manual selection
+/// When [recording] is null: auto-shows any [autoScanResults] surfaced by the
+/// parent, or a "Browse files" manual import button.
 class CallRecordingSection extends StatefulWidget {
   final CallAttachment? recording;
   final int callTimestampMs;
   final String? callPhoneNumber;
 
-  /// Called when the user selects an auto-detected or manual file.
-  /// [filePath] is the source path on device; [fileName] is the display name.
+  /// Pre-scanned results from [CallRecordingScanner] (null = still scanning).
+  final List<DeviceRecordingMatch>? autoScanResults;
+  final bool isScanning;
+
   final void Function(String filePath, String fileName) onLink;
-
-  /// Called when the user taps "Browse files" for manual file pick.
   final VoidCallback onImport;
-
   final VoidCallback onDelete;
 
   const CallRecordingSection({
@@ -32,6 +30,8 @@ class CallRecordingSection extends StatefulWidget {
     required this.onLink,
     required this.onImport,
     required this.onDelete,
+    this.autoScanResults,
+    this.isScanning = false,
   });
 
   @override
@@ -143,104 +143,65 @@ class _CallRecordingSectionState extends State<CallRecordingSection> {
   }
 
   Widget _buildEmptyState(ColorScheme scheme) {
-    // If a scan just came back, show results instead of the plain prompt
-    if (_scanResults != null) {
-      return _buildScanResults(scheme);
-    }
+    // Use results supplied by the parent screen (auto-scanned on open)
+    final results = widget.autoScanResults;
+    final scanning = widget.isScanning;
 
-    return Column(
-      children: [
-        // ── "Find on device" button ────────────────────────────────────────
-        _ActionRow(
-          icon: Icons.search_rounded,
-          iconColor: Colors.redAccent,
-          label: _scanning
-              ? 'Scanning recording folders…'
-              : 'Find on device',
-          sublabel: 'Auto-detect from call recorder',
-          trailing: _scanning
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.chevron_right_rounded, size: 20),
-          onTap: _scanning ? null : _scanDevice,
+    // Still scanning
+    if (scanning) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.2),
+          ),
         ),
-        const SizedBox(height: 8),
-        // ── Manual import button ───────────────────────────────────────────
-        _ActionRow(
-          icon: Icons.upload_file_rounded,
-          iconColor: scheme.primary,
-          label: 'Browse files',
-          sublabel: 'Pick a recording manually',
-          trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-          onTap: widget.onImport,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScanResults(ColorScheme scheme) {
-    if (_scanResults!.isEmpty) {
-      return Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHighest.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: scheme.outlineVariant.withValues(alpha: 0.2),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Scanning device for call recordings…',
+                style: TextStyle(
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                  fontSize: 13.5,
+                ),
               ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.search_off_rounded,
-                  size: 20,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'No matching recording found on device.',
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                      fontSize: 13.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          _ActionRow(
-            icon: Icons.upload_file_rounded,
-            iconColor: scheme.primary,
-            label: 'Browse files',
-            sublabel: 'Pick a recording manually',
-            trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-            onTap: widget.onImport,
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => setState(() => _scanResults = null),
-              icon: const Icon(Icons.refresh_rounded, size: 14),
-              label: const Text('Try again'),
-              style: TextButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
+    // Scan done and has matches — show results
+    if (results != null && results.isNotEmpty) {
+      return _buildScanResults(scheme, results);
+    }
+
+    // No matches found or no scan yet — just show browse button
+    return _ActionRow(
+      icon: Icons.upload_file_rounded,
+      iconColor: scheme.primary,
+      label: results != null
+          ? 'No recording found — Browse files'
+          : 'Import a call recording',
+      sublabel: results != null
+          ? 'No matching file in recording folders'
+          : 'Pick a recording from your device',
+      trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+      onTap: widget.onImport,
+    );
+  }
+
+  Widget _buildScanResults(ColorScheme scheme, List<DeviceRecordingMatch> results) {
     // Show scan results list
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,7 +215,7 @@ class _CallRecordingSectionState extends State<CallRecordingSection> {
             ),
             const SizedBox(width: 6),
             Text(
-              '${_scanResults!.length} recording${_scanResults!.length == 1 ? '' : 's'} found',
+              '${results.length} recording${results.length == 1 ? '' : 's'} found',
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
@@ -263,9 +224,9 @@ class _CallRecordingSectionState extends State<CallRecordingSection> {
             ),
             const Spacer(),
             TextButton.icon(
-              onPressed: () => setState(() => _scanResults = null),
-              icon: const Icon(Icons.close_rounded, size: 14),
-              label: const Text('Dismiss'),
+              onPressed: widget.onImport,
+              icon: const Icon(Icons.folder_open_rounded, size: 14),
+              label: const Text('Browse'),
               style: TextButton.styleFrom(
                 visualDensity: VisualDensity.compact,
                 padding: EdgeInsets.zero,
@@ -274,7 +235,7 @@ class _CallRecordingSectionState extends State<CallRecordingSection> {
           ],
         ),
         const SizedBox(height: 8),
-        ..._scanResults!.take(4).map(
+        ...results.take(4).map(
               (match) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: _ScanResultRow(
@@ -283,7 +244,7 @@ class _CallRecordingSectionState extends State<CallRecordingSection> {
                 ),
               ),
             ),
-        if (_scanResults!.length > 4) ...[
+        if (results.length > 4) ...[
           const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerRight,
