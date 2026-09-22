@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/logger/logger.dart';
+import '../../../core/services/contact_cache.dart';
 import '../../../core/toast/toast_service.dart';
 import '../repository/calls_repository.dart';
 import '../utils/build_history_items.dart';
@@ -122,6 +123,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         withProperties: true,
         withThumbnail: true,
       );
+      ContactCache.setContacts(contacts);
       if (mounted) {
         setState(() {
           _deviceContacts = contacts;

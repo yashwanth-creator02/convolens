@@ -11,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
+import '../../../core/services/contact_cache.dart';
 import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
 import '../../../core/utils/call_recording_scanner.dart';
@@ -34,12 +35,22 @@ class CallDetailScreen extends StatefulWidget {
   final Call call;
   final AppDatabase db;
   final Contact? initialContact;
+  final Future<Contact?>? fullContactFuture;
+  final CallDetail? initialDetail;
+  final List<Tag>? initialTags;
+  final int? initialAttachmentsCount;
+  final bool? initialHasRecording;
 
   const CallDetailScreen({
     super.key,
     required this.call,
     required this.db,
     this.initialContact,
+    this.fullContactFuture,
+    this.initialDetail,
+    this.initialTags,
+    this.initialAttachmentsCount,
+    this.initialHasRecording,
   });
 
   @override
@@ -49,28 +60,112 @@ class CallDetailScreen extends StatefulWidget {
 class _CallDetailScreenState extends State<CallDetailScreen> {
   Contact? _deviceContact;
 
+  // Cached streams to prevent duplicate database subscriptions
+  late final Stream<List<CallAttachment>> _attachmentsStream =
+      widget.db.watchAttachmentsForCall(widget.call.id);
+  late final Stream<CallDetail?> _detailsStream =
+      widget.db.watchDetailsForCall(widget.call.id);
+  late final Stream<List<Tag>> _tagsStream =
+      widget.db.watchTagsForCall(widget.call.id);
+
   // Auto-detected recordings
   List<DeviceRecordingMatch>? _autoScanResults;
   bool _isScanning = false;
 
+  bool _deferredTasksStarted = false;
+  Animation<double>? _routeAnimation;
+
   @override
   void initState() {
     super.initState();
-    _deviceContact = widget.initialContact;
+    _deviceContact = widget.initialContact ??
+        ContactCache.findContact(
+          number: widget.call.number,
+          name: widget.call.name,
+        );
 
-    // Smooth page transitions: defer background I/O until route transition completes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 320), () {
-        if (mounted) {
-          if (_deviceContact == null ||
-              (_deviceContact?.photo == null &&
-                  _deviceContact?.thumbnail == null)) {
-            _loadDeviceContact();
+    // If a future for full-res contact photo was started on tap, listen to it
+    // so it seamlessly upgrades from thumbnail to high-res during the slide transition
+    if (widget.fullContactFuture != null) {
+      widget.fullContactFuture!.then((fullContact) async {
+        if (fullContact != null && fullContact.photo != null && mounted) {
+          await precacheImage(MemoryImage(fullContact.photo!), context);
+          if (mounted) {
+            setState(() {
+              _deviceContact = fullContact;
+            });
+            ContactCache.updateContact(fullContact);
           }
-          _autoScanRecording();
         }
       });
-    });
+    } else if (_deviceContact != null && _deviceContact!.photo == null) {
+      // If we only have thumbnail, load full-res photo for this single contact
+      _loadFullResPhoto();
+    }
+  }
+
+  Future<void> _loadFullResPhoto() async {
+    if (_deviceContact == null) return;
+    try {
+      final full = await FlutterContacts.getContact(
+        _deviceContact!.id,
+        withPhoto: true,
+        withThumbnail: true,
+      );
+      if (full != null && full.photo != null && mounted) {
+        await precacheImage(MemoryImage(full.photo!), context);
+        if (mounted) {
+          setState(() {
+            _deviceContact = full;
+          });
+          ContactCache.updateContact(full);
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final photo = _deviceContact?.photo ?? _deviceContact?.thumbnail;
+    if (photo != null && photo.isNotEmpty) {
+      precacheImage(MemoryImage(photo), context);
+    }
+    _setupTransitionListener();
+  }
+
+  void _setupTransitionListener() {
+    if (_deferredTasksStarted) return;
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation == null || animation.isCompleted) {
+      _startDeferredTasks();
+    } else {
+      _routeAnimation = animation;
+      animation.addStatusListener(_onRouteAnimationStatus);
+    }
+  }
+
+  void _onRouteAnimationStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      _routeAnimation?.removeStatusListener(_onRouteAnimationStatus);
+      _startDeferredTasks();
+    }
+  }
+
+  void _startDeferredTasks() {
+    if (_deferredTasksStarted || !mounted) return;
+    _deferredTasksStarted = true;
+
+    if (_deviceContact == null) {
+      _loadDeviceContact();
+    }
+    _autoScanRecording();
+  }
+
+  @override
+  void dispose() {
+    _routeAnimation?.removeStatusListener(_onRouteAnimationStatus);
+    super.dispose();
   }
 
   Future<void> _autoScanRecording() async {
@@ -98,15 +193,38 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
   Future<void> _loadDeviceContact() async {
     final number = widget.call.number?.trim() ?? '';
-    final contact = await _findDeviceContact(number);
+    final name = widget.call.name?.trim();
+    final contact = await _findDeviceContact(number, name: name);
     if (mounted && contact != null) {
-      setState(() {
-        _deviceContact = contact;
-      });
+      final bytes = contact.photo ?? contact.thumbnail;
+      if (bytes != null && bytes.isNotEmpty && mounted) {
+        await precacheImage(MemoryImage(bytes), context);
+      }
+      if (mounted) {
+        setState(() {
+          _deviceContact = contact;
+        });
+        ContactCache.updateContact(contact);
+      }
     }
   }
 
-  Future<Contact?> _findDeviceContact(String phoneNumber) async {
+  Future<Contact?> _findDeviceContact(String phoneNumber, {String? name}) async {
+    final cached = ContactCache.findContact(number: phoneNumber, name: name);
+    if (cached != null) {
+      if (cached.photo != null) return cached;
+      try {
+        final full = await FlutterContacts.getContact(
+          cached.id,
+          withPhoto: true,
+          withThumbnail: true,
+        );
+        return full ?? cached;
+      } catch (_) {
+        return cached;
+      }
+    }
+
     try {
       final status = await Permission.contacts.status;
       if (!status.isGranted) {
@@ -116,48 +234,18 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
       final contacts = await FlutterContacts.getContacts(
         withProperties: true,
-        withPhoto: true,
         withThumbnail: true,
       );
+      ContactCache.setContacts(contacts);
 
-      final normalized = normalizePhoneNumber(phoneNumber);
-
-      if (normalized.isNotEmpty) {
-        for (final contact in contacts) {
-          for (final phone in contact.phones) {
-            final contactNormalized = normalizePhoneNumber(phone.number);
-            if (contactNormalized == normalized ||
-                (normalized.length >= 7 &&
-                    contactNormalized.endsWith(normalized)) ||
-                (contactNormalized.length >= 7 &&
-                    normalized.endsWith(contactNormalized))) {
-              final fullContact = await FlutterContacts.getContact(
-                contact.id,
-                withPhoto: true,
-                withThumbnail: true,
-                withProperties: true,
-              );
-              return fullContact ?? contact;
-            }
-          }
-        }
-      }
-
-      // Fallback: match by contact name if available
-      final callName = widget.call.name?.trim();
-      if (callName != null && callName.isNotEmpty) {
-        for (final contact in contacts) {
-          if (contact.displayName.trim().toLowerCase() ==
-              callName.toLowerCase()) {
-            final fullContact = await FlutterContacts.getContact(
-              contact.id,
-              withPhoto: true,
-              withThumbnail: true,
-              withProperties: true,
-            );
-            return fullContact ?? contact;
-          }
-        }
+      final matched = ContactCache.findContact(number: phoneNumber, name: name);
+      if (matched != null) {
+        final full = await FlutterContacts.getContact(
+          matched.id,
+          withPhoto: true,
+          withThumbnail: true,
+        );
+        return full ?? matched;
       }
     } catch (_) {}
     return null;
@@ -698,19 +786,33 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
           // ── Contact image / gradient hero banner ──────────────────────────
           Stack(
             children: [
-              // Image or gradient fill
+              // Base layer: Always present so Frame 0 has a vibrant banner with initials
+              _buildDefaultHeroBanner(callTypeColor, scheme, initials, height: 280),
+              // High-resolution contact image rendered on top with crisp filtering
               if (photo != null && photo.isNotEmpty)
-                Image.memory(
-                  photo,
-                  width: double.infinity,
-                  height: 280,
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  errorBuilder: (context, error, stackTrace) =>
-                      _buildDefaultHeroBanner(callTypeColor, scheme, initials, height: 280),
-                )
-              else
-                _buildDefaultHeroBanner(callTypeColor, scheme, initials, height: 280),
+                Positioned.fill(
+                  child: Image.memory(
+                    photo,
+                    width: double.infinity,
+                    height: 280,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    filterQuality: FilterQuality.medium,
+                    gaplessPlayback: true,
+                    frameBuilder:
+                        (context, child, frame, wasSynchronouslyLoaded) {
+                      if (wasSynchronouslyLoaded) return child;
+                      return AnimatedOpacity(
+                        opacity: frame == null ? 0.0 : 1.0,
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        child: child,
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
+                  ),
+                ),
               // Dark scrim for readability
               Positioned.fill(
                 child: DecoratedBox(
@@ -921,7 +1023,10 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                     const SizedBox(height: 16),
                     // ── Call Recording (only when a recording exists) ──────
                     StreamBuilder<List<CallAttachment>>(
-                      stream: widget.db.watchAttachmentsForCall(widget.call.id),
+                      stream: _attachmentsStream,
+                      initialData: widget.initialAttachmentsCount == 0
+                          ? const []
+                          : null,
                       builder: (context, attachSnap) {
                         final allAttachments = attachSnap.data ?? const [];
                         final recording = allAttachments
@@ -954,7 +1059,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                     ),
                     const SizedBox(height: 16),
                     StreamBuilder<CallDetail?>(
-                      stream: widget.db.watchDetailsForCall(widget.call.id),
+                      stream: _detailsStream,
+                      initialData: widget.initialDetail,
                       builder: (context, detailSnapshot) {
                         final detail = detailSnapshot.data;
                         final hasNote = detail?.note != null &&
@@ -996,7 +1102,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                     ),
                     const SizedBox(height: 16),
                     StreamBuilder<List<Tag>>(
-                      stream: widget.db.watchTagsForCall(widget.call.id),
+                      stream: _tagsStream,
+                      initialData: widget.initialTags,
                       builder: (context, tagSnapshot) {
                         final tags = tagSnapshot.data ?? const [];
                         return _buildCard(
@@ -1029,7 +1136,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                     ),
                     const SizedBox(height: 16),
                     StreamBuilder<CallDetail?>(
-                      stream: widget.db.watchReminderForCall(widget.call.id),
+                      stream: _detailsStream,
+                      initialData: widget.initialDetail,
                       builder: (context, reminderSnapshot) {
                         return _buildCard(
                           context,
@@ -1045,7 +1153,10 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                     ),
                     const SizedBox(height: 16),
                     StreamBuilder<List<CallAttachment>>(
-                      stream: widget.db.watchAttachmentsForCall(widget.call.id),
+                      stream: _attachmentsStream,
+                      initialData: widget.initialAttachmentsCount == 0
+                          ? const []
+                          : null,
                       builder: (context, attachmentSnapshot) {
                         final attachments = attachmentSnapshot.data ?? const [];
                         return _buildCard(

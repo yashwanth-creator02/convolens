@@ -218,6 +218,10 @@ void main() {
           ..where((t) => t.callId.equals(callId)))
         .get();
     expect(callTagsAfter.isEmpty, isTrue);
+
+    // Unmount widget to dispose CupertinoSearchTextField cursor timers and flush timers
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
   });
 
   testWidgets('CallNoteSection triggers onClear callback when note exists', (

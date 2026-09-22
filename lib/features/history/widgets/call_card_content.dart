@@ -289,12 +289,30 @@ class CallCardContent extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () {
+                  final photoBytes =
+                      deviceContact?.photo ?? deviceContact?.thumbnail;
+                  if (photoBytes != null && photoBytes.isNotEmpty) {
+                    precacheImage(MemoryImage(photoBytes), context);
+                  }
+                  Future<Contact?>? fullContactFuture;
+                  if (deviceContact != null && deviceContact!.photo == null) {
+                    fullContactFuture = FlutterContacts.getContact(
+                      deviceContact!.id,
+                      withPhoto: true,
+                      withThumbnail: true,
+                    );
+                  }
                   Navigator.of(context).push(
                     CupertinoPageRoute(
                       builder: (context) => CallDetailScreen(
                         call: call,
                         db: db,
                         initialContact: deviceContact,
+                        fullContactFuture: fullContactFuture,
+                        initialDetail: detail,
+                        initialTags: tags,
+                        initialAttachmentsCount: attachmentCount,
+                        initialHasRecording: hasRecording,
                       ),
                     ),
                   );
@@ -313,17 +331,9 @@ class CallCardContent extends StatelessWidget {
                           CircleAvatar(
                             radius: 22,
                             backgroundImage: deviceContact?.thumbnail != null
-                                ? ResizeImage(
-                                    MemoryImage(deviceContact!.thumbnail!),
-                                    width: 96,
-                                    height: 96,
-                                  )
+                                ? MemoryImage(deviceContact!.thumbnail!)
                                 : deviceContact?.photo != null
-                                ? ResizeImage(
-                                    MemoryImage(deviceContact!.photo!),
-                                    width: 96,
-                                    height: 96,
-                                  )
+                                ? MemoryImage(deviceContact!.photo!)
                                 : null,
                             backgroundColor: scheme.secondaryContainer,
                             child:

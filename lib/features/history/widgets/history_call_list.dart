@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/services/contact_cache.dart';
 import '../../../core/utils/normalize_number.dart';
 import 'call_card.dart';
 
@@ -165,7 +166,7 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
               call: call,
               db: widget.db,
               settings: widget.settings,
-              deviceContact: _findContact(call.number),
+              deviceContact: _findContact(call.number, name: call.name),
               detail: widget.callDetailsMap[call.id],
               tags: widget.callTagsMap[call.id] ?? const [],
               attachmentCount: widget.attachmentCountsMap[call.id] ?? 0,
@@ -184,9 +185,12 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
     );
   }
 
-  Contact? _findContact(String? number) {
-    if (number == null || number.isEmpty) return null;
-    final normalized = normalizePhoneNumber(number);
-    return _contactMap[normalized];
+  Contact? _findContact(String? number, {String? name}) {
+    if (number != null && number.isNotEmpty) {
+      final normalized = normalizePhoneNumber(number);
+      final found = _contactMap[normalized];
+      if (found != null) return found;
+    }
+    return ContactCache.findContact(number: number, name: name);
   }
 }
