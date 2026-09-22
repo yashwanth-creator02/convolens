@@ -3,9 +3,11 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
 import '../widgets/contact_call_history_list.dart';
+import '../widgets/contact_glass_card.dart';
+import '../widgets/contact_note_section.dart';
 import '../widgets/contact_timeline_section.dart';
 
-class ContactActivityTab extends StatelessWidget {
+class ContactActivityTab extends StatefulWidget {
   final String normalizedNumber;
   final AppDatabase db;
   final Contact? deviceContact;
@@ -18,128 +20,120 @@ class ContactActivityTab extends StatelessWidget {
   });
 
   @override
+  State<ContactActivityTab> createState() => _ContactActivityTabState();
+}
+
+enum _ActivityFilter { all, calls, timeline, notes }
+
+class _ContactActivityTabState extends State<ContactActivityTab> {
+  _ActivityFilter _filter = _ActivityFilter.all;
+
+  @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
         // ================================================================
-        // Activity filter
+        // Activity filter pills
         // ================================================================
-
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
               FilterChip(
-                selected: true,
+                selected: _filter == _ActivityFilter.all,
                 label: const Text('All'),
-                onSelected: (_) {},
+                onSelected: (_) =>
+                    setState(() => _filter = _ActivityFilter.all),
               ),
               const SizedBox(width: 8),
               FilterChip(
-                selected: false,
+                selected: _filter == _ActivityFilter.calls,
                 label: const Text('Calls'),
-                onSelected: (_) {},
+                onSelected: (_) =>
+                    setState(() => _filter = _ActivityFilter.calls),
               ),
               const SizedBox(width: 8),
               FilterChip(
-                selected: false,
+                selected: _filter == _ActivityFilter.timeline,
+                label: const Text('Timeline'),
+                onSelected: (_) =>
+                    setState(() => _filter = _ActivityFilter.timeline),
+              ),
+              const SizedBox(width: 8),
+              FilterChip(
+                selected: _filter == _ActivityFilter.notes,
                 label: const Text('Notes'),
-                onSelected: (_) {},
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: false,
-                label: const Text('Reminders'),
-                onSelected: (_) {},
+                onSelected: (_) =>
+                    setState(() => _filter = _ActivityFilter.notes),
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
 
         // ================================================================
-        // Timeline
+        // Timeline Section (Shown for 'all' and 'timeline')
         // ================================================================
-
-        _Section(
-          title: 'Timeline',
-          icon: Icons.timeline_outlined,
-          child: SizedBox(
-            height: 300,
-            child: SingleChildScrollView(
-              child: ContactTimelineSection(
-                normalizedNumber: normalizedNumber,
-                db: db,
-              ),
+        if (_filter == _ActivityFilter.all ||
+            _filter == _ActivityFilter.timeline) ...[
+          ContactGlassCard(
+            title: 'Timeline',
+            icon: Icons.timeline_outlined,
+            child: ContactTimelineSection(
+              normalizedNumber: widget.normalizedNumber,
+              db: widget.db,
             ),
           ),
-        ),
+        ],
 
         // ================================================================
-        // Call history
+        // Call History Section (Shown for 'all' and 'calls')
         // ================================================================
-
-        _Section(
-          title: 'Call History',
-          icon: Icons.call_outlined,
-          child: SizedBox(
-            height: 300,
+        if (_filter == _ActivityFilter.all ||
+            _filter == _ActivityFilter.calls) ...[
+          ContactGlassCard(
+            title: 'Call History',
+            icon: Icons.call_outlined,
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
             child: ContactCallHistoryList(
-              normalizedNumber: normalizedNumber,
-              db: db,
-              deviceContact: deviceContact,
+              normalizedNumber: widget.normalizedNumber,
+              db: widget.db,
+              deviceContact: widget.deviceContact,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
             ),
           ),
-        ),
+        ],
 
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Widget child;
-
-  const _Section({
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              child,
-            ],
+        // ================================================================
+        // Notes Section (Shown for 'notes')
+        // ================================================================
+        if (_filter == _ActivityFilter.notes) ...[
+          StreamBuilder<ContactDetail?>(
+            stream: widget.db.watchContactDetails(widget.normalizedNumber),
+            builder: (context, snapshot) {
+              final detail = snapshot.data;
+              return ContactGlassCard(
+                title: 'Note',
+                icon: Icons.notes_outlined,
+                child: ContactNoteSection(
+                  note: detail?.generalNote,
+                  onSave: (note) async {
+                    await widget.db.saveContactNote(
+                      widget.normalizedNumber,
+                      note,
+                    );
+                  },
+                ),
+              );
+            },
           ),
-        ),
-      ),
+        ],
+
+        const SizedBox(height: 16),
+      ],
     );
   }
 }

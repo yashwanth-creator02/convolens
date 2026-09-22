@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/database/app_database.dart';
 import '../widgets/contact_color_section.dart';
+import '../widgets/contact_glass_card.dart';
 import '../widgets/contact_preferences_section.dart';
 import '../widgets/contact_settings_section.dart';
 
@@ -25,13 +26,12 @@ class ContactMoreTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
         // ================================================================
         // Personalization
         // ================================================================
-
-        _Section(
+        ContactGlassCard(
           title: 'Personalization',
           icon: Icons.palette_outlined,
           child: ContactColorSection(
@@ -50,8 +50,7 @@ class ContactMoreTab extends StatelessWidget {
         // ================================================================
         // Preferences
         // ================================================================
-
-        _Section(
+        ContactGlassCard(
           title: 'Preferences',
           icon: Icons.tune_outlined,
           child: ContactPreferencesSection(
@@ -64,8 +63,7 @@ class ContactMoreTab extends StatelessWidget {
         // ================================================================
         // Contact settings
         // ================================================================
-
-        _Section(
+        ContactGlassCard(
           title: 'Contact Settings',
           icon: Icons.settings_outlined,
           child: ContactSettingsSection(
@@ -77,52 +75,8 @@ class ContactMoreTab extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
       ],
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Widget child;
-
-  const _Section({
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              child,
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

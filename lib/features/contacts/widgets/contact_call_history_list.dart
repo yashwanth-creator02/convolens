@@ -8,12 +8,16 @@ class ContactCallHistoryList extends StatelessWidget {
   final String normalizedNumber;
   final AppDatabase db;
   final Contact? deviceContact;
+  final bool shrinkWrap;
+  final ScrollPhysics? physics;
 
   const ContactCallHistoryList({
     super.key,
     required this.normalizedNumber,
     required this.db,
     this.deviceContact,
+    this.shrinkWrap = false,
+    this.physics,
   });
 
   @override
@@ -47,6 +51,8 @@ class ContactCallHistoryList extends StatelessWidget {
           stream: db.watchSettings(),
           builder: (context, settingsSnapshot) {
             return ListView.builder(
+              shrinkWrap: shrinkWrap,
+              physics: physics,
               itemCount: calls.length,
               itemBuilder: (context, index) => CallCard(
                 call: calls[index],

@@ -283,6 +283,30 @@ class AppDatabase extends _$AppDatabase {
     return query.watch();
   }
 
+  Future<String?> getMostCalledNumber(List<String> numbers) async {
+    if (numbers.isEmpty) return null;
+    if (numbers.length == 1) return numbers.first;
+
+    String? mostCalled;
+    int maxCount = -1;
+
+    for (final num in numbers) {
+      final clean = num.replaceAll(RegExp(r'[^0-9+]'), '');
+      final countQuery = selectOnly(calls)
+        ..addColumns([calls.id.count()])
+        ..where(calls.number.like('%$clean'));
+      final count = await countQuery
+          .map((row) => row.read(calls.id.count()) ?? 0)
+          .getSingle();
+      if (count > maxCount) {
+        maxCount = count;
+        mostCalled = num;
+      }
+    }
+
+    return mostCalled ?? numbers.first;
+  }
+
   // ============================================================
   // SETTINGS
   // ============================================================

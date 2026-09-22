@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
+import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
 
 class ContactPhoneNumbersSection extends StatelessWidget {
@@ -18,7 +20,10 @@ class ContactPhoneNumbersSection extends StatelessWidget {
   }
 
   Future<void> _message(String number) async {
-    await CallLauncher.message(number);
+    final launched = await CallLauncher.openWhatsAppChat(number);
+    if (!launched) {
+      await CallLauncher.message(number);
+    }
   }
 
   String _labelFor(Phone phone) {
@@ -47,32 +52,73 @@ class ContactPhoneNumbersSection extends StatelessWidget {
   }
 
   Widget _buildNumberRow(BuildContext context, String number, String? label) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onLongPress: () {
+            Clipboard.setData(ClipboardData(text: number));
+            ToastService.info(context, '$number copied');
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
               children: [
-                Text(number),
-                if (label != null)
-                  Text(
-                    label,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        number,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      if (label != null) ...[
+                        const SizedBox(height: 3),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: scheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              color: scheme.primary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+                ),
+                IconButton(
+                  tooltip: 'Call $number',
+                  icon: Icon(Icons.call_rounded,
+                      size: 20, color: scheme.primary),
+                  onPressed: () => _call(number),
+                ),
+                IconButton(
+                  tooltip: 'Message $number',
+                  icon: const Icon(Icons.chat_bubble_outline_rounded,
+                      size: 19, color: Color(0xFF25D366)),
+                  onPressed: () => _message(number),
+                ),
               ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.call_outlined, size: 20),
-            onPressed: () => _call(number),
-          ),
-          IconButton(
-            icon: const Icon(Icons.message_outlined, size: 20),
-            onPressed: () => _message(number),
-          ),
-        ],
+        ),
       ),
     );
   }

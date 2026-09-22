@@ -20,4 +20,15 @@ class DeviceChannel {
       return false;
     }
   }
+
+  static Future<bool> placeWhatsAppCall(String number) async {
+    try {
+      final result = await _channel.invokeMethod('placeWhatsAppCall', {
+        'number': number,
+      });
+      return result == true;
+    } on PlatformException {
+      return false;
+    }
+  }
 }

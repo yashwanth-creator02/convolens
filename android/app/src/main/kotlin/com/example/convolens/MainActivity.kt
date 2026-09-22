@@ -64,6 +64,43 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
+                "placeWhatsAppCall" -> {
+                    val number = call.argument<String>("number")
+                    if (number == null) {
+                        result.error("INVALID_ARGUMENT", "No phone number provided", null)
+                        return@setMethodCallHandler
+                    }
+
+                    try {
+                        val cleanNumber = number.replace(Regex("[^0-9]"), "")
+                        val cursor = contentResolver.query(
+                            android.provider.ContactsContract.Data.CONTENT_URI,
+                            arrayOf(android.provider.ContactsContract.Data._ID),
+                            "${android.provider.ContactsContract.Data.MIMETYPE} = ? AND (${android.provider.ContactsContract.Data.DATA1} LIKE ? OR ${android.provider.ContactsContract.Data.DATA1} LIKE ?)",
+                            arrayOf("vnd.android.cursor.item/vnd.com.whatsapp.voip.call", "%$cleanNumber%", "%$number%"),
+                            null
+                        )
+                        var launched = false
+                        cursor?.use {
+                            if (it.moveToFirst()) {
+                                val dataId = it.getLong(it.getColumnIndexOrThrow(android.provider.ContactsContract.Data._ID))
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    setDataAndType(
+                                        Uri.parse("content://com.android.contacts/data/$dataId"),
+                                        "vnd.android.cursor.item/vnd.com.whatsapp.voip.call"
+                                    )
+                                    `package` = "com.whatsapp"
+                                }
+                                startActivity(intent)
+                                launched = true
+                            }
+                        }
+                        result.success(launched)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
+
                 else -> result.notImplemented()
             }
         }
