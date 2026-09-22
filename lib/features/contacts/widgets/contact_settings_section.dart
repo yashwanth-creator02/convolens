@@ -145,9 +145,10 @@ Total calls: ${calls.length}
                 const SizedBox(width: 8),
                 GlassSwitch(
                   value: detail?.ignoreFromAnalytics ?? false,
-                  useOwnLayer: true,
+                  useOwnLayer: false,
+                  quality: GlassQuality.standard,
                   activeColor: scheme.primary,
-                  width: 52.0,
+                  width: 50.0,
                   height: 28.0,
                   onChanged: (value) => db.setContactFields(
                     normalizedNumber,

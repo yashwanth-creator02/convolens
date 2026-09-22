@@ -54,12 +54,16 @@ class _AppState extends State<App> {
     AppDatabase? db,
     Widget? home,
   }) {
+    final activeTheme = AppTheme.getTheme(
+      themeType == AppThemeType.system ? AppThemeType.dark : themeType,
+    );
+
     return MaterialApp(
       title: 'Point',
-      theme: AppTheme.getTheme(
-        themeType == AppThemeType.system ? AppThemeType.dark : themeType,
-      ),
-      darkTheme: AppTheme.getTheme(AppThemeType.dark),
+      theme: themeType == AppThemeType.light
+          ? activeTheme
+          : AppTheme.getTheme(AppThemeType.light),
+      darkTheme: activeTheme,
       themeMode: themeMode,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
@@ -98,9 +102,11 @@ class _AppState extends State<App> {
 
         return _buildAppWithTheme(
           themeType: themeType,
-          themeMode: themeType == AppThemeType.light
-              ? ThemeMode.light
-              : ThemeMode.dark,
+          themeMode: themeType == AppThemeType.system
+              ? ThemeMode.system
+              : (themeType == AppThemeType.light
+                  ? ThemeMode.light
+                  : ThemeMode.dark),
           db: _db,
         );
       },

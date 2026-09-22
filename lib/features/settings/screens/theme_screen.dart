@@ -59,6 +59,9 @@ class _ThemeScreenState extends State<ThemeScreen> {
                       SettingsGlassCard(
                         title: 'Appearance Mode',
                         icon: Icons.palette_outlined,
+                        description:
+                            'Select your preferred visual style across all screens and glass components.',
+                        padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
                         child: Column(
                           children: [
                             _ThemeOption(
@@ -91,7 +94,7 @@ class _ThemeScreenState extends State<ThemeScreen> {
                             ),
                             _ThemeOption(
                               title: 'Cosmo',
-                              subtitle: 'Fresh Cosmo theme template',
+                              subtitle: 'Obsidian dark theme with electric cyan accents',
                               icon: Icons.auto_awesome_rounded,
                               selected: settings.theme == 'cosmo',
                               onTap: () => _setTheme('cosmo'),

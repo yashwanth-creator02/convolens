@@ -79,6 +79,8 @@ class _CallCardSettingsScreenState extends State<CallCardSettingsScreen> {
                       SettingsGlassCard(
                         title: 'Core Information',
                         icon: Icons.badge_outlined,
+                        description:
+                            'Core metadata visible on every entry in your call log.',
                         child: Column(
                           children: [
                             switchTile(
@@ -138,6 +140,8 @@ class _CallCardSettingsScreenState extends State<CallCardSettingsScreen> {
                       SettingsGlassCard(
                         title: 'Enrichment & Context',
                         icon: Icons.auto_awesome_outlined,
+                        description:
+                            'Contextual badges and notes that help you recall conversation details.',
                         child: Column(
                           children: [
                             switchTile(

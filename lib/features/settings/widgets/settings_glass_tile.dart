@@ -130,7 +130,7 @@ class SettingsGlassSwitchTile extends StatelessWidget {
     this.onChanged,
     this.iconColor,
     this.iconBackgroundColor,
-    this.padding = const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+    this.padding = const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
   });
 
   @override
@@ -200,9 +200,10 @@ class SettingsGlassSwitchTile extends StatelessWidget {
               GlassSwitch(
                 value: value,
                 onChanged: onChanged != null ? onChanged! : (_) {},
-                useOwnLayer: true,
+                useOwnLayer: false,
+                quality: GlassQuality.standard,
                 activeColor: scheme.primary,
-                width: 52.0,
+                width: 50.0,
                 height: 28.0,
               ),
             ],
