@@ -67,32 +67,77 @@ class ContactOverviewTab extends StatelessWidget {
             final hasNote = liveDetail?.generalNote != null &&
                 liveDetail!.generalNote!.trim().isNotEmpty;
 
+            final contactName = deviceContact?.displayName.isNotEmpty == true
+                ? deviceContact!.displayName
+                : displayNumber;
+
             return ContactGlassCard(
               title: 'Note',
               icon: Icons.edit_note_rounded,
               trailing: hasNote
-                  ? TextButton.icon(
-                      onPressed: () async {
-                        await db.saveContactNote(normalizedNumber, '');
-                      },
-                      icon: Icon(Icons.delete_outline_rounded,
-                          size: 14, color: scheme.error),
-                      label: Text(
-                        'Clear',
-                        style: TextStyle(
-                          color: scheme.error,
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => showContactNoteModal(
+                            context: context,
+                            initialNote: liveDetail.generalNote,
+                            contactName: contactName,
+                            onSave: (note) async {
+                              await db.saveContactNote(normalizedNumber, note);
+                            },
+                            onDelete: () async {
+                              await db.saveContactNote(normalizedNumber, '');
+                            },
+                          ),
+                          icon: const Icon(Icons.edit_outlined, size: 14),
+                          label: const Text('Edit'),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: () async {
+                            await db.saveContactNote(normalizedNumber, '');
+                          },
+                          icon: Icon(Icons.delete_outline_rounded,
+                              size: 14, color: scheme.error),
+                          label: Text(
+                            'Clear',
+                            style: TextStyle(
+                              color: scheme.error,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
+                    )
+                  : TextButton.icon(
+                      onPressed: () => showContactNoteModal(
+                        context: context,
+                        initialNote: null,
+                        contactName: contactName,
+                        onSave: (note) async {
+                          await db.saveContactNote(normalizedNumber, note);
+                        },
                       ),
+                      icon: const Icon(Icons.add, size: 14),
+                      label: const Text('Add'),
                       style: TextButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                         padding: EdgeInsets.zero,
                       ),
-                    )
-                  : null,
+                    ),
               child: ContactNoteSection(
                 note: liveDetail?.generalNote,
+                contactName: contactName,
                 onSave: (note) async {
                   await db.saveContactNote(normalizedNumber, note);
                 },

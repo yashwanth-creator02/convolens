@@ -127,33 +127,89 @@ class _ContactActivityTabState extends State<ContactActivityTab> {
                   detail!.generalNote!.trim().isNotEmpty;
               final scheme = Theme.of(context).colorScheme;
 
+              final contactName = widget.deviceContact?.displayName.isNotEmpty == true
+                  ? widget.deviceContact!.displayName
+                  : widget.normalizedNumber;
+
               return ContactGlassCard(
                 title: 'Note',
                 icon: Icons.notes_outlined,
                 trailing: hasNote
-                    ? TextButton.icon(
-                        onPressed: () async {
-                          await widget.db
-                              .saveContactNote(widget.normalizedNumber, '');
-                        },
-                        icon: Icon(Icons.delete_outline_rounded,
-                            size: 14, color: scheme.error),
-                        label: Text(
-                          'Clear',
-                          style: TextStyle(
-                            color: scheme.error,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => showContactNoteModal(
+                              context: context,
+                              initialNote: detail.generalNote,
+                              contactName: contactName,
+                              onSave: (note) async {
+                                await widget.db.saveContactNote(
+                                  widget.normalizedNumber,
+                                  note,
+                                );
+                              },
+                              onDelete: () async {
+                                await widget.db.saveContactNote(
+                                  widget.normalizedNumber,
+                                  '',
+                                );
+                              },
+                            ),
+                            icon: const Icon(Icons.edit_outlined, size: 14),
+                            label: const Text('Edit'),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ),
                           ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () async {
+                              await widget.db.saveContactNote(
+                                widget.normalizedNumber,
+                                '',
+                              );
+                            },
+                            icon: Icon(Icons.delete_outline_rounded,
+                                size: 14, color: scheme.error),
+                            label: Text(
+                              'Clear',
+                              style: TextStyle(
+                                color: scheme.error,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ],
+                      )
+                    : TextButton.icon(
+                        onPressed: () => showContactNoteModal(
+                          context: context,
+                          initialNote: null,
+                          contactName: contactName,
+                          onSave: (note) async {
+                            await widget.db.saveContactNote(
+                              widget.normalizedNumber,
+                              note,
+                            );
+                          },
                         ),
+                        icon: const Icon(Icons.add, size: 14),
+                        label: const Text('Add'),
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
                           padding: EdgeInsets.zero,
                         ),
-                      )
-                    : null,
+                      ),
                 child: ContactNoteSection(
                   note: detail?.generalNote,
+                  contactName: contactName,
                   onSave: (note) async {
                     await widget.db.saveContactNote(
                       widget.normalizedNumber,
