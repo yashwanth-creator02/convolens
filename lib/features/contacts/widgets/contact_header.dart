@@ -488,146 +488,186 @@ class _ContactHeaderState extends State<ContactHeader>
               ),
             ),
 
-          // ── Circular Rotating Call Launcher & Single Message Button ───────
+          // ── Bottom-Right Corner Action Stack (Message on top of Call) ─────
           if (_activeNumber.isNotEmpty)
             Positioned(
-              left: 0,
-              right: 0,
-              bottom: 18,
-              child: _buildCallActions(),
+              right: 14,
+              bottom: 12,
+              child: _buildRightCornerActionStack(scheme),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildCallActions() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+  Widget _buildRightCornerActionStack(ColorScheme scheme) {
+    final callOrbitRadius = _hasWhatsApp ? 44.0 : 30.0;
+    const messageOrbitRadius = 30.0;
 
-    final orbitRadius = _hasWhatsApp ? 64.0 : 52.0;
-    final containerSize = (orbitRadius * 2) + 24.0;
-    const sideButtonSize = 44.0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // Message button stacked on top of call button, with its own orbiting number
+        _buildMessageOrbit(orbitRadius: messageOrbitRadius),
+        const SizedBox(height: 6),
+        // Call button at the bottom with its own orbiting number
+        _buildCallOrbit(orbitRadius: callOrbitRadius, scheme: scheme),
+      ],
+    );
+  }
+
+  Widget _buildMessageOrbit({required double orbitRadius}) {
+    final containerSize = (orbitRadius * 2) + 20.0;
 
     return SizedBox(
+      width: containerSize,
       height: containerSize,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          // Single Message Action Button (Tap for WhatsApp, hold for Quick Compose)
+          // Rotating phone number track
+          AnimatedBuilder(
+            animation: _orbitController,
+            builder: (context, child) {
+              return Transform.rotate(
+                angle: -_orbitController.value * math.pi * 2,
+                child: CircularPhoneNumber(
+                  text: _activeNumber,
+                  radius: orbitRadius,
+                  charSpacing: 7.2,
+                  textStyle: const TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(blurRadius: 6, color: Colors.black87),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // Center Message Button
           _SideActionButton(
             icon: Icons.chat_bubble_outline_rounded,
             tooltip: 'Message (Tap for WhatsApp, hold for options)',
             onPressed: _openMessageDefault,
             onLongPress: () => _showQuickComposeSheet(context),
           ),
-          const SizedBox(width: 14),
-          SizedBox(
-            width: containerSize,
-            height: containerSize,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Rotating phone number track
-                AnimatedBuilder(
-                  animation: _orbitController,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: -_orbitController.value * math.pi * 2,
-                      child: CircularPhoneNumber(
-                        text: _activeNumber,
-                        radius: orbitRadius,
-                        startAngle: math.pi * 1.05,
-                        sweepAngle: math.pi * 0.90,
-                        textStyle: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                          shadows: [
-                            Shadow(blurRadius: 6, color: Colors.black87),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+        ],
+      ),
+    );
+  }
 
-                // Center Action Buttons inside Orbit
-                if (!_hasWhatsApp)
-                  Material(
-                    shape: const CircleBorder(),
-                    elevation: 4,
-                    color: scheme.primary,
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: _callCellular,
-                      child: const SizedBox(
-                        width: 66,
-                        height: 66,
-                        child: Icon(Icons.call_rounded,
-                            size: 28, color: Colors.white),
-                      ),
-                    ),
-                  )
-                else
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Cellular Call Button
-                      Material(
-                        shape: const CircleBorder(),
-                        elevation: 4,
-                        color: Colors.black.withValues(alpha: 0.5),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: _callCellular,
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.8),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.call_rounded,
-                              size: 22,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // WhatsApp Call Button
-                      Material(
-                        shape: const CircleBorder(),
-                        elevation: 4,
-                        color: const Color(0xFF25D366),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: _callWhatsApp,
-                          child: const SizedBox(
-                            width: 48,
-                            height: 48,
-                            child: Icon(
-                              Icons.phone_in_talk_rounded,
-                              size: 22,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
+  Widget _buildCallOrbit({
+    required double orbitRadius,
+    required ColorScheme scheme,
+  }) {
+    final containerSize = (orbitRadius * 2) + 20.0;
+
+    return SizedBox(
+      width: containerSize,
+      height: containerSize,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Rotating phone number track
+          AnimatedBuilder(
+            animation: _orbitController,
+            builder: (context, child) {
+              return Transform.rotate(
+                angle: -_orbitController.value * math.pi * 2,
+                child: CircularPhoneNumber(
+                  text: _activeNumber,
+                  radius: orbitRadius,
+                  charSpacing: 7.2,
+                  textStyle: const TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(blurRadius: 6, color: Colors.black87),
                     ],
                   ),
+                ),
+              );
+            },
+          ),
+
+          // Center Action Button(s) inside Call Orbit
+          if (!_hasWhatsApp)
+            Material(
+              shape: const CircleBorder(),
+              elevation: 4,
+              color: scheme.primary,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: _callCellular,
+                child: const SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Icon(
+                    Icons.call_rounded,
+                    size: 22,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            )
+          else
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Cellular Call Button
+                Material(
+                  shape: const CircleBorder(),
+                  elevation: 3,
+                  color: Colors.black.withValues(alpha: 0.5),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _callCellular,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.call_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 5),
+                // WhatsApp Call Button
+                Material(
+                  shape: const CircleBorder(),
+                  elevation: 3,
+                  color: const Color(0xFF25D366),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _callWhatsApp,
+                    child: const SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Icon(
+                        Icons.phone_in_talk_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
-          const SizedBox(width: 14),
-          // Balancer space matching side button size to keep the rotating orbit centered
-          const SizedBox(width: sideButtonSize, height: sideButtonSize),
         ],
       ),
     );
@@ -700,16 +740,18 @@ class CircularPhoneNumber extends StatelessWidget {
   final String text;
   final double radius;
   final double startAngle;
-  final double sweepAngle;
+  final double? sweepAngle;
   final TextStyle? textStyle;
+  final double charSpacing;
 
   const CircularPhoneNumber({
     super.key,
     required this.text,
     required this.radius,
-    required this.startAngle,
-    required this.sweepAngle,
+    this.startAngle = math.pi * 1.05,
+    this.sweepAngle,
     this.textStyle,
+    this.charSpacing = 7.2,
   });
 
   @override
@@ -721,8 +763,8 @@ class CircularPhoneNumber extends StatelessWidget {
     }
 
     return SizedBox(
-      width: radius * 2 + 20,
-      height: radius * 2 + 20,
+      width: radius * 2 + 22,
+      height: radius * 2 + 22,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -734,8 +776,14 @@ class CircularPhoneNumber extends StatelessWidget {
   }
 
   Widget _buildCharacter(String character, int index, int count) {
-    final progress = count <= 1 ? 0.5 : index / (count - 1);
-    final angle = startAngle + (sweepAngle * progress);
+    final double angle;
+    if (sweepAngle != null) {
+      final progress = count <= 1 ? 0.5 : index / (count - 1);
+      angle = startAngle + (sweepAngle! * progress);
+    } else {
+      final angleStep = (charSpacing <= 0 ? 7.2 : charSpacing) / radius;
+      angle = startAngle + (index * angleStep);
+    }
 
     final x = math.cos(angle) * radius;
     final y = math.sin(angle) * radius;
@@ -744,7 +792,16 @@ class CircularPhoneNumber extends StatelessWidget {
       offset: Offset(x, y),
       child: Transform.rotate(
         angle: angle + (math.pi / 2),
-        child: Text(character, style: textStyle),
+        child: Text(
+          character,
+          style: textStyle?.copyWith(letterSpacing: 0) ??
+              const TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
+              ),
+        ),
       ),
     );
   }

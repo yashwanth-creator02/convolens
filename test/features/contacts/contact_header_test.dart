@@ -48,8 +48,8 @@ void main() {
       // Verify contact display name is NOT in header (it belongs in the app bar)
       expect(find.text('Bruce Wayne'), findsNothing);
 
-      // Verify rotating call options launcher
-      expect(find.byType(CircularPhoneNumber), findsOneWidget);
+      // Verify both message and call buttons have their own orbiting number track
+      expect(find.byType(CircularPhoneNumber), findsNWidgets(2));
 
       // Verify call button
       expect(find.byIcon(Icons.call_rounded), findsWidgets);
