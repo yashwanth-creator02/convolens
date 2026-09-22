@@ -784,71 +784,77 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
       child: Column(
         children: [
           // ── Contact image / gradient hero banner ──────────────────────────
-          Stack(
-            children: [
-              // Base layer: Always present so Frame 0 has a vibrant banner with initials
-              _buildDefaultHeroBanner(callTypeColor, scheme, initials, height: 280),
-              // High-resolution contact image rendered on top with crisp filtering
-              if (photo != null && photo.isNotEmpty)
-                Positioned.fill(
-                  child: Image.memory(
-                    photo,
-                    width: double.infinity,
-                    height: 280,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    filterQuality: FilterQuality.medium,
-                    gaplessPlayback: true,
-                    frameBuilder:
-                        (context, child, frame, wasSynchronouslyLoaded) {
-                      if (wasSynchronouslyLoaded) return child;
-                      return AnimatedOpacity(
-                        opacity: frame == null ? 0.0 : 1.0,
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        child: child,
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox.shrink(),
-                  ),
-                ),
-              // Dark scrim for readability
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.6),
-                      ],
-                      stops: const [0.60, 1.0],
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _openContact(context, displayName, phoneNumber),
+              child: Stack(
+                children: [
+                  // Base layer: Always present so Frame 0 has a vibrant banner with initials
+                  _buildDefaultHeroBanner(callTypeColor, scheme, initials, height: 280),
+                  // High-resolution contact image rendered on top with crisp filtering
+                  if (photo != null && photo.isNotEmpty)
+                    Positioned.fill(
+                      child: Image.memory(
+                        photo,
+                        width: double.infinity,
+                        height: 280,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.medium,
+                        gaplessPlayback: true,
+                        frameBuilder:
+                            (context, child, frame, wasSynchronouslyLoaded) {
+                          if (wasSynchronouslyLoaded) return child;
+                          return AnimatedOpacity(
+                            opacity: frame == null ? 0.0 : 1.0,
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOut,
+                            child: child,
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox.shrink(),
+                      ),
+                    ),
+                  // Dark scrim for readability
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.6),
+                          ],
+                          stops: const [0.60, 1.0],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              // Name overlay — bottom-right
-              Positioned(
-                right: 14,
-                bottom: 12,
-                child: Text(
-                  displayName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        blurRadius: 8,
-                        color: Colors.black54,
+                  // Name overlay — bottom-right
+                  Positioned(
+                    right: 14,
+                    bottom: 12,
+                    child: Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 8,
+                            color: Colors.black54,
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
           // ── Action row ─────────────────────────────────────────────────────
           if (phoneNumber.isNotEmpty) ...[
