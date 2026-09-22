@@ -123,15 +123,47 @@ class _ContactActivityTabState extends State<ContactActivityTab> {
             stream: widget.db.watchContactDetails(widget.normalizedNumber),
             builder: (context, snapshot) {
               final detail = snapshot.data;
+              final hasNote = detail?.generalNote != null &&
+                  detail!.generalNote!.trim().isNotEmpty;
+              final scheme = Theme.of(context).colorScheme;
+
               return ContactGlassCard(
                 title: 'Note',
                 icon: Icons.notes_outlined,
+                trailing: hasNote
+                    ? TextButton.icon(
+                        onPressed: () async {
+                          await widget.db
+                              .saveContactNote(widget.normalizedNumber, '');
+                        },
+                        icon: Icon(Icons.delete_outline_rounded,
+                            size: 14, color: scheme.error),
+                        label: Text(
+                          'Clear',
+                          style: TextStyle(
+                            color: scheme.error,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                        ),
+                      )
+                    : null,
                 child: ContactNoteSection(
                   note: detail?.generalNote,
                   onSave: (note) async {
                     await widget.db.saveContactNote(
                       widget.normalizedNumber,
                       note,
+                    );
+                  },
+                  onClear: () async {
+                    await widget.db.saveContactNote(
+                      widget.normalizedNumber,
+                      '',
                     );
                   },
                 ),

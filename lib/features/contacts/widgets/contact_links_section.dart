@@ -1,8 +1,11 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/toast/toast_service.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../utils/link_platform_icons.dart';
 
@@ -16,89 +19,173 @@ class ContactLinksSection extends StatelessWidget {
     required this.db,
   });
 
-  Future<void> _addLink(BuildContext context) async {
-    String? selectedPlatform;
-    final urlController = TextEditingController();
-
-    final result = await showDialog<bool>(
+  static void showAddLinkSheet(
+    BuildContext context, {
+    required AppDatabase db,
+    required String normalizedNumber,
+    ContactLink? linkToEdit,
+  }) {
+    GlassSheet.show(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Add Link'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: linkPlatformKeys.map((key) {
-                  return ChoiceChip(
-                    label: Icon(linkPlatformIcons[key], size: 18),
-                    selected: selectedPlatform == key,
-                    onSelected: (_) => setState(() => selectedPlatform = key),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: urlController,
-                decoration: const InputDecoration(
-                  labelText: 'Link or address',
-                  hintText: 'https://…',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed:
-                  selectedPlatform == null || urlController.text.trim().isEmpty
-                  ? null
-                  : () => Navigator.pop(context, true),
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+      quality: GlassQuality.standard,
+      showDragIndicator: true,
+      isScrollable: false,
+      enableDrag: false,
+      interactionScale: 1.0,
+      enableSaturationGlow: false,
+      enableInteractionGlow: false,
+      suppressInteractionOnChildren: true,
+      topBorderRadius: 24,
+      bottomBorderRadius: 0,
+      margin: EdgeInsets.zero,
+      builder: (context) => _AddOrEditLinkGlassSheet(
+        db: db,
+        normalizedNumber: normalizedNumber,
+        linkToEdit: linkToEdit,
       ),
     );
+  }
 
-    if (result == true && selectedPlatform != null) {
-      await db.addContactLink(
-        normalizedNumber,
-        selectedPlatform!,
-        urlController.text.trim(),
-      );
+  String _getPlatformLabel(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'x':
+        return 'X (Twitter)';
+      case 'company_website':
+        return 'Company';
+      case 'youtube':
+        return 'YouTube';
+      case 'whatsapp':
+        return 'WhatsApp';
+      case 'linkedin':
+        return 'LinkedIn';
+      case 'github':
+        return 'GitHub';
+      default:
+        return platform.isEmpty
+            ? 'Link'
+            : platform[0].toUpperCase() + platform.substring(1);
     }
   }
 
-  Future<void> _handleLongPress(BuildContext context, ContactLink link) async {
+  Color _getPlatformColor(String platform, ColorScheme scheme) {
+    switch (platform.toLowerCase()) {
+      case 'whatsapp':
+        return const Color(0xFF25D366);
+      case 'linkedin':
+        return const Color(0xFF0A66C2);
+      case 'github':
+        return scheme.onSurface;
+      case 'x':
+        return scheme.onSurface;
+      case 'youtube':
+        return const Color(0xFFFF0000);
+      case 'instagram':
+        return const Color(0xFFE4405F);
+      case 'telegram':
+        return const Color(0xFF0088CC);
+      case 'facebook':
+        return const Color(0xFF1877F2);
+      case 'email':
+        return Colors.orangeAccent;
+      case 'website':
+      case 'portfolio':
+      case 'company_website':
+      default:
+        return scheme.primary;
+    }
+  }
+
+  Future<void> _launch(BuildContext context, String rawUrl) async {
+    var url = rawUrl.trim();
+    if (!url.startsWith('http://') &&
+        !url.startsWith('https://') &&
+        !url.startsWith('mailto:') &&
+        !url.startsWith('tel:')) {
+      if (url.contains('@') && !url.contains('/')) {
+        url = 'mailto:$url';
+      } else {
+        url = 'https://$url';
+      }
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri != null) {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        ToastService.error(context, 'Could not open link: $rawUrl');
+      }
+    } else if (context.mounted) {
+      ToastService.error(context, 'Invalid URL: $rawUrl');
+    }
+  }
+
+  Future<void> _showLinkOptions(BuildContext context, ContactLink link) async {
+    final scheme = Theme.of(context).colorScheme;
+    final platformColor = _getPlatformColor(link.platform, scheme);
+
     final action = await showModalBottomSheet<String>(
       context: context,
+      backgroundColor: scheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.copy),
-              title: const Text('Copy link'),
-              onTap: () => Navigator.pop(context, 'copy'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit'),
-              onTap: () => Navigator.pop(context, 'edit'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete'),
-              onTap: () => Navigator.pop(context, 'delete'),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: platformColor.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    linkPlatformIcons[link.platform] ?? Icons.link,
+                    size: 18,
+                    color: platformColor,
+                  ),
+                ),
+                title: Text(
+                  _getPlatformLabel(link.platform),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  link.url,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.open_in_new_rounded, size: 20),
+                title: const Text('Open link'),
+                onTap: () => Navigator.pop(context, 'open'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy_rounded, size: 20),
+                title: const Text('Copy URL'),
+                onTap: () => Navigator.pop(context, 'copy'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit_outlined, size: 20),
+                title: const Text('Edit link'),
+                onTap: () => Navigator.pop(context, 'edit'),
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_outline_rounded,
+                    size: 20, color: scheme.error),
+                title: Text(
+                  'Delete link',
+                  style: TextStyle(color: scheme.error),
+                ),
+                onTap: () => Navigator.pop(context, 'delete'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -106,77 +193,459 @@ class ContactLinksSection extends StatelessWidget {
     if (!context.mounted || action == null) return;
 
     switch (action) {
+      case 'open':
+        await _launch(context, link.url);
+        break;
       case 'copy':
         await Clipboard.setData(ClipboardData(text: link.url));
+        if (context.mounted) {
+          ToastService.success(context, 'Link copied to clipboard.');
+        }
         break;
       case 'edit':
-        final controller = TextEditingController(text: link.url);
-        final newUrl = await showDialog<String>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Edit Link'),
-            content: TextField(controller: controller),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, controller.text.trim()),
-                child: const Text('Save'),
-              ),
-            ],
-          ),
+        showAddLinkSheet(
+          context,
+          db: db,
+          normalizedNumber: normalizedNumber,
+          linkToEdit: link,
         );
-        if (newUrl != null && newUrl.isNotEmpty) {
-          await db.updateContactLink(link.id, newUrl);
-        }
         break;
       case 'delete':
         final confirmed = await showConfirmDialog(
           context: context,
           title: 'Delete Link?',
-          message: 'This will remove this link from the contact.',
+          message:
+              'This will remove "${_getPlatformLabel(link.platform)}" from this contact.',
           confirmLabel: 'Delete',
           isDestructive: true,
         );
-        if (confirmed) await db.deleteContactLink(link.id);
+        if (confirmed) {
+          await db.deleteContactLink(link.id);
+          if (context.mounted) {
+            ToastService.success(context, 'Link removed.');
+          }
+        }
         break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return StreamBuilder<List<ContactLink>>(
       stream: db.watchLinksForContact(normalizedNumber),
       builder: (context, snapshot) {
         final links = snapshot.data ?? [];
 
-        return Row(
-          children: [
-            ...links.map(
-              (link) => Padding(
-                padding: const EdgeInsets.only(right: 12),
+        if (links.isEmpty) {
+          return InkWell(
+            onTap: () => showAddLinkSheet(
+              context,
+              db: db,
+              normalizedNumber: normalizedNumber,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: scheme.outlineVariant.withValues(alpha: 0.22),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.link_rounded,
+                      size: 20,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No links added',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface.withValues(alpha: 0.85),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tap to add websites, profiles, or social links',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: links.map((link) {
+            final platformColor = _getPlatformColor(link.platform, scheme);
+            final platformIcon =
+                linkPlatformIcons[link.platform] ?? Icons.link_rounded;
+            final platformLabel = _getPlatformLabel(link.platform);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Material(
+                color: Colors.transparent,
                 child: InkWell(
-                  onTap: () async {
-                    final uri = Uri.tryParse(link.url);
-                    if (uri != null) await launchUrl(uri);
-                  },
-                  onLongPress: () => _handleLongPress(context, link),
-                  child: Icon(
-                    linkPlatformIcons[link.platform] ?? Icons.link,
-                    size: 26,
+                  onTap: () => _launch(context, link.url),
+                  onLongPress: () => _showLinkOptions(context, link),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest
+                          .withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: scheme.outlineVariant.withValues(alpha: 0.28),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: platformColor.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: platformColor.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Icon(
+                            platformIcon,
+                            size: 18,
+                            color: platformColor,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                platformLabel,
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                link.url,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: scheme.onSurfaceVariant
+                                      .withValues(alpha: 0.75),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.copy_rounded, size: 16),
+                          tooltip: 'Copy link',
+                          visualDensity: VisualDensity.compact,
+                          color: scheme.onSurfaceVariant,
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: link.url));
+                            ToastService.success(context, 'Copied link.');
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.open_in_new_rounded, size: 17),
+                          tooltip: 'Open link',
+                          visualDensity: VisualDensity.compact,
+                          color: scheme.primary,
+                          onPressed: () => _launch(context, link.url),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline, size: 22),
-              onPressed: () => _addLink(context),
-            ),
-          ],
+            );
+          }).toList(),
         );
       },
+    );
+  }
+}
+
+class _AddOrEditLinkGlassSheet extends StatefulWidget {
+  final AppDatabase db;
+  final String normalizedNumber;
+  final ContactLink? linkToEdit;
+
+  const _AddOrEditLinkGlassSheet({
+    required this.db,
+    required this.normalizedNumber,
+    this.linkToEdit,
+  });
+
+  @override
+  State<_AddOrEditLinkGlassSheet> createState() =>
+      _AddOrEditLinkGlassSheetState();
+}
+
+class _AddOrEditLinkGlassSheetState extends State<_AddOrEditLinkGlassSheet> {
+  late String _selectedPlatform;
+  late final TextEditingController _urlController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPlatform = widget.linkToEdit?.platform ?? 'website';
+    _urlController =
+        TextEditingController(text: widget.linkToEdit?.url ?? '');
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    final text = _urlController.text.trim();
+    if (text.isEmpty) {
+      ToastService.error(context, 'Please enter a URL or address.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    HapticFeedback.mediumImpact();
+
+    try {
+      if (widget.linkToEdit != null) {
+        await widget.db.updateContactLink(widget.linkToEdit!.id, text);
+        if (mounted) {
+          ToastService.success(context, 'Link updated.');
+        }
+      } else {
+        await widget.db.addContactLink(
+          widget.normalizedNumber,
+          _selectedPlatform,
+          text,
+        );
+        if (mounted) {
+          ToastService.success(context, 'Link added.');
+        }
+      }
+
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastService.error(context, 'Failed to save link.');
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isEditing = widget.linkToEdit != null;
+
+    return SafeArea(
+      top: false,
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(bottom: keyboardInset),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.70,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 4),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.link_rounded,
+                        size: 17,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      isEditing ? 'Edit Link' : 'Add Link',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _isSaving ? null : _handleSave,
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(
+                              'Save',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                                color: scheme.primary,
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(height: 1),
+
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'PLATFORM',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          color:
+                              scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: linkPlatformKeys.map((key) {
+                          final isSelected = _selectedPlatform == key;
+                          final icon = linkPlatformIcons[key] ?? Icons.link;
+                          final label = key == 'x'
+                              ? 'X'
+                              : key == 'company_website'
+                                  ? 'Company'
+                                  : key[0].toUpperCase() + key.substring(1);
+
+                          return GlassChip(
+                            label: label,
+                            selected: isSelected,
+                            icon: Icon(
+                              icon,
+                              size: 14,
+                              color: isSelected
+                                  ? scheme.primary
+                                  : scheme.onSurfaceVariant,
+                            ),
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? scheme.primary
+                                  : scheme.onSurface,
+                              fontWeight: isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              fontSize: 12.5,
+                            ),
+                            quality: GlassQuality.standard,
+                            useOwnLayer: false,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _selectedPlatform = key);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'URL OR ADDRESS',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          color:
+                              scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      CupertinoTextField(
+                        controller: _urlController,
+                        placeholder: 'e.g. https://github.com/username',
+                        style: TextStyle(color: scheme.onSurface, fontSize: 14),
+                        placeholderStyle: TextStyle(
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.55),
+                          fontSize: 14,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: scheme.surfaceContainerHighest
+                              .withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: scheme.outlineVariant.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        onSubmitted: (_) => _handleSave(),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

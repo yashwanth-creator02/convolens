@@ -86,37 +86,93 @@ Total calls: ${calls.length}
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Ignore from Analytics'),
-          value: detail?.ignoreFromAnalytics ?? false,
-          onChanged: (value) => db.setContactFields(
-            normalizedNumber,
-            ContactDetailsCompanion(ignoreFromAnalytics: drift.Value(value)),
+        Material(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(
+              color: scheme.outlineVariant.withValues(alpha: 0.28),
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              secondary: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.insights_rounded,
+                  size: 18,
+                  color: scheme.primary,
+                ),
+              ),
+              title: const Text(
+                'Ignore from Analytics',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text(
+                'Exclude calls with this contact from graphs & stats',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                ),
+              ),
+              value: detail?.ignoreFromAnalytics ?? false,
+              onChanged: (value) => db.setContactFields(
+                normalizedNumber,
+                ContactDetailsCompanion(ignoreFromAnalytics: drift.Value(value)),
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 14),
         Row(
           children: [
-            OutlinedButton.icon(
-              onPressed: () => _exportContact(context),
-              icon: const Icon(Icons.share_outlined, size: 18),
-              label: const Text('Export'),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: () => _deleteAllNotes(context),
-              icon: const Icon(
-                Icons.delete_sweep_outlined,
-                size: 18,
-                color: Colors.red,
+            Expanded(
+              child: FilledButton.tonalIcon(
+                onPressed: () => _exportContact(context),
+                icon: const Icon(Icons.share_rounded, size: 16),
+                label: const Text('Export'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
-              label: const Text(
-                'Delete All Notes',
-                style: TextStyle(color: Colors.red),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                onPressed: () => _deleteAllNotes(context),
+                icon: Icon(
+                  Icons.delete_sweep_rounded,
+                  size: 16,
+                  color: scheme.error,
+                ),
+                label: Text(
+                  'Delete Notes',
+                  style: TextStyle(color: scheme.error),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: scheme.errorContainer.withValues(alpha: 0.5),
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ),
           ],

@@ -19,6 +19,7 @@ import '../../../core/utils/normalize_number.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../../contacts/widgets/add_contact_screen.dart';
+import '../../contacts/widgets/contact_message_sheet.dart';
 import '../repository/attachment_storage.dart';
 import '../widgets/call_details/call_attachments_section.dart';
 import '../widgets/call_details/call_developer_info.dart';
@@ -713,6 +714,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    VoidCallback? onLongPress,
     required Color color,
   }) {
     final theme = Theme.of(context);
@@ -723,6 +725,12 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
+          onLongPress: onLongPress != null
+              ? () {
+                  HapticFeedback.heavyImpact();
+                  onLongPress();
+                }
+              : null,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
@@ -931,6 +939,11 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                     label: 'Message',
                     color: scheme.tertiary,
                     onTap: () => CallLauncher.message(phoneNumber),
+                    onLongPress: () => showMessageComposeSheet(
+                      context,
+                      displayName: displayName,
+                      phoneNumber: phoneNumber,
+                    ),
                   ),
                   _buildHeroActionButton(
                     context,

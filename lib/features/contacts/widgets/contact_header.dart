@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
@@ -190,9 +191,11 @@ class _ContactHeaderState extends State<ContactHeader>
         : scheme.primary;
 
     final initials = _getInitials(widget.displayName);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final headerHeight = (screenHeight * 0.32).clamp(220.0, 270.0);
 
     return Container(
-      height: 340,
+      height: headerHeight,
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(24),
@@ -380,7 +383,6 @@ class _ContactHeaderState extends State<ContactHeader>
           // Center Message Button
           _SideActionButton(
             icon: Icons.chat_bubble_outline_rounded,
-            tooltip: 'Message (Tap for WhatsApp, hold for options)',
             onPressed: _openWhatsAppChatDirect,
             onLongPress: _openMessageComposeSheet,
           ),
@@ -536,13 +538,11 @@ class _ContactHeaderState extends State<ContactHeader>
 
 class _SideActionButton extends StatelessWidget {
   final IconData icon;
-  final String tooltip;
   final VoidCallback onPressed;
   final VoidCallback? onLongPress;
 
   const _SideActionButton({
     required this.icon,
-    required this.tooltip,
     required this.onPressed,
     this.onLongPress,
   });
@@ -556,24 +556,26 @@ class _SideActionButton extends StatelessWidget {
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onPressed,
-        onLongPress: onLongPress,
-        child: Tooltip(
-          message: tooltip,
-          child: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.25),
-                width: 1,
-              ),
+        onLongPress: onLongPress != null
+            ? () {
+                HapticFeedback.heavyImpact();
+                onLongPress!();
+              }
+            : null,
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.25),
+              width: 1,
             ),
-            child: Icon(
-              icon,
-              size: 19,
-              color: Colors.white,
-            ),
+          ),
+          child: Icon(
+            icon,
+            size: 19,
+            color: Colors.white,
           ),
         ),
       ),

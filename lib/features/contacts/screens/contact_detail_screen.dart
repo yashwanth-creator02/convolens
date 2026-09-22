@@ -107,6 +107,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
 
         return Material(
           child: GlassScaffold(
+            resizeToAvoidBottomInset: false,
             backgroundColor: bgColor,
             appBar: GlassAppBar.pinned(
               title: Text(

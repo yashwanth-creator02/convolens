@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../history/widgets/call_details/tag_selection_glass_sheet.dart';
 import '../widgets/contact_glass_card.dart';
 import '../widgets/contact_links_section.dart';
 import '../widgets/contact_note_section.dart';
@@ -95,6 +96,9 @@ class ContactOverviewTab extends StatelessWidget {
                 onSave: (note) async {
                   await db.saveContactNote(normalizedNumber, note);
                 },
+                onClear: () async {
+                  await db.saveContactNote(normalizedNumber, '');
+                },
               ),
             );
           },
@@ -113,9 +117,11 @@ class ContactOverviewTab extends StatelessWidget {
               icon: Icons.local_offer_outlined,
               trailing: tags.isNotEmpty
                   ? TextButton.icon(
-                      onPressed: () {
-                        // Trigger the add tag flow inside ContactTagsSection
-                      },
+                      onPressed: () => TagSelectionGlassSheet.showForContact(
+                        context: context,
+                        db: db,
+                        normalizedNumber: normalizedNumber,
+                      ),
                       icon: const Icon(Icons.edit_outlined, size: 14),
                       label: const Text('Edit'),
                       style: TextButton.styleFrom(
@@ -125,8 +131,14 @@ class ContactOverviewTab extends StatelessWidget {
                     )
                   : null,
               child: ContactTagsSection(
-                normalizedNumber: normalizedNumber,
-                db: db,
+                tags: tags,
+                onAdd: () => TagSelectionGlassSheet.showForContact(
+                  context: context,
+                  db: db,
+                  normalizedNumber: normalizedNumber,
+                ),
+                onRemove: (tag) =>
+                    db.removeTagFromContact(normalizedNumber, tag.id),
               ),
             );
           },
@@ -138,6 +150,19 @@ class ContactOverviewTab extends StatelessWidget {
         ContactGlassCard(
           title: 'Links',
           icon: Icons.link_outlined,
+          trailing: TextButton.icon(
+            onPressed: () => ContactLinksSection.showAddLinkSheet(
+              context,
+              db: db,
+              normalizedNumber: normalizedNumber,
+            ),
+            icon: const Icon(Icons.add_rounded, size: 14),
+            label: const Text('Add'),
+            style: TextButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+            ),
+          ),
           child: ContactLinksSection(
             normalizedNumber: normalizedNumber,
             db: db,

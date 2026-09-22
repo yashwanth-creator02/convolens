@@ -704,6 +704,12 @@ class AppDatabase extends _$AppDatabase {
         .go();
   }
 
+  Future<void> clearAllTagsForContact(String normalizedNumber) async {
+    await (delete(contactTags)
+          ..where((t) => t.normalizedNumber.equals(normalizedNumber)))
+        .go();
+  }
+
   // ============================================================
   // CONTACT LINKS
   // ============================================================

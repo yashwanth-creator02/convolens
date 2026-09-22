@@ -75,9 +75,52 @@ class ContactAnalyticsSection extends StatelessWidget {
         final total = stats['total'] as int;
 
         if (total == 0) {
-          return const Text(
-            'No calls yet.',
-            style: TextStyle(color: Colors.grey),
+          final scheme = Theme.of(context).colorScheme;
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: scheme.outlineVariant.withValues(alpha: 0.22),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.insights_rounded,
+                    size: 18,
+                    color: scheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'No analytics data yet',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface.withValues(alpha: 0.85),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Call stats and charts will generate as you communicate',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
           );
         }
 
@@ -155,68 +198,53 @@ class ContactAnalyticsSection extends StatelessWidget {
             const SizedBox(height: 12),
 
             Wrap(
-              spacing: 16,
+              spacing: 8,
               runSpacing: 8,
               children: [
-                _stat('Total Calls', '$total'),
-                _stat('Talk Time', '${totalMinutes}m'),
-                _stat('Avg Duration', '${avgSeconds}s'),
-                _stat('Incoming', '$incoming'),
-                _stat('Outgoing', '$outgoing'),
+                _stat(context, 'Total Calls', '$total'),
+                _stat(context, 'Talk Time', '${totalMinutes}m'),
+                _stat(context, 'Avg Duration', '${avgSeconds}s'),
+                _stat(context, 'Incoming', '$incoming'),
+                _stat(context, 'Outgoing', '$outgoing'),
               ],
             ),
 
-            const SizedBox(height: 16),
-            const Text(
-              'Relationship',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 20),
+            _sectionTitle(context, 'RELATIONSHIP VITALS'),
+            const SizedBox(height: 8),
             Wrap(
-              spacing: 16,
+              spacing: 8,
               runSpacing: 8,
               children: [
                 _stat(
+                  context,
                   'Relationship Age',
                   '${(vitals.relationshipDays / 30).round()}mo',
                 ),
-                _stat('Avg Gap', '${vitals.averageGapDays.toStringAsFixed(1)}d'),
-                _stat('Longest Gap', '${vitals.longestGapDays}d'),
+                _stat(context, 'Avg Gap', '${vitals.averageGapDays.toStringAsFixed(1)}d'),
+                _stat(context, 'Longest Gap', '${vitals.longestGapDays}d'),
                 if (firstCallDateStr != null)
-                  _stat('First Called', firstCallDateStr),
+                  _stat(context, 'First Called', firstCallDateStr),
               ],
             ),
 
             const SizedBox(height: 24),
-
-            const Text(
-              'Activity',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            _sectionTitle(context, 'ACTIVITY HEATMAP'),
             const SizedBox(height: 8),
             ContributionHeatmap(countsByDate: stats['heatmap'] as Map<String, int>),
 
-            const SizedBox(height: 16),
-            const Text(
-              'Talk Ratio',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const SizedBox(height: 20),
+            _sectionTitle(context, 'TALK RATIO'),
             const SizedBox(height: 8),
             TalkRatioBar(callTypeCounts: stats['typeCounts'] as Map<int, int>),
 
-            const SizedBox(height: 16),
-            const Text(
-              'By Hour',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const SizedBox(height: 20),
+            _sectionTitle(context, 'BY HOUR OF DAY'),
             const SizedBox(height: 8),
             HourHistogram(hourCounts: stats['hourCounts'] as Map<int, int>),
 
-            const SizedBox(height: 16),
-            const Text(
-              'By Weekday',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+            const SizedBox(height: 20),
+            _sectionTitle(context, 'BY WEEKDAY'),
             const SizedBox(height: 8),
             WeekdayChart(weekdayCounts: stats['weekdayCounts'] as Map<int, int>),
           ],
@@ -253,16 +281,53 @@ class ContactAnalyticsSection extends StatelessWidget {
     );
   }
 
-  Widget _stat(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+  Widget _sectionTitle(BuildContext context, String title) {
+    final scheme = Theme.of(context).colorScheme;
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+      ),
+    );
+  }
+
+  Widget _stat(BuildContext context, String label, String value) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.25),
         ),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-      ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

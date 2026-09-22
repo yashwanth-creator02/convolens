@@ -6,18 +6,21 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../../core/database/app_database.dart';
 
 /// A bottom sheet with liquid glass aesthetics and scrollable glass chips
-/// for selecting, toggling, and creating tags for a call.
+/// for selecting, toggling, and creating tags for a call or contact.
 class TagSelectionGlassSheet extends StatefulWidget {
   final AppDatabase db;
-  final int callId;
+  final int? callId;
+  final String? contactNormalizedNumber;
 
   const TagSelectionGlassSheet({
     super.key,
     required this.db,
-    required this.callId,
-  });
+    this.callId,
+    this.contactNormalizedNumber,
+  }) : assert(callId != null || contactNormalizedNumber != null,
+            'Either callId or contactNormalizedNumber must be provided');
 
-  /// Displays the tag selection sheet in a [GlassSheet].
+  /// Displays the tag selection sheet for a call in a [GlassSheet].
   static Future<void> show({
     required BuildContext context,
     required AppDatabase db,
@@ -43,6 +46,32 @@ class TagSelectionGlassSheet extends StatefulWidget {
     );
   }
 
+  /// Displays the tag selection sheet for a contact in a [GlassSheet].
+  static Future<void> showForContact({
+    required BuildContext context,
+    required AppDatabase db,
+    required String normalizedNumber,
+  }) {
+    return GlassSheet.show(
+      context: context,
+      quality: GlassQuality.standard,
+      showDragIndicator: true,
+      isScrollable: false,
+      enableDrag: false,
+      interactionScale: 1.0,
+      enableSaturationGlow: false,
+      enableInteractionGlow: false,
+      suppressInteractionOnChildren: true,
+      topBorderRadius: 24,
+      bottomBorderRadius: 0,
+      margin: EdgeInsets.zero,
+      builder: (context) => TagSelectionGlassSheet(
+        db: db,
+        contactNormalizedNumber: normalizedNumber,
+      ),
+    );
+  }
+
   @override
   State<TagSelectionGlassSheet> createState() => _TagSelectionGlassSheetState();
 }
@@ -61,6 +90,8 @@ class _TagSelectionGlassSheetState extends State<TagSelectionGlassSheet> {
 
   late final TextEditingController _searchController;
   String _query = '';
+
+  bool get _isContact => widget.contactNormalizedNumber != null;
 
   @override
   void initState() {
@@ -82,10 +113,18 @@ class _TagSelectionGlassSheetState extends State<TagSelectionGlassSheet> {
 
   Future<void> _toggleTag(Tag tag, bool isCurrentlyAssigned) async {
     HapticFeedback.selectionClick();
-    if (isCurrentlyAssigned) {
-      await widget.db.removeTagFromCall(widget.callId, tag.id);
+    if (_isContact) {
+      if (isCurrentlyAssigned) {
+        await widget.db.removeTagFromContact(widget.contactNormalizedNumber!, tag.id);
+      } else {
+        await widget.db.addTagToContact(widget.contactNormalizedNumber!, tag.name);
+      }
     } else {
-      await widget.db.addTagToCall(widget.callId, tag.name);
+      if (isCurrentlyAssigned) {
+        await widget.db.removeTagFromCall(widget.callId!, tag.id);
+      } else {
+        await widget.db.addTagToCall(widget.callId!, tag.name);
+      }
     }
   }
 
@@ -93,13 +132,21 @@ class _TagSelectionGlassSheetState extends State<TagSelectionGlassSheet> {
     final name = tagName.trim();
     if (name.isEmpty) return;
     HapticFeedback.mediumImpact();
-    await widget.db.addTagToCall(widget.callId, name);
+    if (_isContact) {
+      await widget.db.addTagToContact(widget.contactNormalizedNumber!, name);
+    } else {
+      await widget.db.addTagToCall(widget.callId!, name);
+    }
     _searchController.clear();
   }
 
   Future<void> _clearAllTags() async {
     HapticFeedback.mediumImpact();
-    await widget.db.clearAllTagsForCall(widget.callId);
+    if (_isContact) {
+      await widget.db.clearAllTagsForContact(widget.contactNormalizedNumber!);
+    } else {
+      await widget.db.clearAllTagsForCall(widget.callId!);
+    }
   }
 
   @override
@@ -141,7 +188,7 @@ class _TagSelectionGlassSheetState extends State<TagSelectionGlassSheet> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'Call Tags',
+                      _isContact ? 'Contact Tags' : 'Call Tags',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -206,7 +253,10 @@ class _TagSelectionGlassSheetState extends State<TagSelectionGlassSheet> {
                       final allTags = allTagsSnapshot.data ?? const [];
 
                       return StreamBuilder<List<Tag>>(
-                        stream: widget.db.watchTagsForCall(widget.callId),
+                        stream: _isContact
+                            ? widget.db.watchTagsForContact(
+                                widget.contactNormalizedNumber!)
+                            : widget.db.watchTagsForCall(widget.callId!),
                         builder: (context, assignedTagsSnapshot) {
                           final assignedTags =
                               assignedTagsSnapshot.data ?? const [];

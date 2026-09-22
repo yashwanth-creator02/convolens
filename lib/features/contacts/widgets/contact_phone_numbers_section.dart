@@ -67,82 +67,123 @@ class ContactPhoneNumbersSection extends StatelessWidget {
     final scheme = theme.colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Material(
         color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onLongPress: () {
-            Clipboard.setData(ClipboardData(text: number));
-            ToastService.info(context, '$number copied');
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        number,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      if (label != null) ...[
-                        const SizedBox(height: 3),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: scheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: scheme.primary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.28),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: scheme.primary.withValues(alpha: 0.25),
                   ),
                 ),
-                IconButton(
-                  tooltip: 'Call $number',
-                  icon: Icon(Icons.call_rounded,
-                      size: 20, color: scheme.primary),
-                  onPressed: () => _call(number),
+                child: Icon(
+                  Icons.phone_rounded,
+                  size: 18,
+                  color: scheme.primary,
                 ),
-                Material(
-                  color: Colors.transparent,
-                  shape: const CircleBorder(),
-                  child: Tooltip(
-                    message:
-                        'Message $number (Tap for WhatsApp, hold for options)',
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () => _message(context, number),
-                      onLongPress: () => _openMessageCompose(context, number),
-                      child: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Icon(
-                          Icons.chat_bubble_outline_rounded,
-                          size: 19,
-                          color: Color(0xFF25D366),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      number,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    if (label != null) ...[
+                      const SizedBox(height: 3),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: scheme.primary.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
+                    ],
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Copy $number',
+                icon: const Icon(Icons.copy_rounded, size: 16),
+                visualDensity: VisualDensity.compact,
+                color: scheme.onSurfaceVariant,
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: number));
+                  ToastService.success(context, '$number copied');
+                },
+              ),
+              const SizedBox(width: 4),
+              Material(
+                color: scheme.primary.withValues(alpha: 0.12),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _call(number),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Icon(
+                      Icons.call_rounded,
+                      size: 18,
+                      color: scheme.primary,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 6),
+              Material(
+                color: const Color(0xFF25D366).withValues(alpha: 0.12),
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () => _message(context, number),
+                  onLongPress: () {
+                    HapticFeedback.heavyImpact();
+                    _openMessageCompose(context, number);
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 18,
+                      color: Color(0xFF25D366),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
