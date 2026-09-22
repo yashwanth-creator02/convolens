@@ -684,13 +684,14 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 Image.memory(
                   photo,
                   width: double.infinity,
-                  height: 180,
+                  height: 280,
                   fit: BoxFit.cover,
+                  alignment: Alignment.center,
                   errorBuilder: (context, error, stackTrace) =>
-                      _buildDefaultHeroBanner(callTypeColor, scheme, initials),
+                      _buildDefaultHeroBanner(callTypeColor, scheme, initials, height: 280),
                 )
               else
-                _buildDefaultHeroBanner(callTypeColor, scheme, initials),
+                _buildDefaultHeroBanner(callTypeColor, scheme, initials, height: 280),
               // Dark scrim for readability
               Positioned.fill(
                 child: DecoratedBox(
@@ -700,9 +701,9 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withValues(alpha: 0.55),
+                        Colors.black.withValues(alpha: 0.6),
                       ],
-                      stops: const [0.45, 1.0],
+                      stops: const [0.60, 1.0],
                     ),
                   ),
                 ),
@@ -783,11 +784,12 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   Widget _buildDefaultHeroBanner(
     Color callTypeColor,
     ColorScheme scheme,
-    String initials,
-  ) {
+    String initials, {
+    double height = 280,
+  }) {
     return Container(
       width: double.infinity,
-      height: 180,
+      height: height,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
