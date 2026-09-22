@@ -331,9 +331,17 @@ class CallCardContent extends StatelessWidget {
                           CircleAvatar(
                             radius: 22,
                             backgroundImage: deviceContact?.thumbnail != null
-                                ? MemoryImage(deviceContact!.thumbnail!)
+                                ? ResizeImage(
+                                    MemoryImage(deviceContact!.thumbnail!),
+                                    width: 96,
+                                    height: 96,
+                                  )
                                 : deviceContact?.photo != null
-                                ? MemoryImage(deviceContact!.photo!)
+                                ? ResizeImage(
+                                    MemoryImage(deviceContact!.photo!),
+                                    width: 96,
+                                    height: 96,
+                                  )
                                 : null,
                             backgroundColor: scheme.secondaryContainer,
                             child:
