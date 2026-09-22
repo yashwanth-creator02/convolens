@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/toast/toast_service.dart';
@@ -102,38 +103,58 @@ Total calls: ${calls.length}
           ),
           clipBehavior: Clip.antiAlias,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            child: SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              secondary: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: scheme.primary.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.insights_rounded,
+                    size: 18,
+                    color: scheme.primary,
+                  ),
                 ),
-                child: Icon(
-                  Icons.insights_rounded,
-                  size: 18,
-                  color: scheme.primary,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Ignore from Analytics',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Exclude calls with this contact from graphs & stats',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              title: const Text(
-                'Ignore from Analytics',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              subtitle: Text(
-                'Exclude calls with this contact from graphs & stats',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                const SizedBox(width: 8),
+                GlassSwitch(
+                  value: detail?.ignoreFromAnalytics ?? false,
+                  useOwnLayer: true,
+                  activeColor: scheme.primary,
+                  width: 52.0,
+                  height: 28.0,
+                  onChanged: (value) => db.setContactFields(
+                    normalizedNumber,
+                    ContactDetailsCompanion(ignoreFromAnalytics: drift.Value(value)),
+                  ),
                 ),
-              ),
-              value: detail?.ignoreFromAnalytics ?? false,
-              onChanged: (value) => db.setContactFields(
-                normalizedNumber,
-                ContactDetailsCompanion(ignoreFromAnalytics: drift.Value(value)),
-              ),
+              ],
             ),
           ),
         ),

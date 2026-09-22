@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 /// An interactive liquid glass setting tile for navigation or actions.
 class SettingsGlassTile extends StatelessWidget {
@@ -196,15 +197,13 @@ class SettingsGlassSwitchTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Switch.adaptive(
+              GlassSwitch(
                 value: value,
-                onChanged: onChanged != null
-                    ? (v) {
-                        HapticFeedback.selectionClick();
-                        onChanged!(v);
-                      }
-                    : null,
-                activeTrackColor: scheme.primary,
+                onChanged: onChanged != null ? onChanged! : (_) {},
+                useOwnLayer: true,
+                activeColor: scheme.primary,
+                width: 52.0,
+                height: 28.0,
               ),
             ],
           ),
