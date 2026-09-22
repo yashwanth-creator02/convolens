@@ -1,8 +1,10 @@
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
+import '../widgets/settings_glass_card.dart';
+import '../widgets/settings_glass_tile.dart';
 
 class CallCardSettingsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -38,15 +40,19 @@ class _CallCardSettingsScreenState extends State<CallCardSettingsScreen> {
 
           final settings = snapshot.data!;
 
-          Widget toggle(
+          Widget switchTile(
+            IconData icon,
             String title,
+            String subtitle,
             bool value,
-            SettingsCompanion Function(bool) build,
+            SettingsCompanion Function(bool) buildCompanion,
           ) {
-            return SwitchListTile(
-              title: Text(title),
+            return SettingsGlassSwitchTile(
+              icon: icon,
+              title: title,
+              subtitle: subtitle,
               value: value,
-              onChanged: (v) => widget.db.updateSetting(build(v)),
+              onChanged: (v) => widget.db.updateSetting(buildCompanion(v)),
             );
           }
 
@@ -54,6 +60,7 @@ class _CallCardSettingsScreenState extends State<CallCardSettingsScreen> {
             type: MaterialType.transparency,
             child: CustomScrollView(
               controller: _titleController.scrollController,
+              physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
                   child: SizedBox(
@@ -64,80 +71,114 @@ class _CallCardSettingsScreenState extends State<CallCardSettingsScreen> {
                   text: 'Call Card Display',
                   controller: _titleController,
                 ),
-                SliverList(
-                  delegate: SliverChildListDelegate([
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-                      child: Text(
-                        'Core Fields',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueGrey,
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // ── 1. Core Fields ──────────────────────────────────
+                      SettingsGlassCard(
+                        title: 'Core Information',
+                        icon: Icons.badge_outlined,
+                        child: Column(
+                          children: [
+                            switchTile(
+                              Icons.person_outline_rounded,
+                              'Contact Name',
+                              'Display contact or caller name prominently',
+                              settings.showContactName,
+                              (v) =>
+                                  SettingsCompanion(showContactName: Value(v)),
+                            ),
+                            const SettingsGlassDivider(),
+                            switchTile(
+                              Icons.phone_outlined,
+                              'Phone Number',
+                              'Show the caller or recipient phone number',
+                              settings.showPhoneNumber,
+                              (v) =>
+                                  SettingsCompanion(showPhoneNumber: Value(v)),
+                            ),
+                            const SettingsGlassDivider(),
+                            switchTile(
+                              Icons.call_made_rounded,
+                              'Call Type',
+                              'Indicate incoming, outgoing, or missed status',
+                              settings.showCallType,
+                              (v) => SettingsCompanion(showCallType: Value(v)),
+                            ),
+                            const SettingsGlassDivider(),
+                            switchTile(
+                              Icons.timer_outlined,
+                              'Duration',
+                              'Show the elapsed duration of connected calls',
+                              settings.showDuration,
+                              (v) => SettingsCompanion(showDuration: Value(v)),
+                            ),
+                            const SettingsGlassDivider(),
+                            switchTile(
+                              Icons.calendar_today_outlined,
+                              'Date',
+                              'Display call date and calendar grouping',
+                              settings.showDate,
+                              (v) => SettingsCompanion(showDate: Value(v)),
+                            ),
+                            const SettingsGlassDivider(),
+                            switchTile(
+                              Icons.schedule_rounded,
+                              'Time',
+                              'Display exact timestamp for each call',
+                              settings.showTime,
+                              (v) => SettingsCompanion(showTime: Value(v)),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    toggle(
-                      'Show Contact Name',
-                      settings.showContactName,
-                      (v) => SettingsCompanion(showContactName: Value(v)),
-                    ),
-                    toggle(
-                      'Show Phone Number',
-                      settings.showPhoneNumber,
-                      (v) => SettingsCompanion(showPhoneNumber: Value(v)),
-                    ),
-                    toggle(
-                      'Show Call Type',
-                      settings.showCallType,
-                      (v) => SettingsCompanion(showCallType: Value(v)),
-                    ),
-                    toggle(
-                      'Show Duration',
-                      settings.showDuration,
-                      (v) => SettingsCompanion(showDuration: Value(v)),
-                    ),
-                    toggle(
-                      'Show Date',
-                      settings.showDate,
-                      (v) => SettingsCompanion(showDate: Value(v)),
-                    ),
-                    toggle(
-                      'Show Time',
-                      settings.showTime,
-                      (v) => SettingsCompanion(showTime: Value(v)),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 20, 16, 4),
-                      child: Text(
-                        'Enrichment',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blueGrey,
+
+                      // ── 2. Enrichment & Context ─────────────────────────
+                      SettingsGlassCard(
+                        title: 'Enrichment & Context',
+                        icon: Icons.auto_awesome_outlined,
+                        child: Column(
+                          children: [
+                            switchTile(
+                              Icons.notes_rounded,
+                              'Note Preview',
+                              'Show excerpt of custom notes on the call card',
+                              settings.showNotePreview,
+                              (v) =>
+                                  SettingsCompanion(showNotePreview: Value(v)),
+                            ),
+                            const SettingsGlassDivider(),
+                            switchTile(
+                              Icons.local_offer_outlined,
+                              'Tags',
+                              'Render category and custom tag chips',
+                              settings.showTags,
+                              (v) => SettingsCompanion(showTags: Value(v)),
+                            ),
+                            const SettingsGlassDivider(),
+                            switchTile(
+                              Icons.alarm_rounded,
+                              'Reminder Indicator',
+                              'Display status badge when a reminder is active',
+                              settings.showReminderIndicator,
+                              (v) => SettingsCompanion(
+                                  showReminderIndicator: Value(v)),
+                            ),
+                            const SettingsGlassDivider(),
+                            switchTile(
+                              Icons.attach_file_rounded,
+                              'Attachment Count',
+                              'Show number of attached files and recordings',
+                              settings.showAttachmentCount,
+                              (v) => SettingsCompanion(
+                                  showAttachmentCount: Value(v)),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    toggle(
-                      'Show Note Preview',
-                      settings.showNotePreview,
-                      (v) => SettingsCompanion(showNotePreview: Value(v)),
-                    ),
-                    toggle(
-                      'Show Tags',
-                      settings.showTags,
-                      (v) => SettingsCompanion(showTags: Value(v)),
-                    ),
-                    toggle(
-                      'Show Reminder Indicator',
-                      settings.showReminderIndicator,
-                      (v) => SettingsCompanion(showReminderIndicator: Value(v)),
-                    ),
-                    toggle(
-                      'Show Attachment Count',
-                      settings.showAttachmentCount,
-                      (v) => SettingsCompanion(showAttachmentCount: Value(v)),
-                    ),
-                    const SizedBox(height: 40),
-                  ]),
+                    ]),
+                  ),
                 ),
               ],
             ),
