@@ -36,8 +36,9 @@ class _AppState extends State<App> {
       case 'dark':
         return AppThemeType.dark;
 
+      case 'purple':
       case 'violet':
-        return AppThemeType.violet;
+        return AppThemeType.purple;
 
       case 'cosmo':
         return AppThemeType.cosmo;

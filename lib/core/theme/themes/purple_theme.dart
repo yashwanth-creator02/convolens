@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// Signature Violet theme (formerly Cosmos) with rich purple palette.
-class VioletTheme {
+/// Signature Purple theme with rich purple palette.
+class PurpleTheme {
   static ThemeData get data {
     return ThemeData(
       useMaterial3: true,

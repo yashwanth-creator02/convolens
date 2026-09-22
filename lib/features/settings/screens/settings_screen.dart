@@ -33,8 +33,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   String _getThemeLabel(String theme) {
     switch (theme.toLowerCase()) {
+      case 'purple':
       case 'violet':
-        return 'Violet';
+        return 'Purple';
       case 'cosmo':
         return 'Cosmo';
       case 'dark':
@@ -48,6 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   IconData _getThemeIcon(String theme) {
     switch (theme.toLowerCase()) {
+      case 'purple':
       case 'violet':
         return Icons.lens_blur_rounded;
       case 'cosmo':

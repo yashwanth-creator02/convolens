@@ -86,11 +86,11 @@ class _ThemeScreenState extends State<ThemeScreen> {
                               onTap: () => _setTheme('dark'),
                             ),
                             _ThemeOption(
-                              title: 'Violet',
-                              subtitle: 'Signature purple and violet dark theme',
+                              title: 'Purple',
+                              subtitle: 'Signature purple dark theme',
                               icon: Icons.lens_blur_rounded,
-                              selected: settings.theme == 'violet',
-                              onTap: () => _setTheme('violet'),
+                              selected: settings.theme == 'purple' || settings.theme == 'violet',
+                              onTap: () => _setTheme('purple'),
                             ),
                             _ThemeOption(
                               title: 'Cosmo',
