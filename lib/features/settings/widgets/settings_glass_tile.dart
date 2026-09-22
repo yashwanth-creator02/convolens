@@ -2,11 +2,72 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+/// A subtle, elegant info button that displays a hover / tap tooltip
+/// containing the description for a setting.
+class SettingsInfoTooltipButton extends StatelessWidget {
+  final String message;
+
+  const SettingsInfoTooltipButton({
+    super.key,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Tooltip(
+      message: message,
+      triggerMode: TooltipTriggerMode.tap,
+      preferBelow: false,
+      verticalOffset: 12,
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.shadow.withValues(alpha: 0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      textStyle: TextStyle(
+        fontSize: 12,
+        height: 1.35,
+        color: scheme.onSurface,
+        fontWeight: FontWeight.w400,
+      ),
+      child: InkResponse(
+        radius: 14,
+        onTap: () {
+          HapticFeedback.selectionClick();
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: Icon(
+            Icons.info_outline_rounded,
+            size: 15,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// An interactive liquid glass setting tile for navigation or actions.
 class SettingsGlassTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
+  final String? infoTooltip;
   final Widget? trailing;
   final VoidCallback? onTap;
   final Color? iconColor;
@@ -19,12 +80,13 @@ class SettingsGlassTile extends StatelessWidget {
     required this.icon,
     required this.title,
     this.subtitle,
+    this.infoTooltip,
     this.trailing,
     this.onTap,
     this.iconColor,
     this.iconBackgroundColor,
     this.showChevron = true,
-    this.padding = const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+    this.padding = const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
   });
 
   @override
@@ -67,14 +129,25 @@ class SettingsGlassTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
-                        color: scheme.onSurface,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.2,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        if (infoTooltip != null && infoTooltip!.isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          SettingsInfoTooltipButton(message: infoTooltip!),
+                        ],
+                      ],
                     ),
                     if (subtitle != null && subtitle!.isNotEmpty) ...[
                       const SizedBox(height: 2),
@@ -115,6 +188,7 @@ class SettingsGlassSwitchTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String? subtitle;
+  final String? infoTooltip;
   final bool value;
   final ValueChanged<bool>? onChanged;
   final Color? iconColor;
@@ -126,6 +200,7 @@ class SettingsGlassSwitchTile extends StatelessWidget {
     required this.icon,
     required this.title,
     this.subtitle,
+    this.infoTooltip,
     required this.value,
     this.onChanged,
     this.iconColor,
@@ -173,14 +248,25 @@ class SettingsGlassSwitchTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.2,
-                        color: scheme.onSurface,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.2,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                        ),
+                        if (infoTooltip != null && infoTooltip!.isNotEmpty) ...[
+                          const SizedBox(width: 4),
+                          SettingsInfoTooltipButton(message: infoTooltip!),
+                        ],
+                      ],
                     ),
                     if (subtitle != null && subtitle!.isNotEmpty) ...[
                       const SizedBox(height: 2),
@@ -229,31 +315,37 @@ class SettingsGlassPillBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final badgeColor = color ?? scheme.primary;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final primaryColor = color ?? scheme.primary;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
       decoration: BoxDecoration(
-        color: badgeColor.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        color: primaryColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: badgeColor.withValues(alpha: 0.25),
+          color: primaryColor.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 12, color: badgeColor),
-            const SizedBox(width: 4),
+            Icon(
+              icon,
+              size: 13,
+              color: primaryColor,
+            ),
+            const SizedBox(width: 5),
           ],
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: badgeColor,
+              color: primaryColor,
+              letterSpacing: 0.1,
             ),
           ),
         ],
@@ -262,26 +354,28 @@ class SettingsGlassPillBadge extends StatelessWidget {
   }
 }
 
-/// A subtle divider between settings rows within a [SettingsGlassCard].
+/// A sleek liquid glass hairline divider for separating setting rows.
 class SettingsGlassDivider extends StatelessWidget {
   final double indent;
   final double endIndent;
 
   const SettingsGlassDivider({
     super.key,
-    this.indent = 52,
-    this.endIndent = 4,
+    this.indent = 52.0,
+    this.endIndent = 0.0,
   });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Divider(
-      height: 1,
-      thickness: 0.8,
-      indent: indent,
-      endIndent: endIndent,
-      color: scheme.outlineVariant.withValues(alpha: 0.2),
+
+    return Padding(
+      padding: EdgeInsetsDirectional.only(start: indent, end: endIndent),
+      child: Divider(
+        height: 1,
+        thickness: 0.6,
+        color: scheme.outlineVariant.withValues(alpha: 0.25),
+      ),
     );
   }
 }

@@ -102,11 +102,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       SettingsGlassCard(
                         title: 'Permissions & Security',
                         icon: Icons.shield_outlined,
-                        description:
-                            'Manage call log, contacts, and notification access permissions.',
                         child: SettingsGlassTile(
                           icon: Icons.lock_outline_rounded,
                           title: 'App Permissions',
+                          infoTooltip:
+                              'Manage call log, contacts, and notification access permissions',
                           onTap: () {
                             Navigator.of(context).push(
                               CupertinoPageRoute(
@@ -121,13 +121,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       SettingsGlassCard(
                         title: 'Sync & Storage',
                         icon: Icons.sync_rounded,
-                        description:
-                            'Keep call records synchronized with device logs. Archive mode preserves calls even if deleted from the device phone log.',
                         child: Column(
                           children: [
                             SettingsGlassSwitchTile(
                               icon: Icons.cloud_sync_outlined,
                               title: 'Enable Sync',
+                              infoTooltip:
+                                  'Keep call records synchronized with device logs',
                               value: settings.syncEnabled,
                               onChanged: (value) {
                                 widget.db.updateSetting(
@@ -139,6 +139,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             SettingsGlassSwitchTile(
                               icon: Icons.inventory_2_outlined,
                               title: 'Archive Mode',
+                              infoTooltip:
+                                  'Preserve calls even if deleted from phone log',
                               value: settings.archiveMode,
                               onChanged: (value) async {
                                 if (value == true) {
@@ -183,13 +185,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       SettingsGlassCard(
                         title: 'Appearance & Display',
                         icon: Icons.palette_outlined,
-                        description:
-                            'Choose the visual theme and customize which fields appear on each call card.',
                         child: Column(
                           children: [
                             SettingsGlassTile(
                               icon: Icons.color_lens_outlined,
                               title: 'Theme',
+                              infoTooltip:
+                                  'Choose the visual appearance theme for ConvoLens',
                               trailing: SettingsGlassPillBadge(
                                 label: _getThemeLabel(settings.theme),
                                 icon: _getThemeIcon(settings.theme),
@@ -207,6 +209,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             SettingsGlassTile(
                               icon: Icons.dashboard_customize_outlined,
                               title: 'Call Card Display',
+                              infoTooltip:
+                                  'Choose which fields appear on each call history card',
                               onTap: () {
                                 Navigator.of(context).push(
                                   CupertinoPageRoute(
@@ -224,13 +228,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       SettingsGlassCard(
                         title: 'Developer Options',
                         icon: Icons.code_rounded,
-                        description:
-                            'Enable internal diagnostics, database inspection, and notification troubleshooting tools.',
                         child: Column(
                           children: [
                             SettingsGlassSwitchTile(
                               icon: Icons.terminal_rounded,
                               title: 'Developer Mode',
+                              infoTooltip:
+                                  'Enable internal diagnostics, logs, and database inspection tools',
                               value: settings.devMode,
                               onChanged: (value) {
                                 widget.db.updateSetting(
@@ -243,6 +247,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               SettingsGlassTile(
                                 icon: Icons.build_circle_outlined,
                                 title: 'Developer Tools',
+                                infoTooltip:
+                                    'Database browser, notification troubleshooting & test calls',
                                 onTap: () {
                                   Navigator.of(context).push(
                                     CupertinoPageRoute(

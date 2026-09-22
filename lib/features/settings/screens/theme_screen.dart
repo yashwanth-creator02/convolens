@@ -59,7 +59,7 @@ class _ThemeScreenState extends State<ThemeScreen> {
                       SettingsGlassCard(
                         title: 'Appearance Mode',
                         icon: Icons.palette_outlined,
-                        description:
+                        infoTooltip:
                             'Select your preferred visual style across all screens and glass components.',
                         padding: const EdgeInsets.fromLTRB(10, 10, 10, 0),
                         child: Column(
