@@ -90,6 +90,7 @@ class MainActivity : FlutterActivity() {
                                         "vnd.android.cursor.item/vnd.com.whatsapp.voip.call"
                                     )
                                     `package` = "com.whatsapp"
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 }
                                 startActivity(intent)
                                 launched = true
@@ -99,6 +100,61 @@ class MainActivity : FlutterActivity() {
                     } catch (e: Exception) {
                         result.success(false)
                     }
+                }
+
+                "openWhatsAppChat" -> {
+                    val number = call.argument<String>("number")
+                    val text = call.argument<String>("text")
+                    if (number == null) {
+                        result.error("INVALID_ARGUMENT", "No phone number provided", null)
+                        return@setMethodCallHandler
+                    }
+
+                    try {
+                        val cleanNumber = number.replace(Regex("[^0-9]"), "")
+                        val uriBuilder = StringBuilder("https://api.whatsapp.com/send?phone=").append(cleanNumber)
+                        if (!text.isNullOrEmpty()) {
+                            uriBuilder.append("&text=").append(Uri.encode(text))
+                        }
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriBuilder.toString())).apply {
+                            setPackage("com.whatsapp")
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val cleanNumber = number.replace(Regex("[^0-9]"), "")
+                            val uriBuilder = StringBuilder("https://api.whatsapp.com/send?phone=").append(cleanNumber)
+                            if (!text.isNullOrEmpty()) {
+                                uriBuilder.append("&text=").append(Uri.encode(text))
+                            }
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriBuilder.toString())).apply {
+                                setPackage("com.whatsapp.w4b")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            result.success(false)
+                        }
+                    }
+                }
+
+                "isWhatsAppInstalled" -> {
+                    val pm = packageManager
+                    val installed = try {
+                        pm.getPackageInfo("com.whatsapp", 0)
+                        true
+                    } catch (e: Exception) {
+                        try {
+                            pm.getPackageInfo("com.whatsapp.w4b", 0)
+                            true
+                        } catch (e2: Exception) {
+                            false
+                        }
+                    }
+                    result.success(installed)
                 }
 
                 else -> result.notImplemented()

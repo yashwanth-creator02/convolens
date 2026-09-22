@@ -25,7 +25,7 @@ void main() {
   });
 
   group('ContactHeader Tests', () {
-    testWidgets('renders avatar initials, name, and rotating call launcher',
+    testWidgets('renders avatar initials, single message button, and rotating call launcher',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -42,11 +42,11 @@ void main() {
         ),
       );
 
-      // Verify initials "BW" are rendered in the avatar
+      // Verify initials "BW" are rendered in the fallback banner
       expect(find.text('BW'), findsOneWidget);
 
-      // Verify contact display name
-      expect(find.text('Bruce Wayne'), findsOneWidget);
+      // Verify contact display name is NOT in header (it belongs in the app bar)
+      expect(find.text('Bruce Wayne'), findsNothing);
 
       // Verify rotating call options launcher
       expect(find.byType(CircularPhoneNumber), findsOneWidget);
@@ -54,12 +54,15 @@ void main() {
       // Verify call button
       expect(find.byIcon(Icons.call_rounded), findsWidgets);
 
-      // Verify message and SMS side action buttons
+      // Verify single message action button and no duplicate SMS button
       expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.sms_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.sms_outlined), findsNothing);
+
+      // Verify no favorite star chip when isFavorite is false
+      expect(find.text('Favorite'), findsNothing);
     });
 
-    testWidgets('renders archived badge when contact is archived',
+    testWidgets('renders favorite star chip when contact is favorited',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -69,15 +72,16 @@ void main() {
                 displayName: 'Clark Kent',
                 displayNumber: '+1987654321',
                 isFavorite: true,
-                isArchived: true,
+                isArchived: false,
               ),
             ),
           ),
         ),
       );
 
-      expect(find.text('ARCHIVED'), findsOneWidget);
-      expect(find.text('Clark Kent'), findsOneWidget);
+      // Verify favorite star chip and star icon appear
+      expect(find.text('Favorite'), findsOneWidget);
+      expect(find.byIcon(Icons.star_rounded), findsOneWidget);
     });
   });
 }

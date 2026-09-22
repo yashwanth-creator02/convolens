@@ -129,8 +129,8 @@ class _ContactHeaderState extends State<ContactHeader>
     if (number.isEmpty) return;
 
     final launched = await CallLauncher.openWhatsAppChat(number);
-    if (!launched) {
-      await CallLauncher.message(number);
+    if (!launched && mounted) {
+      _showQuickComposeSheet(context);
     }
   }
 
@@ -367,21 +367,6 @@ class _ContactHeaderState extends State<ContactHeader>
     final photo =
         widget.deviceContact?.photo ?? widget.deviceContact?.thumbnail;
 
-    final organization = widget.deviceContact?.organizations.isNotEmpty == true
-        ? widget.deviceContact!.organizations.first
-        : null;
-
-    final organizationText = organization != null &&
-            (organization.company.isNotEmpty || organization.title.isNotEmpty)
-        ? [organization.title, organization.company]
-            .where((s) => s.isNotEmpty)
-            .join(' • ')
-        : null;
-
-    final email = widget.deviceContact?.emails.isNotEmpty == true
-        ? widget.deviceContact!.emails.first.address
-        : null;
-
     final bannerColor = widget.colorValue != null
         ? Color(widget.colorValue!)
         : scheme.primary;
@@ -389,6 +374,7 @@ class _ContactHeaderState extends State<ContactHeader>
     final initials = _getInitials(widget.displayName);
 
     return Container(
+      height: 270,
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(24),
@@ -432,7 +418,7 @@ class _ContactHeaderState extends State<ContactHeader>
                 : _buildGradientBackground(bannerColor, scheme, initials),
           ),
 
-          // ── Scrim overlay for contrast and glass depth ─────────────────────
+          // ── Scrim overlay for contrast and depth ──────────────────────────
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -440,109 +426,76 @@ class _ContactHeaderState extends State<ContactHeader>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.40),
-                    Colors.black.withValues(alpha: 0.72),
+                    Colors.black.withValues(alpha: 0.20),
+                    Colors.black.withValues(alpha: 0.65),
                   ],
+                  stops: const [0.3, 1.0],
                 ),
               ),
             ),
           ),
 
-          // ── Foreground content floating on the image background ───────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Contact Name
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        widget.displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 22,
-                          color: Colors.white,
-                          letterSpacing: -0.2,
-                          shadows: [
-                            Shadow(blurRadius: 8, color: Colors.black87),
-                          ],
-                        ),
+          // ── Star Chip in top-right corner when favorited ───────────────────
+          if (widget.isFavorite)
+            Positioned(
+              top: 14,
+              right: 14,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: widget.onFavoritePressed,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.amber.withValues(alpha: 0.75),
+                        width: 1.2,
                       ),
-                    ),
-                    if (widget.isArchived) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
-                        child: const Text(
-                          'ARCHIVED',
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 16,
+                          color: Colors.amber,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Favorite',
                           style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber.shade200,
+                            letterSpacing: 0.2,
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
-
-                // Organization / Title
-                if (organizationText != null) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    organizationText,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shadows: const [
-                        Shadow(blurRadius: 6, color: Colors.black87),
-                      ],
-                    ),
-                  ),
-                ],
-
-                // Email
-                if (email != null && email.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    email,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.8),
-                      shadows: const [
-                        Shadow(blurRadius: 6, color: Colors.black87),
-                      ],
-                    ),
-                  ),
-                ],
-
-                // Circular Rotating Call Launcher
-                if (_activeNumber.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _buildCallActions(),
-                ],
-              ],
+              ),
             ),
-          ),
+
+          // ── Circular Rotating Call Launcher & Single Message Button ───────
+          if (_activeNumber.isNotEmpty)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 18,
+              child: _buildCallActions(),
+            ),
         ],
       ),
     );
@@ -554,15 +507,17 @@ class _ContactHeaderState extends State<ContactHeader>
 
     final orbitRadius = _hasWhatsApp ? 64.0 : 52.0;
     final containerSize = (orbitRadius * 2) + 24.0;
+    const sideButtonSize = 44.0;
 
     return SizedBox(
       height: containerSize,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Single Message Action Button (Tap for WhatsApp, hold for Quick Compose)
           _SideActionButton(
             icon: Icons.chat_bubble_outline_rounded,
-            tooltip: 'WhatsApp (Hold for options)',
+            tooltip: 'Message (Tap for WhatsApp, hold for options)',
             onPressed: _openMessageDefault,
             onLongPress: () => _showQuickComposeSheet(context),
           ),
@@ -671,12 +626,8 @@ class _ContactHeaderState extends State<ContactHeader>
             ),
           ),
           const SizedBox(width: 14),
-          _SideActionButton(
-            icon: Icons.sms_outlined,
-            tooltip: 'SMS (Hold for options)',
-            onPressed: () => CallLauncher.message(_activeNumber),
-            onLongPress: () => _showQuickComposeSheet(context),
-          ),
+          // Balancer space matching side button size to keep the rotating orbit centered
+          const SizedBox(width: sideButtonSize, height: sideButtonSize),
         ],
       ),
     );

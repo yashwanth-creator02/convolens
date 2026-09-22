@@ -31,4 +31,25 @@ class DeviceChannel {
       return false;
     }
   }
+
+  static Future<bool> openWhatsAppChat(String number, {String? text}) async {
+    try {
+      final result = await _channel.invokeMethod('openWhatsAppChat', {
+        'number': number,
+        'text': ?text,
+      });
+      return result == true;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  static Future<bool> isWhatsAppInstalled() async {
+    try {
+      final result = await _channel.invokeMethod('isWhatsAppInstalled');
+      return result == true;
+    } on PlatformException {
+      return false;
+    }
+  }
 }

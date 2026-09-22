@@ -44,6 +44,8 @@ class CallLauncher {
   }
 
   static Future<bool> isWhatsAppInstalled() async {
+    final nativeInstalled = await DeviceChannel.isWhatsAppInstalled();
+    if (nativeInstalled) return true;
     final uri = Uri.parse('whatsapp://send');
     return await canLaunchUrl(uri);
   }
@@ -52,15 +54,24 @@ class CallLauncher {
     final clean = cleanWhatsAppNumber(number);
     if (clean.isEmpty) return false;
 
+    // 1. Direct explicit package intent via native channel (avoids OS app chooser)
+    final nativeLaunched =
+        await DeviceChannel.openWhatsAppChat(clean, text: text);
+    if (nativeLaunched) return true;
+
+    // 2. Fallback to whatsapp:// URI scheme
     final hasText = text != null && text.trim().isNotEmpty;
-    final textParam = hasText ? '&text=${Uri.encodeComponent(text.trim())}' : '';
+    final textParam =
+        hasText ? '&text=${Uri.encodeComponent(text.trim())}' : '';
     final whatsappUri = Uri.parse('whatsapp://send?phone=$clean$textParam');
 
     if (await canLaunchUrl(whatsappUri)) {
       return launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
     }
 
-    final webTextParam = hasText ? '?text=${Uri.encodeComponent(text.trim())}' : '';
+    // 3. Web fallback
+    final webTextParam =
+        hasText ? '?text=${Uri.encodeComponent(text.trim())}' : '';
     final webUri = Uri.parse('https://wa.me/$clean$webTextParam');
     if (await canLaunchUrl(webUri)) {
       return launchUrl(webUri, mode: LaunchMode.externalApplication);

@@ -74,10 +74,16 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
   bool _deferredTasksStarted = false;
   Animation<double>? _routeAnimation;
+  Stream<ContactDetail?>? _contactDetailStream;
 
   @override
   void initState() {
     super.initState();
+    final number = widget.call.number?.trim() ?? '';
+    if (number.isNotEmpty) {
+      _contactDetailStream =
+          widget.db.watchContactDetails(normalizePhoneNumber(number));
+    }
     _deviceContact = widget.initialContact ??
         ContactCache.findContact(
           number: widget.call.number,
@@ -758,8 +764,9 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     BuildContext context,
     String displayName,
     String phoneNumber,
-    Color callTypeColor,
-  ) {
+    Color callTypeColor, {
+    bool isFavorite = false,
+  }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final initials = _getInitials(displayName);
@@ -833,6 +840,51 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       ),
                     ),
                   ),
+                  // Favorite Star Chip — top-right
+                  if (isFavorite)
+                    Positioned(
+                      top: 14,
+                      right: 14,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.amber.withValues(alpha: 0.75),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 16,
+                              color: Colors.amber,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Favorite',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.amber.shade200,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   // Name overlay — bottom-right
                   Positioned(
                     right: 14,
@@ -1013,11 +1065,19 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    _buildHeroCard(
-                      context,
-                      displayName,
-                      phoneNumber,
-                      callTypeColor,
+                    StreamBuilder<ContactDetail?>(
+                      stream: _contactDetailStream,
+                      builder: (context, contactSnap) {
+                        final isFavorite =
+                            contactSnap.data?.isFavorite ?? false;
+                        return _buildHeroCard(
+                          context,
+                          displayName,
+                          phoneNumber,
+                          callTypeColor,
+                          isFavorite: isFavorite,
+                        );
+                      },
                     ),
                     const SizedBox(height: 16),
                     _buildCard(
