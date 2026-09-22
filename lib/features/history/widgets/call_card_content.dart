@@ -291,8 +291,11 @@ class CallCardContent extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     CupertinoPageRoute(
-                      builder: (context) =>
-                          CallDetailScreen(call: call, db: db),
+                      builder: (context) => CallDetailScreen(
+                        call: call,
+                        db: db,
+                        initialContact: deviceContact,
+                      ),
                     ),
                   );
                 },

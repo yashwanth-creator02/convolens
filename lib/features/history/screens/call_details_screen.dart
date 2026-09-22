@@ -33,8 +33,14 @@ import '../widgets/voice_note_player_sheet.dart';
 class CallDetailScreen extends StatefulWidget {
   final Call call;
   final AppDatabase db;
+  final Contact? initialContact;
 
-  const CallDetailScreen({super.key, required this.call, required this.db});
+  const CallDetailScreen({
+    super.key,
+    required this.call,
+    required this.db,
+    this.initialContact,
+  });
 
   @override
   State<CallDetailScreen> createState() => _CallDetailScreenState();
@@ -50,8 +56,21 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDeviceContact();
-    _autoScanRecording();
+    _deviceContact = widget.initialContact;
+
+    // Smooth page transitions: defer background I/O until route transition completes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 320), () {
+        if (mounted) {
+          if (_deviceContact == null ||
+              (_deviceContact?.photo == null &&
+                  _deviceContact?.thumbnail == null)) {
+            _loadDeviceContact();
+          }
+          _autoScanRecording();
+        }
+      });
+    });
   }
 
   Future<void> _autoScanRecording() async {
