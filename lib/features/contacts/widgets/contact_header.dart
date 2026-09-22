@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
+import 'contact_message_sheet.dart';
 
 class ContactHeader extends StatefulWidget {
   final String displayName;
@@ -123,209 +125,25 @@ class _ContactHeaderState extends State<ContactHeader>
     await CallLauncher.openWhatsAppCall(number);
   }
 
-  Future<void> _openMessageDefault() async {
+  Future<void> _openWhatsAppChatDirect() async {
     final number =
         _activeNumber.isNotEmpty ? _activeNumber : widget.displayNumber;
     if (number.isEmpty) return;
 
     final launched = await CallLauncher.openWhatsAppChat(number);
     if (!launched && mounted) {
-      _showQuickComposeSheet(context);
+      ToastService.info(context, 'Could not open WhatsApp for $number');
     }
   }
 
-  void _showQuickComposeSheet(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final controller = TextEditingController();
-
-    final quickTemplates = [
-      'Can I call you back?',
-      'I am on my way.',
-      'Please call me when free.',
-      'Got it, thanks!',
-      'Running 5 minutes late.',
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border.all(
-                color: scheme.outlineVariant.withValues(alpha: 0.35),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Message ${widget.displayName}',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _activeNumber,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: quickTemplates.map((template) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ActionChip(
-                          label: Text(template,
-                              style: const TextStyle(fontSize: 12)),
-                          onPressed: () {
-                            controller.text = template;
-                            controller.selection = TextSelection.fromPosition(
-                              TextPosition(offset: controller.text.length),
-                            );
-                          },
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  maxLines: 3,
-                  minLines: 2,
-                  decoration: InputDecoration(
-                    hintText: 'Type a message...',
-                    filled: true,
-                    fillColor: scheme.surfaceContainerHighest
-                        .withValues(alpha: 0.4),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: scheme.outlineVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: scheme.outlineVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: scheme.primary,
-                        width: 1.5,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.all(14),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF25D366),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        onPressed: () async {
-                          final text = controller.text;
-                          Navigator.of(ctx).pop();
-                          await CallLauncher.openWhatsAppChat(_activeNumber,
-                              text: text);
-                        },
-                        icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                        label: const Text('WhatsApp',
-                            style: TextStyle(fontWeight: FontWeight.w600)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          side: BorderSide(
-                            color: scheme.outline.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        onPressed: () async {
-                          final text = controller.text;
-                          Navigator.of(ctx).pop();
-                          await CallLauncher.messageWithText(
-                              _activeNumber, text);
-                        },
-                        icon: const Icon(Icons.sms_outlined, size: 18),
-                        label: const Text('Messages',
-                            style: TextStyle(fontWeight: FontWeight.w600)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+  void _openMessageComposeSheet() {
+    final number =
+        _activeNumber.isNotEmpty ? _activeNumber : widget.displayNumber;
+    if (number.isEmpty) return;
+    showMessageComposeSheet(
+      context,
+      displayName: widget.displayName,
+      phoneNumber: number,
     );
   }
 
@@ -374,7 +192,7 @@ class _ContactHeaderState extends State<ContactHeader>
     final initials = _getInitials(widget.displayName);
 
     return Container(
-      height: 270,
+      height: 340,
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(24),
@@ -398,7 +216,7 @@ class _ContactHeaderState extends State<ContactHeader>
                 ? Image.memory(
                     photo,
                     fit: BoxFit.cover,
-                    alignment: Alignment.center,
+                    alignment: const Alignment(0, -0.3),
                     filterQuality: FilterQuality.medium,
                     gaplessPlayback: true,
                     frameBuilder:
@@ -418,7 +236,7 @@ class _ContactHeaderState extends State<ContactHeader>
                 : _buildGradientBackground(bannerColor, scheme, initials),
           ),
 
-          // ── Scrim overlay for contrast and depth ──────────────────────────
+          // ── Scrim overlay – lighter at top to show more of the photo ──────
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -426,10 +244,11 @@ class _ContactHeaderState extends State<ContactHeader>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.20),
-                    Colors.black.withValues(alpha: 0.65),
+                    Colors.black.withValues(alpha: 0.05),
+                    Colors.black.withValues(alpha: 0.15),
+                    Colors.black.withValues(alpha: 0.60),
                   ],
-                  stops: const [0.3, 1.0],
+                  stops: const [0.0, 0.45, 1.0],
                 ),
               ),
             ),
@@ -501,24 +320,33 @@ class _ContactHeaderState extends State<ContactHeader>
   }
 
   Widget _buildRightCornerActionStack(ColorScheme scheme) {
-    final callOrbitRadius = _hasWhatsApp ? 44.0 : 30.0;
-    const messageOrbitRadius = 30.0;
+    const double orbitRadius = 28.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         // Message button stacked on top of call button, with its own orbiting number
-        _buildMessageOrbit(orbitRadius: messageOrbitRadius),
+        _buildMessageOrbit(orbitRadius: orbitRadius),
         const SizedBox(height: 6),
-        // Call button at the bottom with its own orbiting number
-        _buildCallOrbit(orbitRadius: callOrbitRadius, scheme: scheme),
+        // Call button(s) at the bottom: individual rotating number for each button
+        if (!_hasWhatsApp)
+          _buildCellularCallOrbit(orbitRadius: orbitRadius, scheme: scheme)
+        else
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildCellularCallOrbit(orbitRadius: orbitRadius, scheme: scheme),
+              const SizedBox(width: 6),
+              _buildWhatsAppCallOrbit(orbitRadius: orbitRadius),
+            ],
+          ),
       ],
     );
   }
 
   Widget _buildMessageOrbit({required double orbitRadius}) {
-    final containerSize = (orbitRadius * 2) + 20.0;
+    final containerSize = (orbitRadius * 2) + 18.0;
 
     return SizedBox(
       width: containerSize,
@@ -535,9 +363,9 @@ class _ContactHeaderState extends State<ContactHeader>
                 child: CircularPhoneNumber(
                   text: _activeNumber,
                   radius: orbitRadius,
-                  charSpacing: 7.2,
+                  charSpacing: 7.0,
                   textStyle: const TextStyle(
-                    fontSize: 9.5,
+                    fontSize: 9.0,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                     shadows: [
@@ -553,19 +381,19 @@ class _ContactHeaderState extends State<ContactHeader>
           _SideActionButton(
             icon: Icons.chat_bubble_outline_rounded,
             tooltip: 'Message (Tap for WhatsApp, hold for options)',
-            onPressed: _openMessageDefault,
-            onLongPress: () => _showQuickComposeSheet(context),
+            onPressed: _openWhatsAppChatDirect,
+            onLongPress: _openMessageComposeSheet,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCallOrbit({
+  Widget _buildCellularCallOrbit({
     required double orbitRadius,
     required ColorScheme scheme,
   }) {
-    final containerSize = (orbitRadius * 2) + 20.0;
+    final containerSize = (orbitRadius * 2) + 18.0;
 
     return SizedBox(
       width: containerSize,
@@ -582,9 +410,9 @@ class _ContactHeaderState extends State<ContactHeader>
                 child: CircularPhoneNumber(
                   text: _activeNumber,
                   radius: orbitRadius,
-                  charSpacing: 7.2,
+                  charSpacing: 7.0,
                   textStyle: const TextStyle(
-                    fontSize: 9.5,
+                    fontSize: 9.0,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                     shadows: [
@@ -596,78 +424,96 @@ class _ContactHeaderState extends State<ContactHeader>
             },
           ),
 
-          // Center Action Button(s) inside Call Orbit
-          if (!_hasWhatsApp)
-            Material(
-              shape: const CircleBorder(),
-              elevation: 4,
-              color: scheme.primary,
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: _callCellular,
-                child: const SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: Icon(
+          // Cellular Call Button
+          Material(
+            shape: const CircleBorder(),
+            elevation: 3,
+            color: Colors.black.withValues(alpha: 0.5),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _callCellular,
+              child: Tooltip(
+                message: 'Call $_activeNumber',
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: const Icon(
                     Icons.call_rounded,
-                    size: 22,
+                    size: 19,
                     color: Colors.white,
                   ),
                 ),
               ),
-            )
-          else
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Cellular Call Button
-                Material(
-                  shape: const CircleBorder(),
-                  elevation: 3,
-                  color: Colors.black.withValues(alpha: 0.5),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _callCellular,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.8),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.call_rounded,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 5),
-                // WhatsApp Call Button
-                Material(
-                  shape: const CircleBorder(),
-                  elevation: 3,
-                  color: const Color(0xFF25D366),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _callWhatsApp,
-                    child: const SizedBox(
-                      width: 36,
-                      height: 36,
-                      child: Icon(
-                        Icons.phone_in_talk_rounded,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhatsAppCallOrbit({
+    required double orbitRadius,
+  }) {
+    final containerSize = (orbitRadius * 2) + 18.0;
+
+    return SizedBox(
+      width: containerSize,
+      height: containerSize,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Rotating phone number track
+          AnimatedBuilder(
+            animation: _orbitController,
+            builder: (context, child) {
+              return Transform.rotate(
+                angle: -_orbitController.value * math.pi * 2,
+                child: CircularPhoneNumber(
+                  text: _activeNumber,
+                  radius: orbitRadius,
+                  charSpacing: 7.0,
+                  textStyle: const TextStyle(
+                    fontSize: 9.0,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(blurRadius: 6, color: Colors.black87),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // WhatsApp Call Button
+          Material(
+            shape: const CircleBorder(),
+            elevation: 3,
+            color: const Color(0xFF25D366),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _callWhatsApp,
+              child: Tooltip(
+                message: 'WhatsApp Call $_activeNumber',
+                child: const SizedBox(
+                  width: 38,
+                  height: 38,
+                  child: Icon(
+                    Icons.phone_in_talk_rounded,
+                    size: 19,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -711,23 +557,22 @@ class _SideActionButton extends StatelessWidget {
         customBorder: const CircleBorder(),
         onTap: onPressed,
         onLongPress: onLongPress,
-        child: Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.25),
-              width: 1,
-            ),
-          ),
-          child: Tooltip(
-            message: tooltip,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Icon(
-                icon,
-                size: 20,
-                color: Colors.white,
+        child: Tooltip(
+          message: tooltip,
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.25),
+                width: 1,
               ),
+            ),
+            child: Icon(
+              icon,
+              size: 19,
+              color: Colors.white,
             ),
           ),
         ),

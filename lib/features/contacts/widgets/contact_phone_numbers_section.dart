@@ -4,6 +4,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
+import 'contact_message_sheet.dart';
 
 class ContactPhoneNumbersSection extends StatelessWidget {
   final Contact? deviceContact;
@@ -19,11 +20,21 @@ class ContactPhoneNumbersSection extends StatelessWidget {
     await CallLauncher.call(number);
   }
 
-  Future<void> _message(String number) async {
+  Future<void> _message(BuildContext context, String number) async {
     final launched = await CallLauncher.openWhatsAppChat(number);
-    if (!launched) {
-      await CallLauncher.message(number);
+    if (!launched && context.mounted) {
+      ToastService.info(context, 'Could not open WhatsApp for $number');
     }
+  }
+
+  void _openMessageCompose(BuildContext context, String number) {
+    showMessageComposeSheet(
+      context,
+      displayName: deviceContact?.displayName.isNotEmpty == true
+          ? deviceContact!.displayName
+          : number,
+      phoneNumber: number,
+    );
   }
 
   String _labelFor(Phone phone) {
@@ -109,11 +120,26 @@ class ContactPhoneNumbersSection extends StatelessWidget {
                       size: 20, color: scheme.primary),
                   onPressed: () => _call(number),
                 ),
-                IconButton(
-                  tooltip: 'Message $number',
-                  icon: const Icon(Icons.chat_bubble_outline_rounded,
-                      size: 19, color: Color(0xFF25D366)),
-                  onPressed: () => _message(number),
+                Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  child: Tooltip(
+                    message:
+                        'Message $number (Tap for WhatsApp, hold for options)',
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: () => _message(context, number),
+                      onLongPress: () => _openMessageCompose(context, number),
+                      child: const Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Icon(
+                          Icons.chat_bubble_outline_rounded,
+                          size: 19,
+                          color: Color(0xFF25D366),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

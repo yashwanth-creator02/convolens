@@ -40,6 +40,11 @@ class CallLauncher {
     if (clean.startsWith('+')) {
       clean = clean.substring(1);
     }
+    if (clean.length == 10) {
+      clean = '91$clean';
+    } else if (clean.length == 11 && clean.startsWith('0')) {
+      clean = '91${clean.substring(1)}';
+    }
     return clean;
   }
 
@@ -55,9 +60,11 @@ class CallLauncher {
     if (clean.isEmpty) return false;
 
     // 1. Direct explicit package intent via native channel (avoids OS app chooser)
-    final nativeLaunched =
-        await DeviceChannel.openWhatsAppChat(clean, text: text);
-    if (nativeLaunched) return true;
+    try {
+      final nativeLaunched =
+          await DeviceChannel.openWhatsAppChat(clean, text: text);
+      if (nativeLaunched) return true;
+    } catch (_) {}
 
     // 2. Fallback to whatsapp:// URI scheme
     final hasText = text != null && text.trim().isNotEmpty;
@@ -65,17 +72,22 @@ class CallLauncher {
         hasText ? '&text=${Uri.encodeComponent(text.trim())}' : '';
     final whatsappUri = Uri.parse('whatsapp://send?phone=$clean$textParam');
 
-    if (await canLaunchUrl(whatsappUri)) {
-      return launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
-    }
+    try {
+      if (await canLaunchUrl(whatsappUri)) {
+        return await launchUrl(whatsappUri,
+            mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
 
     // 3. Web fallback
     final webTextParam =
         hasText ? '?text=${Uri.encodeComponent(text.trim())}' : '';
     final webUri = Uri.parse('https://wa.me/$clean$webTextParam');
-    if (await canLaunchUrl(webUri)) {
-      return launchUrl(webUri, mode: LaunchMode.externalApplication);
-    }
+    try {
+      if (await canLaunchUrl(webUri)) {
+        return await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {}
     return false;
   }
 

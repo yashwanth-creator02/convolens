@@ -39,35 +39,43 @@ class _ContactActivityTabState extends State<ContactActivityTab> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: [
-              FilterChip(
-                selected: _filter == _ActivityFilter.all,
-                label: const Text('All'),
-                onSelected: (_) =>
-                    setState(() => _filter = _ActivityFilter.all),
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: _filter == _ActivityFilter.calls,
-                label: const Text('Calls'),
-                onSelected: (_) =>
-                    setState(() => _filter = _ActivityFilter.calls),
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: _filter == _ActivityFilter.timeline,
-                label: const Text('Timeline'),
-                onSelected: (_) =>
-                    setState(() => _filter = _ActivityFilter.timeline),
-              ),
-              const SizedBox(width: 8),
-              FilterChip(
-                selected: _filter == _ActivityFilter.notes,
-                label: const Text('Notes'),
-                onSelected: (_) =>
-                    setState(() => _filter = _ActivityFilter.notes),
-              ),
-            ],
+            children: _ActivityFilter.values.map((filter) {
+              final isSelected = _filter == filter;
+              final scheme = Theme.of(context).colorScheme;
+              final label = switch (filter) {
+                _ActivityFilter.all => 'All',
+                _ActivityFilter.calls => 'Calls',
+                _ActivityFilter.timeline => 'Timeline',
+                _ActivityFilter.notes => 'Notes',
+              };
+              final icon = switch (filter) {
+                _ActivityFilter.all => Icons.dashboard_rounded,
+                _ActivityFilter.calls => Icons.call_rounded,
+                _ActivityFilter.timeline => Icons.timeline_rounded,
+                _ActivityFilter.notes => Icons.notes_rounded,
+              };
+
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  selected: isSelected,
+                  label: Text(label),
+                  avatar: Icon(icon, size: 16),
+                  selectedColor: scheme.primary.withValues(alpha: 0.15),
+                  checkmarkColor: scheme.primary,
+                  side: BorderSide(
+                    color: isSelected
+                        ? scheme.primary.withValues(alpha: 0.4)
+                        : scheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  onSelected: (_) =>
+                      setState(() => _filter = filter),
+                ),
+              );
+            }).toList(),
           ),
         ),
 

@@ -94,8 +94,20 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
       builder: (context, snapshot) {
         final detail = snapshot.data;
 
+        // ── Dynamic background tint from selected contact color ──────────
+        final colorValue = detail?.colorValue;
+        final scheme = Theme.of(context).colorScheme;
+        final bgColor = colorValue != null
+            ? Color.lerp(
+                scheme.surface,
+                Color(colorValue),
+                0.06,
+              )!
+            : null;
+
         return Material(
           child: GlassScaffold(
+            backgroundColor: bgColor,
             appBar: GlassAppBar.pinned(
               title: Text(
                 _getTitleText(),

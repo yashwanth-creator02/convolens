@@ -110,35 +110,59 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
 
+                    var cleanNumber = number.replace(Regex("[^0-9]"), "")
+                    if (cleanNumber.length == 10) {
+                        cleanNumber = "91$cleanNumber"
+                    } else if (cleanNumber.length == 11 && cleanNumber.startsWith("0")) {
+                        cleanNumber = "91" + cleanNumber.substring(1)
+                    }
+
+                    val textQuery = if (!text.isNullOrEmpty()) "&text=" + Uri.encode(text) else ""
+                    val whatsappUri = Uri.parse("whatsapp://send?phone=$cleanNumber$textQuery")
+                    val apiUri = Uri.parse("https://api.whatsapp.com/send?phone=$cleanNumber$textQuery")
+
+                    var success = false
+
+                    // 1. Try whatsapp:// with com.whatsapp
                     try {
-                        val cleanNumber = number.replace(Regex("[^0-9]"), "")
-                        val uriBuilder = StringBuilder("https://api.whatsapp.com/send?phone=").append(cleanNumber)
-                        if (!text.isNullOrEmpty()) {
-                            uriBuilder.append("&text=").append(Uri.encode(text))
-                        }
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriBuilder.toString())).apply {
+                        val intent = Intent(Intent.ACTION_VIEW, whatsappUri).apply {
                             setPackage("com.whatsapp")
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
                         startActivity(intent)
-                        result.success(true)
+                        success = true
                     } catch (e: Exception) {
+                        // 2. Try whatsapp:// with com.whatsapp.w4b (WhatsApp Business)
                         try {
-                            val cleanNumber = number.replace(Regex("[^0-9]"), "")
-                            val uriBuilder = StringBuilder("https://api.whatsapp.com/send?phone=").append(cleanNumber)
-                            if (!text.isNullOrEmpty()) {
-                                uriBuilder.append("&text=").append(Uri.encode(text))
-                            }
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uriBuilder.toString())).apply {
+                            val intent = Intent(Intent.ACTION_VIEW, whatsappUri).apply {
                                 setPackage("com.whatsapp.w4b")
                                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             startActivity(intent)
-                            result.success(true)
+                            success = true
                         } catch (e2: Exception) {
-                            result.success(false)
+                            // 3. Try whatsapp:// without package constraint
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, whatsappUri).apply {
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                }
+                                startActivity(intent)
+                                success = true
+                            } catch (e3: Exception) {
+                                // 4. Fallback to api.whatsapp.com
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, apiUri).apply {
+                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    startActivity(intent)
+                                    success = true
+                                } catch (e4: Exception) {
+                                    success = false
+                                }
+                            }
                         }
                     }
+                    result.success(success)
                 }
 
                 "isWhatsAppInstalled" -> {
