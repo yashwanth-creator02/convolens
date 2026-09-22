@@ -35,16 +35,16 @@ class CallAttachmentsSection extends StatefulWidget {
 }
 
 class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   final _recorder = AudioRecorder();
   bool _isRecording = false;
   bool _isSaving = false;
   String? _recordingPath;
   Duration _elapsed = Duration.zero;
   Timer? _timer;
+  Timer? _waveTimer;
 
-  // Waveform animation
-  late AnimationController _waveController;
+  // Waveform heights
   final _waveRng = math.Random();
   final List<double> _leftDynamicHeights = List.generate(14, (_) => 0.35);
   final List<double> _rightDynamicHeights = List.generate(14, (_) => 0.35);
@@ -64,11 +64,6 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
   @override
   void initState() {
     super.initState();
-    _waveController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-    )..addListener(_updateBars);
-
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -81,22 +76,10 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
   @override
   void dispose() {
     _timer?.cancel();
+    _waveTimer?.cancel();
     _recorder.dispose();
-    _waveController.dispose();
     _pulseController.dispose();
     super.dispose();
-  }
-
-  void _updateBars() {
-    if (_isRecording && mounted) {
-      setState(() {
-        for (var i = 0; i < _leftDynamicHeights.length; i++) {
-          _leftDynamicHeights[i] = 0.2 + _waveRng.nextDouble() * 0.8;
-          _rightDynamicHeights[i] = 0.2 + _waveRng.nextDouble() * 0.8;
-        }
-      });
-      _waveController.forward(from: 0);
-    }
   }
 
   Future<void> _startRecording() async {
@@ -113,16 +96,7 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
         return;
       }
 
-      // 2. Also check recorder internal permission check
-      final hasRecordPermission = await _recorder.hasPermission();
-      if (!hasRecordPermission) {
-        if (mounted) {
-          ToastService.error(context, 'Microphone permission denied.');
-        }
-        return;
-      }
-
-      // 3. Prepare storage directory
+      // 2. Prepare storage directory
       final dir = await getApplicationDocumentsDirectory();
       final notesDir = Directory('${dir.path}/voice_notes');
       if (!notesDir.existsSync()) {
@@ -131,13 +105,13 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final path = '${notesDir.path}/voice_note_$timestamp.m4a';
 
-      // 4. Start recording with default platform config
+      // 3. Start recording
       await _recorder.start(
         const RecordConfig(),
         path: path,
       );
 
-      // 5. Update UI to active state immediately
+      // 4. Update UI to active state immediately
       if (mounted) {
         HapticFeedback.heavyImpact();
         setState(() {
@@ -146,12 +120,25 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
           _elapsed = Duration.zero;
         });
 
+        // Ticker for elapsed seconds
         _timer?.cancel();
         _timer = Timer.periodic(const Duration(seconds: 1), (_) {
           if (mounted) setState(() => _elapsed += const Duration(seconds: 1));
         });
 
-        _waveController.forward(from: 0);
+        // Periodic timer for oscillating waveform bars (independent of frame ticks)
+        _waveTimer?.cancel();
+        _waveTimer = Timer.periodic(const Duration(milliseconds: 120), (_) {
+          if (mounted && _isRecording) {
+            setState(() {
+              for (var i = 0; i < _leftDynamicHeights.length; i++) {
+                _leftDynamicHeights[i] = 0.2 + _waveRng.nextDouble() * 0.8;
+                _rightDynamicHeights[i] = 0.2 + _waveRng.nextDouble() * 0.8;
+              }
+            });
+          }
+        });
+
         _pulseController.repeat(reverse: true);
       }
     } catch (e) {
@@ -163,7 +150,7 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
 
   Future<void> _stopRecording() async {
     _timer?.cancel();
-    _waveController.stop();
+    _waveTimer?.cancel();
     _pulseController.stop();
     HapticFeedback.mediumImpact();
 
@@ -196,7 +183,7 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
 
   Future<void> _cancelRecording() async {
     _timer?.cancel();
-    _waveController.stop();
+    _waveTimer?.cancel();
     _pulseController.stop();
     HapticFeedback.lightImpact();
 
@@ -354,7 +341,7 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
     final rightHeights =
         isRecording ? _rightDynamicHeights : _rightStaticHeights;
 
-    return Container(
+    final content = Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         horizontal: 14,
@@ -430,40 +417,39 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
           ],
 
           // ── The waveform with central mic from the reference attachment ─────
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: isRecording ? _stopRecording : _startRecording,
-            child: SizedBox(
-              height: 40,
-              child: Row(
-                children: [
-                  // Left waveform bars
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: leftHeights.map((h) {
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 90),
-                          width: 3.0,
-                          height: (40 * h).clamp(5.0, 40.0),
-                          decoration: BoxDecoration(
-                            color: isRecording
-                                ? recordingColor.withValues(alpha: 0.9)
-                                : scheme.onSurface.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        );
-                      }).toList(),
-                    ),
+          SizedBox(
+            height: 40,
+            child: Row(
+              children: [
+                // Left waveform bars
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: leftHeights.map((h) {
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 110),
+                        width: 3.0,
+                        height: (40 * h).clamp(5.0, 40.0),
+                        decoration: BoxDecoration(
+                          color: isRecording
+                              ? recordingColor.withValues(alpha: 0.9)
+                              : scheme.onSurface.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }).toList(),
                   ),
+                ),
 
-                  // Center microphone icon
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: isRecording
-                        ? ScaleTransition(
-                            scale: _pulseScale,
+                // Center microphone icon
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: isRecording
+                      ? ScaleTransition(
+                          scale: _pulseScale,
+                          child: GestureDetector(
+                            onTap: _stopRecording,
                             child: Container(
                               padding: const EdgeInsets.all(9),
                               decoration: BoxDecoration(
@@ -480,46 +466,46 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
                                 color: recordingColor,
                               ),
                             ),
-                          )
-                        : Container(
-                            padding: const EdgeInsets.all(9),
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.12),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: scheme.primary.withValues(alpha: 0.25),
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.mic_rounded,
-                              size: 24,
-                              color: scheme.primary,
-                            ),
                           ),
-                  ),
-
-                  // Right waveform bars
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: rightHeights.map((h) {
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 90),
-                          width: 3.0,
-                          height: (40 * h).clamp(5.0, 40.0),
+                        )
+                      : Container(
+                          padding: const EdgeInsets.all(9),
                           decoration: BoxDecoration(
-                            color: isRecording
-                                ? recordingColor.withValues(alpha: 0.9)
-                                : scheme.onSurface.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(3),
+                            color: scheme.primary.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: scheme.primary.withValues(alpha: 0.25),
+                            ),
                           ),
-                        );
-                      }).toList(),
-                    ),
+                          child: Icon(
+                            Icons.mic_rounded,
+                            size: 24,
+                            color: scheme.primary,
+                          ),
+                        ),
+                ),
+
+                // Right waveform bars
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: rightHeights.map((h) {
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 110),
+                        width: 3.0,
+                        height: (40 * h).clamp(5.0, 40.0),
+                        decoration: BoxDecoration(
+                          color: isRecording
+                              ? recordingColor.withValues(alpha: 0.9)
+                              : scheme.onSurface.withValues(alpha: 0.8),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
 
@@ -580,32 +566,42 @@ class _CallAttachmentsSectionState extends State<CallAttachmentsSection>
               ],
             ),
           ] else ...[
-            GestureDetector(
-              onTap: _startRecording,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.touch_app_outlined,
-                    size: 13,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.touch_app_outlined,
+                  size: 13,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.65),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Tap mic to record voice note',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
                     color: scheme.onSurfaceVariant.withValues(alpha: 0.65),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Tap mic to record voice note',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.65),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ],
       ),
     );
+
+    if (!isRecording) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _startRecording,
+          borderRadius: BorderRadius.circular(16),
+          child: content,
+        ),
+      );
+    }
+
+    return content;
   }
 
   Widget _buildSavingIndicator(ColorScheme scheme) {
