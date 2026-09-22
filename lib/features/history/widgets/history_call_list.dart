@@ -104,20 +104,31 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
     final renderObject = context.findRenderObject();
     if (renderObject is! RenderSliverMultiBoxAdaptor) return;
 
-    final firstChild = renderObject.firstChild;
-    if (firstChild == null) return;
+    final sliverScrollOffset = renderObject.constraints.scrollOffset;
 
-    final parentData = firstChild.parentData;
-    if (parentData is! SliverMultiBoxAdaptorParentData) return;
+    RenderBox? child = renderObject.firstChild;
+    while (child != null) {
+      final parentData = child.parentData;
+      if (parentData is SliverMultiBoxAdaptorParentData) {
+        final layoutOffset = parentData.layoutOffset ?? 0.0;
+        final height = child.hasSize ? child.size.height : 0.0;
+        final childBottom = layoutOffset + height;
 
-    final foundIndex = parentData.index;
-    if (foundIndex != null &&
-        foundIndex >= 0 &&
-        foundIndex < _datesByIndex.length) {
-      final date = _datesByIndex[foundIndex];
-      if (date.isNotEmpty) {
-        _currentDate = date;
+        // Find the first child whose bottom is within or below the top visible threshold
+        if (childBottom > sliverScrollOffset + 10) {
+          final foundIndex = parentData.index;
+          if (foundIndex != null &&
+              foundIndex >= 0 &&
+              foundIndex < _datesByIndex.length) {
+            final date = _datesByIndex[foundIndex];
+            if (date.isNotEmpty && date != _currentDate) {
+              _currentDate = date;
+            }
+          }
+          break;
+        }
       }
+      child = renderObject.childAfter(child);
     }
   }
 

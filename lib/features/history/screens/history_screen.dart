@@ -48,6 +48,9 @@ class _HistoryScreenState extends State<HistoryScreen>
   final ValueNotifier<bool> _showScrollToTopNotifier = ValueNotifier<bool>(
     false,
   );
+  final ValueNotifier<bool> _showDateChipNotifier = ValueNotifier<bool>(
+    false,
+  );
 
   List<Contact> _deviceContacts = [];
 
@@ -89,9 +92,16 @@ class _HistoryScreenState extends State<HistoryScreen>
     if (!mounted) return;
 
     final scrollController = widget.titleController.scrollController;
-    final showScrollToTop = scrollController.offset > 300;
+    final offset = scrollController.hasClients ? scrollController.offset : 0.0;
+
+    final showScrollToTop = offset > 300;
     if (showScrollToTop != _showScrollToTopNotifier.value) {
       _showScrollToTopNotifier.value = showScrollToTop;
+    }
+
+    final showDateChip = offset > 40;
+    if (showDateChip != _showDateChipNotifier.value) {
+      _showDateChipNotifier.value = showDateChip;
     }
 
     final listState = _historyListKey.currentState;
@@ -127,6 +137,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     _settingsSubscription?.cancel();
     _visibleDateNotifier.dispose();
     _showScrollToTopNotifier.dispose();
+    _showDateChipNotifier.dispose();
 
     super.dispose();
   }
@@ -389,61 +400,62 @@ class _HistoryScreenState extends State<HistoryScreen>
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
-              ValueListenableBuilder<String?>(
-                valueListenable: _visibleDateNotifier,
-                builder: (context, visibleDate, _) {
-                  if (visibleDate == null) {
-                    return const SizedBox.shrink();
-                  }
+              ValueListenableBuilder<bool>(
+                valueListenable: _showDateChipNotifier,
+                builder: (context, showDateChip, _) {
+                  return ValueListenableBuilder<String?>(
+                    valueListenable: _visibleDateNotifier,
+                    builder: (context, visibleDate, _) {
+                      if (visibleDate == null) {
+                        return const SizedBox.shrink();
+                      }
 
-                  final String? firstDate =
-                      _cachedItems.isNotEmpty && _cachedItems.first is String
-                      ? _cachedItems.first as String
-                      : null;
-                  final bool isAtTopDate = visibleDate == firstDate;
+                      final isVisible = showDateChip && visibleDate.isNotEmpty;
 
-                  return Positioned(
-                    top:
-                        MediaQuery.of(context).padding.top +
-                        kToolbarHeight +
-                        12,
-                    left: 0,
-                    right: 0,
-                    child: IgnorePointer(
-                      child: Center(
-                        child: AnimatedOpacity(
-                          opacity: isAtTopDate ? 0.0 : 1.0,
-                          duration: const Duration(milliseconds: 250),
-                          curve: Curves.easeInOut,
-                          child: AnimatedScale(
-                            scale: isAtTopDate ? 0.8 : 1.0,
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOutBack,
-                            child: GlassContainer(
-                              quality: GlassQuality.standard,
-                              useOwnLayer: false,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 7,
-                              ),
-                              shape: const LiquidRoundedSuperellipse(
-                                borderRadius: 18,
-                              ),
-                              child: Text(
-                                visibleDate,
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                      return Positioned(
+                        top:
+                            MediaQuery.of(context).padding.top +
+                            kToolbarHeight +
+                            12,
+                        left: 0,
+                        right: 0,
+                        child: IgnorePointer(
+                          child: Center(
+                            child: AnimatedOpacity(
+                              opacity: isVisible ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeInOut,
+                              child: AnimatedScale(
+                                scale: isVisible ? 1.0 : 0.8,
+                                duration: const Duration(milliseconds: 200),
+                                curve: Curves.easeOutBack,
+                                child: GlassContainer(
+                                  quality: GlassQuality.standard,
+                                  useOwnLayer: false,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 7,
+                                  ),
+                                  shape: const LiquidRoundedSuperellipse(
+                                    borderRadius: 18,
+                                  ),
+                                  child: Text(
+                                    visibleDate,
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   );
                 },
               ),
