@@ -4,7 +4,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 /// A subtle, elegant info button that displays a hover / tap tooltip
 /// containing the description for a setting.
-class SettingsInfoTooltipButton extends StatelessWidget {
+class SettingsInfoTooltipButton extends StatefulWidget {
   final String message;
 
   const SettingsInfoTooltipButton({
@@ -13,48 +13,60 @@ class SettingsInfoTooltipButton extends StatelessWidget {
   });
 
   @override
+  State<SettingsInfoTooltipButton> createState() =>
+      _SettingsInfoTooltipButtonState();
+}
+
+class _SettingsInfoTooltipButtonState extends State<SettingsInfoTooltipButton> {
+  final GlobalKey<TooltipState> _tooltipKey = GlobalKey<TooltipState>();
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
     return Tooltip(
-      message: message,
+      key: _tooltipKey,
+      message: widget.message,
       triggerMode: TooltipTriggerMode.tap,
+      showDuration: const Duration(seconds: 4),
+      waitDuration: Duration.zero,
       preferBelow: false,
-      verticalOffset: 12,
+      verticalOffset: 14,
       margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(10),
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.98),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.35),
+          color: scheme.outlineVariant.withValues(alpha: 0.45),
         ),
         boxShadow: [
           BoxShadow(
-            color: scheme.shadow.withValues(alpha: 0.25),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       textStyle: TextStyle(
-        fontSize: 12,
+        fontSize: 12.5,
         height: 1.35,
         color: scheme.onSurface,
         fontWeight: FontWeight.w400,
       ),
-      child: InkResponse(
-        radius: 14,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           HapticFeedback.selectionClick();
+          _tooltipKey.currentState?.ensureTooltipVisible();
         },
         child: Padding(
-          padding: const EdgeInsets.all(4),
+          padding: const EdgeInsets.all(6),
           child: Icon(
             Icons.info_outline_rounded,
-            size: 15,
-            color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+            size: 16,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
           ),
         ),
       ),
