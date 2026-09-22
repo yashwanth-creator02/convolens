@@ -85,7 +85,6 @@ class _ContactHeaderState extends State<ContactHeader>
   }
 
   Future<void> _checkWhatsApp() async {
-    // 1. Check if device contact has a registered WhatsApp account
     final hasAccount = widget.deviceContact?.accounts.any(
           (a) =>
               a.type.toLowerCase().contains('whatsapp') ||
@@ -98,7 +97,6 @@ class _ContactHeaderState extends State<ContactHeader>
       return;
     }
 
-    // 2. Check if WhatsApp is installed on device
     final installed = await CallLauncher.isWhatsAppInstalled();
     if (mounted) {
       setState(() => _hasWhatsApp = installed);
@@ -112,19 +110,22 @@ class _ContactHeaderState extends State<ContactHeader>
   }
 
   Future<void> _callCellular() async {
-    final number = _activeNumber.isNotEmpty ? _activeNumber : widget.displayNumber;
+    final number =
+        _activeNumber.isNotEmpty ? _activeNumber : widget.displayNumber;
     if (number.isEmpty) return;
     await CallLauncher.call(number);
   }
 
   Future<void> _callWhatsApp() async {
-    final number = _activeNumber.isNotEmpty ? _activeNumber : widget.displayNumber;
+    final number =
+        _activeNumber.isNotEmpty ? _activeNumber : widget.displayNumber;
     if (number.isEmpty) return;
     await CallLauncher.openWhatsAppCall(number);
   }
 
   Future<void> _openMessageDefault() async {
-    final number = _activeNumber.isNotEmpty ? _activeNumber : widget.displayNumber;
+    final number =
+        _activeNumber.isNotEmpty ? _activeNumber : widget.displayNumber;
     if (number.isEmpty) return;
 
     final launched = await CallLauncher.openWhatsAppChat(number);
@@ -328,27 +329,220 @@ class _ContactHeaderState extends State<ContactHeader>
     );
   }
 
+  Widget _buildGradientBackground(
+    Color bannerColor,
+    ColorScheme scheme,
+    String initials,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            bannerColor.withValues(alpha: 0.7),
+            Color.lerp(bannerColor, scheme.surface, 0.5) ?? scheme.surface,
+            scheme.surface,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initials.isNotEmpty && initials != '#' ? initials : '?',
+          style: TextStyle(
+            fontSize: 72,
+            fontWeight: FontWeight.w900,
+            color: Colors.white.withValues(alpha: 0.12),
+            letterSpacing: 4,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final photo =
+        widget.deviceContact?.photo ?? widget.deviceContact?.thumbnail;
+
     final organization = widget.deviceContact?.organizations.isNotEmpty == true
         ? widget.deviceContact!.organizations.first
+        : null;
+
+    final organizationText = organization != null &&
+            (organization.company.isNotEmpty || organization.title.isNotEmpty)
+        ? [organization.title, organization.company]
+            .where((s) => s.isNotEmpty)
+            .join(' • ')
         : null;
 
     final email = widget.deviceContact?.emails.isNotEmpty == true
         ? widget.deviceContact!.emails.first.address
         : null;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Column(
+    final bannerColor = widget.colorValue != null
+        ? Color(widget.colorValue!)
+        : scheme.primary;
+
+    final initials = _getInitials(widget.displayName);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          _buildAvatar(),
-          const SizedBox(height: 10),
-          _buildContactInfo(organization, email),
-          if (_activeNumber.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            _buildCallActions(),
-          ],
+          // ── Contact image as the full background of the upper header ─────
+          Positioned.fill(
+            child: photo != null && photo.isNotEmpty
+                ? Image.memory(
+                    photo,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    filterQuality: FilterQuality.medium,
+                    gaplessPlayback: true,
+                    frameBuilder:
+                        (context, child, frame, wasSynchronouslyLoaded) {
+                      if (wasSynchronouslyLoaded) return child;
+                      return AnimatedOpacity(
+                        opacity: frame == null ? 0.0 : 1.0,
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        child: child,
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) =>
+                        _buildGradientBackground(
+                            bannerColor, scheme, initials),
+                  )
+                : _buildGradientBackground(bannerColor, scheme, initials),
+          ),
+
+          // ── Scrim overlay for contrast and glass depth ─────────────────────
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.40),
+                    Colors.black.withValues(alpha: 0.72),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Foreground content floating on the image background ───────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Contact Name
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        widget.displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                          color: Colors.white,
+                          letterSpacing: -0.2,
+                          shadows: [
+                            Shadow(blurRadius: 8, color: Colors.black87),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (widget.isArchived) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'ARCHIVED',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+
+                // Organization / Title
+                if (organizationText != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    organizationText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      shadows: const [
+                        Shadow(blurRadius: 6, color: Colors.black87),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Email
+                if (email != null && email.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      shadows: const [
+                        Shadow(blurRadius: 6, color: Colors.black87),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Circular Rotating Call Launcher
+                if (_activeNumber.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildCallActions(),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -358,7 +552,6 @@ class _ContactHeaderState extends State<ContactHeader>
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
 
-    // Outer orbit radius: 52 for single call button, 64 for dual (Cellular + WhatsApp)
     final orbitRadius = _hasWhatsApp ? 64.0 : 52.0;
     final containerSize = (orbitRadius * 2) + 24.0;
 
@@ -391,10 +584,14 @@ class _ContactHeaderState extends State<ContactHeader>
                         radius: orbitRadius,
                         startAngle: math.pi * 1.05,
                         sweepAngle: math.pi * 0.90,
-                        textStyle: theme.textTheme.labelSmall?.copyWith(
+                        textStyle: const TextStyle(
+                          fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          color: Colors.white,
                           letterSpacing: 1.2,
+                          shadows: [
+                            Shadow(blurRadius: 6, color: Colors.black87),
+                          ],
                         ),
                       ),
                     );
@@ -403,10 +600,9 @@ class _ContactHeaderState extends State<ContactHeader>
 
                 // Center Action Buttons inside Orbit
                 if (!_hasWhatsApp)
-                  // Single Large Cellular Call Button
                   Material(
                     shape: const CircleBorder(),
-                    elevation: 3,
+                    elevation: 4,
                     color: scheme.primary,
                     child: InkWell(
                       customBorder: const CircleBorder(),
@@ -420,15 +616,14 @@ class _ContactHeaderState extends State<ContactHeader>
                     ),
                   )
                 else
-                  // Dual Call Buttons: Cellular + WhatsApp
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Cellular Call Button
                       Material(
                         shape: const CircleBorder(),
-                        elevation: 3,
-                        color: scheme.surfaceContainerHigh,
+                        elevation: 4,
+                        color: Colors.black.withValues(alpha: 0.5),
                         child: InkWell(
                           customBorder: const CircleBorder(),
                           onTap: _callCellular,
@@ -438,14 +633,14 @@ class _ContactHeaderState extends State<ContactHeader>
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: scheme.primary.withValues(alpha: 0.4),
+                                color: Colors.white.withValues(alpha: 0.8),
                                 width: 1.5,
                               ),
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.call_rounded,
                               size: 22,
-                              color: scheme.primary,
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -454,7 +649,7 @@ class _ContactHeaderState extends State<ContactHeader>
                       // WhatsApp Call Button
                       Material(
                         shape: const CircleBorder(),
-                        elevation: 3,
+                        elevation: 4,
                         color: const Color(0xFF25D366),
                         child: InkWell(
                           customBorder: const CircleBorder(),
@@ -487,56 +682,6 @@ class _ContactHeaderState extends State<ContactHeader>
     );
   }
 
-  Widget _buildAvatar() {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final photo =
-        widget.deviceContact?.photo ?? widget.deviceContact?.thumbnail;
-    final color = widget.colorValue != null
-        ? Color(widget.colorValue!)
-        : scheme.primaryContainer;
-
-    return Container(
-      width: 84,
-      height: 84,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.5),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.shadow.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: photo != null && photo.isNotEmpty
-          ? Image.memory(
-              photo,
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-              filterQuality: FilterQuality.medium,
-            )
-          : Center(
-              child: Text(
-                _getInitials(widget.displayName),
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w700,
-                  color: widget.colorValue != null
-                      ? Colors.white
-                      : scheme.onPrimaryContainer,
-                ),
-              ),
-            ),
-    );
-  }
-
   String _getInitials(String name) {
     final parts = name
         .trim()
@@ -549,85 +694,6 @@ class _ContactHeaderState extends State<ContactHeader>
 
     return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
         .toUpperCase();
-  }
-
-  Widget _buildContactInfo(Organization? organization, String? email) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: Text(
-                widget.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ),
-            if (widget.isArchived) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  'ARCHIVED',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        if (organization != null &&
-            (organization.company.isNotEmpty || organization.title.isNotEmpty)) ...[
-          const SizedBox(height: 3),
-          Text(
-            [
-              organization.title,
-              organization.company,
-            ].where((s) => s.isNotEmpty).join(' • '),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-        if (email != null && email.isNotEmpty) ...[
-          const SizedBox(height: 2),
-          Text(
-            email,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-            ),
-          ),
-        ],
-      ],
-    );
   }
 }
 
@@ -646,25 +712,31 @@ class _SideActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-
     return Material(
       shape: const CircleBorder(),
-      color: scheme.surfaceContainerHigh,
-      elevation: 1.5,
+      color: Colors.black.withValues(alpha: 0.35),
+      elevation: 2,
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onPressed,
         onLongPress: onLongPress,
-        child: Tooltip(
-          message: tooltip,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Icon(
-              icon,
-              size: 20,
-              color: scheme.onSurface,
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.25),
+              width: 1,
+            ),
+          ),
+          child: Tooltip(
+            message: tooltip,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Icon(
+                icon,
+                size: 20,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
