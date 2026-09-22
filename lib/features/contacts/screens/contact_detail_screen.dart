@@ -38,11 +38,13 @@ class ContactDetailScreen extends StatefulWidget {
 
 class _ContactDetailScreenState extends State<ContactDetailScreen> {
   int _selectedTab = 0;
+  late final PageController _pageController;
   late Contact? _deviceContact;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: _selectedTab);
     _deviceContact = widget.deviceContact ??
         ContactCache.findContact(
           number: widget.normalizedNumber,
@@ -51,6 +53,12 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     if (_deviceContact != null && _deviceContact!.photo == null) {
       _loadFullResPhoto();
     }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadFullResPhoto() async {
@@ -125,7 +133,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                   id: 'contact_more',
                   label: 'More',
                   menuAlignment: GlassMenuAlignment.topRight,
-                  menuWidth: 200,
+                  menuWidth: 215,
                   menuItems: [
                     GlassMenuItem(
                       title: detail?.isFavorite == true
@@ -135,27 +143,36 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                         detail?.isFavorite == true
                             ? Icons.star_rounded
                             : Icons.star_outline_rounded,
+                        size: 18,
                         color: detail?.isFavorite == true
                             ? Colors.amber
-                            : Colors.white,
+                            : scheme.onSurfaceVariant,
                       ),
-                      titleStyle: const TextStyle(
+                      titleStyle: TextStyle(
                         decoration: TextDecoration.none,
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                        color: detail?.isFavorite == true
+                            ? Colors.amber
+                            : scheme.onSurface,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                       ),
                       onTap: () =>
                           _toggleFavorite(detail?.isFavorite ?? false),
                     ),
                     GlassMenuItem(
                       title: 'Copy Number',
-                      icon: const Icon(Icons.copy_rounded),
-                      titleStyle: const TextStyle(
+                      icon: Icon(
+                        Icons.copy_rounded,
+                        size: 18,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      titleStyle: TextStyle(
                         decoration: TextDecoration.none,
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                       ),
                       onTap: () {
                         final numberToCopy =
@@ -170,12 +187,17 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                     ),
                     GlassMenuItem(
                       title: 'Share Contact',
-                      icon: const Icon(Icons.share_outlined),
-                      titleStyle: const TextStyle(
+                      icon: Icon(
+                        Icons.share_outlined,
+                        size: 18,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      titleStyle: TextStyle(
                         decoration: TextDecoration.none,
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                       ),
                       onTap: () {
                         final info = widget.displayName !=
@@ -190,12 +212,17 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                     if (_deviceContact != null)
                       GlassMenuItem(
                         title: 'Edit Contact',
-                        icon: const Icon(Icons.edit_outlined),
-                        titleStyle: const TextStyle(
+                        icon: Icon(
+                          Icons.edit_outlined,
+                          size: 18,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        titleStyle: TextStyle(
                           decoration: TextDecoration.none,
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                          color: scheme.onSurface,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
                         ),
                         onTap: () async {
                           final updated = await Navigator.of(context)
@@ -219,12 +246,17 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                     else
                       GlassMenuItem(
                         title: 'Create Contact',
-                        icon: const Icon(Icons.person_add_outlined),
-                        titleStyle: const TextStyle(
+                        icon: Icon(
+                          Icons.person_add_outlined,
+                          size: 18,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        titleStyle: TextStyle(
                           decoration: TextDecoration.none,
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                          color: scheme.onSurface,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
                         ),
                         onTap: () async {
                           final created = await showAddContactScreen(
@@ -250,12 +282,15 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                         detail?.isArchived == true
                             ? Icons.unarchive_outlined
                             : Icons.archive_outlined,
+                        size: 18,
+                        color: scheme.onSurfaceVariant,
                       ),
-                      titleStyle: const TextStyle(
+                      titleStyle: TextStyle(
                         decoration: TextDecoration.none,
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
                       ),
                       onTap: () async {
                         final isArchived = detail?.isArchived ?? false;
@@ -311,9 +346,15 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                           return;
                         }
 
+                        HapticFeedback.selectionClick();
                         setState(() {
                           _selectedTab = index;
                         });
+                        _pageController.animateToPage(
+                          index,
+                          duration: const Duration(milliseconds: 320),
+                          curve: Curves.easeOutCubic,
+                        );
                       },
                       segments: const [
                         GlassSegment(label: 'Overview'),
@@ -324,22 +365,50 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                     ),
                   ),
                   Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      switchInCurve: Curves.easeOut,
-                      switchOutCurve: Curves.easeIn,
-                      child: KeyedSubtree(
-                        key: ValueKey<int>(_selectedTab),
-                        child: _ContactTabView(
-                          selectedIndex: _selectedTab,
-                          detail: detail,
-                          normalizedNumber: widget.normalizedNumber,
-                          displayName: widget.displayName,
-                          displayNumber: widget.displayNumber,
-                          deviceContact: _deviceContact,
-                          db: widget.db,
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const BouncingScrollPhysics(),
+                      onPageChanged: (index) {
+                        if (_selectedTab != index) {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            _selectedTab = index;
+                          });
+                        }
+                      },
+                      children: [
+                        _KeepAlivePage(
+                          child: ContactOverviewTab(
+                            normalizedNumber: widget.normalizedNumber,
+                            displayNumber: widget.displayNumber,
+                            deviceContact: _deviceContact,
+                            detail: detail,
+                            db: widget.db,
+                          ),
                         ),
-                      ),
+                        _KeepAlivePage(
+                          child: ContactActivityTab(
+                            normalizedNumber: widget.normalizedNumber,
+                            db: widget.db,
+                            deviceContact: _deviceContact,
+                          ),
+                        ),
+                        _KeepAlivePage(
+                          child: ContactAnalyticsTab(
+                            normalizedNumber: widget.normalizedNumber,
+                            db: widget.db,
+                          ),
+                        ),
+                        _KeepAlivePage(
+                          child: ContactMoreTab(
+                            normalizedNumber: widget.normalizedNumber,
+                            displayName: widget.displayName,
+                            displayNumber: widget.displayNumber,
+                            detail: detail,
+                            db: widget.db,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -352,123 +421,22 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
   }
 }
 
-class _ContactTabView extends StatefulWidget {
-  final int selectedIndex;
-  final ContactDetail? detail;
-  final String normalizedNumber;
-  final String displayName;
-  final String displayNumber;
-  final Contact? deviceContact;
-  final AppDatabase db;
-
-  const _ContactTabView({
-    required this.selectedIndex,
-    required this.detail,
-    required this.normalizedNumber,
-    required this.displayName,
-    required this.displayNumber,
-    required this.deviceContact,
-    required this.db,
-  });
+class _KeepAlivePage extends StatefulWidget {
+  final Widget child;
+  const _KeepAlivePage({required this.child});
 
   @override
-  State<_ContactTabView> createState() => _ContactTabViewState();
+  State<_KeepAlivePage> createState() => _KeepAlivePageState();
 }
 
-class _ContactTabViewState extends State<_ContactTabView> {
-  late final List<Widget> _pages;
-
+class _KeepAlivePageState extends State<_KeepAlivePage>
+    with AutomaticKeepAliveClientMixin {
   @override
-  void initState() {
-    super.initState();
-
-    _pages = [
-      ContactOverviewTab(
-        normalizedNumber: widget.normalizedNumber,
-        displayNumber: widget.displayNumber,
-        deviceContact: widget.deviceContact,
-        detail: widget.detail,
-        db: widget.db,
-      ),
-      ContactActivityTab(
-        normalizedNumber: widget.normalizedNumber,
-        db: widget.db,
-        deviceContact: widget.deviceContact,
-      ),
-      ContactAnalyticsTab(
-        normalizedNumber: widget.normalizedNumber,
-        db: widget.db,
-      ),
-      ContactMoreTab(
-        normalizedNumber: widget.normalizedNumber,
-        displayName: widget.displayName,
-        displayNumber: widget.displayNumber,
-        detail: widget.detail,
-        db: widget.db,
-      ),
-    ];
-  }
-
-  @override
-  void didUpdateWidget(covariant _ContactTabView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.detail != widget.detail ||
-        oldWidget.deviceContact != widget.deviceContact) {
-      _pages[0] = ContactOverviewTab(
-        normalizedNumber: widget.normalizedNumber,
-        displayNumber: widget.displayNumber,
-        deviceContact: widget.deviceContact,
-        detail: widget.detail,
-        db: widget.db,
-      );
-
-      _pages[1] = ContactActivityTab(
-        normalizedNumber: widget.normalizedNumber,
-        db: widget.db,
-        deviceContact: widget.deviceContact,
-      );
-
-      _pages[3] = ContactMoreTab(
-        normalizedNumber: widget.normalizedNumber,
-        displayName: widget.displayName,
-        displayNumber: widget.displayNumber,
-        detail: widget.detail,
-        db: widget.db,
-      );
-    }
-  }
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        for (int index = 0; index < _pages.length; index++) _buildPage(index),
-      ],
-    );
-  }
-
-  Widget _buildPage(int index) {
-    final isSelected = index == widget.selectedIndex;
-
-    return Positioned.fill(
-      child: IgnorePointer(
-        ignoring: !isSelected,
-        child: TickerMode(
-          enabled: isSelected,
-          child: AnimatedOpacity(
-            opacity: isSelected ? 1 : 0,
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOut,
-            child: AnimatedSlide(
-              offset: isSelected ? Offset.zero : const Offset(0, 0.015),
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutCubic,
-              child: Offstage(offstage: !isSelected, child: _pages[index]),
-            ),
-          ),
-        ),
-      ),
-    );
+    super.build(context);
+    return widget.child;
   }
 }

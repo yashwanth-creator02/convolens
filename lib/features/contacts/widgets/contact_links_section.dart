@@ -126,8 +126,14 @@ class ContactLinksSection extends StatelessWidget {
     final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: scheme.surface,
+      sheetAnimationStyle: AnimationStyle(
+        duration: const Duration(milliseconds: 320),
+        reverseDuration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      ),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => SafeArea(
         child: Padding(
@@ -151,36 +157,92 @@ class ContactLinksSection extends StatelessWidget {
                 ),
                 title: Text(
                   _getPlatformLabel(link.platform),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    letterSpacing: -0.2,
+                    color: scheme.onSurface,
+                  ),
                 ),
                 subtitle: Text(
                   link.url,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
                 ),
               ),
-              const Divider(height: 1),
+              Divider(
+                height: 1,
+                color: scheme.outlineVariant.withValues(alpha: 0.25),
+              ),
               ListTile(
-                leading: const Icon(Icons.open_in_new_rounded, size: 20),
-                title: const Text('Open link'),
+                leading: Icon(
+                  Icons.open_in_new_rounded,
+                  size: 19,
+                  color: scheme.primary,
+                ),
+                title: Text(
+                  'Open link',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                    color: scheme.onSurface,
+                  ),
+                ),
                 onTap: () => Navigator.pop(context, 'open'),
               ),
               ListTile(
-                leading: const Icon(Icons.copy_rounded, size: 20),
-                title: const Text('Copy URL'),
+                leading: Icon(
+                  Icons.copy_rounded,
+                  size: 19,
+                  color: scheme.onSurfaceVariant,
+                ),
+                title: Text(
+                  'Copy URL',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                    color: scheme.onSurface,
+                  ),
+                ),
                 onTap: () => Navigator.pop(context, 'copy'),
               ),
               ListTile(
-                leading: const Icon(Icons.edit_outlined, size: 20),
-                title: const Text('Edit link'),
+                leading: Icon(
+                  Icons.edit_outlined,
+                  size: 19,
+                  color: scheme.onSurfaceVariant,
+                ),
+                title: Text(
+                  'Edit link',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                    color: scheme.onSurface,
+                  ),
+                ),
                 onTap: () => Navigator.pop(context, 'edit'),
               ),
               ListTile(
-                leading: Icon(Icons.delete_outline_rounded,
-                    size: 20, color: scheme.error),
+                leading: Icon(
+                  Icons.delete_outline_rounded,
+                  size: 19,
+                  color: scheme.error,
+                ),
                 title: Text(
                   'Delete link',
-                  style: TextStyle(color: scheme.error),
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
+                    color: scheme.error,
+                  ),
                 ),
                 onTap: () => Navigator.pop(context, 'delete'),
               ),

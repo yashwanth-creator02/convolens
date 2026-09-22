@@ -2,9 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 /// Shows an interactive liquid glass bottom sheet popup modal
-/// for writing or editing a note about a contact.
+/// for writing or editing a note about a contact, identical in style to [TagSelectionGlassSheet].
 Future<void> showContactNoteModal({
   required BuildContext context,
   required String? initialNote,
@@ -12,113 +13,223 @@ Future<void> showContactNoteModal({
   required FutureOr<void> Function(String note) onSave,
   VoidCallback? onDelete,
 }) {
-  final theme = Theme.of(context);
-  final scheme = theme.colorScheme;
-  final controller = TextEditingController(text: initialNote ?? '');
-  final isEditing = initialNote != null && initialNote.trim().isNotEmpty;
-
-  return showModalBottomSheet(
+  return GlassSheet.show(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (ctx) {
-      return Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: scheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.35),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 20,
-                offset: const Offset(0, -4),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: StatefulBuilder(
-            builder: (context, setSheetState) {
-              final currentText = controller.text;
+    quality: GlassQuality.standard,
+    showDragIndicator: true,
+    isScrollable: false,
+    enableDrag: false,
+    interactionScale: 1.0,
+    enableSaturationGlow: false,
+    enableInteractionGlow: false,
+    suppressInteractionOnChildren: true,
+    topBorderRadius: 24,
+    bottomBorderRadius: 0,
+    margin: EdgeInsets.zero,
+    builder: (context) => _ContactNoteGlassSheet(
+      initialNote: initialNote,
+      contactName: contactName,
+      onSave: onSave,
+      onDelete: onDelete,
+    ),
+  );
+}
 
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Drag indicator handle
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
+class _ContactNoteGlassSheet extends StatefulWidget {
+  final String? initialNote;
+  final String? contactName;
+  final FutureOr<void> Function(String note) onSave;
+  final VoidCallback? onDelete;
+
+  const _ContactNoteGlassSheet({
+    required this.initialNote,
+    required this.contactName,
+    required this.onSave,
+    required this.onDelete,
+  });
+
+  @override
+  State<_ContactNoteGlassSheet> createState() => _ContactNoteGlassSheetState();
+}
+
+class _ContactNoteGlassSheetState extends State<_ContactNoteGlassSheet> {
+  static const List<String> _suggestedTemplates = [
+    'Spoke today',
+    'Follow up required',
+    'Callback requested',
+    'Meeting scheduled',
+    'Important client',
+    'Personal / Family',
+  ];
+
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialNote ?? '');
+    _focusNode = FocusNode();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 160), () {
+        if (mounted) _focusNode.requestFocus();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    final scheme = Theme.of(context).colorScheme;
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isEditing =
+        widget.initialNote != null && widget.initialNote!.trim().isNotEmpty;
+
+    return SafeArea(
+      top: false,
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.only(bottom: keyboardInset),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Pinned Header Row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 6, 12, 4),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(2),
+                        color: scheme.primary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.edit_note_rounded,
+                        size: 17,
+                        color: scheme.primary,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Header with icon, title, and close button
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: scheme.primary.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isEditing ? 'Edit Contact Note' : 'Contact Note',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface,
+                          letterSpacing: -0.2,
                         ),
-                        child: Icon(
-                          Icons.edit_note_rounded,
-                          size: 22,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isEditing && widget.onDelete != null)
+                      TextButton(
+                        onPressed: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(context).pop();
+                          widget.onDelete!();
+                        },
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                        ),
+                        child: Text(
+                          'Delete',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: scheme.error,
+                          ),
+                        ),
+                      ),
+                    TextButton(
+                      onPressed: () async {
+                        final text = _controller.text.trim();
+                        HapticFeedback.lightImpact();
+                        Navigator.of(context).pop();
+                        await widget.onSave(text);
+                      },
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                      ),
+                      child: Text(
+                        'Done',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
                           color: scheme.primary,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isEditing ? 'Edit Contact Note' : 'Add Contact Note',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (contactName != null && contactName.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                contactName,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onSurfaceVariant,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, size: 20),
-                        onPressed: () => Navigator.of(ctx).pop(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                    ),
+                  ],
+                ),
+              ),
 
-                  // Note Text Area
-                  TextField(
-                    controller: controller,
-                    autofocus: true,
-                    maxLines: 6,
+              if (widget.contactName != null &&
+                  widget.contactName!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+                  child: Text(
+                    widget.contactName!,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+
+              // Note editor area
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    maxLines: 5,
                     minLines: 3,
-                    onChanged: (_) => setSheetState(() {}),
                     textCapitalization: TextCapitalization.sentences,
                     style: TextStyle(
                       fontSize: 14.5,
@@ -126,113 +237,95 @@ Future<void> showContactNoteModal({
                       color: scheme.onSurface,
                     ),
                     decoration: InputDecoration(
+                      isDense: true,
+                      border: InputBorder.none,
                       hintText: 'Write a note about this contact…',
                       hintStyle: TextStyle(
                         color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
                         fontSize: 14,
                       ),
-                      filled: true,
-                      fillColor: scheme.surfaceContainerHighest
-                          .withValues(alpha: 0.4),
-                      suffixIcon: currentText.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                controller.clear();
-                                setSheetState(() {});
+                      suffixIcon: _controller.text.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () {
+                                _controller.clear();
+                                setState(() {});
                               },
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 2, right: 2),
+                                child: Icon(
+                                  Icons.cancel,
+                                  size: 16,
+                                  color: scheme.onSurfaceVariant
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
                             )
                           : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: scheme.outlineVariant.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: scheme.outlineVariant.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: scheme.primary,
-                          width: 1.5,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.all(14),
+                      suffixIconConstraints:
+                          const BoxConstraints(minWidth: 20, minHeight: 20),
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
-                  const SizedBox(height: 18),
+                ),
+              ),
 
-                  // Action Buttons Row
-                  Row(
+              // Scrollable Quick Suggestions matching GlassChips
+              Flexible(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (isEditing && onDelete != null) ...[
-                        TextButton.icon(
-                          onPressed: () {
-                            HapticFeedback.lightImpact();
-                            Navigator.of(ctx).pop();
-                            onDelete();
-                          },
-                          icon: Icon(
-                            Icons.delete_outline_rounded,
-                            size: 18,
-                            color: scheme.error,
-                          ),
-                          label: Text(
-                            'Delete Note',
-                            style: TextStyle(
-                              color: scheme.error,
-                              fontWeight: FontWeight.w600,
+                      _buildSectionHeader(context, 'QUICK SUGGESTIONS'),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _suggestedTemplates.map((template) {
+                          return GlassChip(
+                            label: template,
+                            icon: Icon(
+                              Icons.add_rounded,
+                              size: 14,
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.8),
                             ),
-                          ),
-                        ),
-                        const Spacer(),
-                      ] else ...[
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(color: scheme.onSurfaceVariant),
-                          ),
-                        ),
-                        const Spacer(),
-                      ],
-                      FilledButton.icon(
-                        onPressed: () async {
-                          final text = controller.text.trim();
-                          HapticFeedback.lightImpact();
-                          Navigator.of(ctx).pop();
-                          await onSave(text);
-                        },
-                        icon: const Icon(Icons.check_rounded, size: 18),
-                        label: Text(
-                          isEditing ? 'Update Note' : 'Save Note',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
+                            selected: false,
+                            labelStyle: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                            quality: GlassQuality.standard,
+                            useOwnLayer: false,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              final cur = _controller.text.trim();
+                              if (cur.isEmpty) {
+                                _controller.text = template;
+                              } else {
+                                _controller.text = '$cur • $template';
+                              }
+                              _controller.selection =
+                                  TextSelection.fromPosition(
+                                TextPosition(offset: _controller.text.length),
+                              );
+                              setState(() {});
+                            },
+                          );
+                        }).toList(),
                       ),
                     ],
                   ),
-                ],
-              );
-            },
+                ),
+              ),
+            ],
           ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  }
 }
 
 /// Displays the saved contact note inside the Contact Detail Screen area,
