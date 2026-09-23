@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
@@ -12,9 +13,10 @@ import '../../../shared/widgets/route_reveal_fade.dart';
 import '../../history/repository/attachment_storage.dart';
 import '../models/profile_field_def.dart';
 import '../widgets/profile_qr_sheet.dart';
+import 'edit_profile_screen.dart';
 
 // Changes in this revision:
-//  1. The "Share Contact" tab is now a DomeGlassButton (top-half-of-an-
+//  1. The \"Share Contact\" tab is now a DomeGlassButton (top-half-of-an-
 //     ellipse shape) flush against the bottom edge, instead of a floating
 //     pill — see dome_shape.dart.
 //  2. The pull-up-to-open gesture has real hysteresis: it resets if the
@@ -50,6 +52,11 @@ import '../widgets/profile_qr_sheet.dart';
 //     metrics.pixels - metrics.maxScrollExtent instead, which is the actual
 //     rubber-band overshoot and does update continuously under bouncing
 //     physics.
+//  8. Redesign (Liquid Glass): profile view now uses a GlassContainer hero
+//     card showing avatar/name/phone + an "Edit Details" glass button,
+//     followed by GlassGroupedSection per profile category (Basic, Contact,
+//     Professional, Address, Online, Additional) with GlassListTile rows and
+//     category-tinted icon pills — consistent with Settings & History screens.
 class ProfileScreen extends StatefulWidget {
   final AppDatabase db;
   final GlassLargeTitleController titleController;
@@ -196,8 +203,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4.5),
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 13, color: scheme.primary),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTileLeading(IconData icon, ColorScheme scheme) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, size: 17, color: scheme.primary),
+    );
+  }
+
+  /// Icon for a profile field based on its type / key.
+  IconData _iconForField(ProfileFieldDef def) {
+    switch (def.type) {
+      case FieldInputType.phone:
+        return Icons.phone_outlined;
+      case FieldInputType.email:
+        return Icons.email_outlined;
+      case FieldInputType.date:
+        return Icons.cake_outlined;
+      case FieldInputType.multiline:
+        return Icons.notes_rounded;
+      case FieldInputType.text:
+        break;
+    }
+    // Text fields: use key-based icons for well-known keys.
+    switch (def.key) {
+      case 'firstName':
+      case 'middleName':
+      case 'lastName':
+      case 'displayName':
+        return Icons.person_outline_rounded;
+      case 'pronouns':
+        return Icons.record_voice_over_outlined;
+      case 'company':
+        return Icons.business_outlined;
+      case 'jobTitle':
+        return Icons.work_outline_rounded;
+      case 'department':
+        return Icons.corporate_fare_rounded;
+      case 'employeeId':
+        return Icons.badge_outlined;
+      case 'addressLine1':
+      case 'addressLine2':
+      case 'city':
+      case 'state':
+      case 'country':
+      case 'postalCode':
+        return Icons.location_on_outlined;
+      case 'website':
+        return Icons.language_rounded;
+      case 'linkedin':
+        return Icons.link_rounded;
+      case 'github':
+        return Icons.code_rounded;
+      case 'instagram':
+        return Icons.photo_camera_outlined;
+      case 'twitter':
+        return Icons.alternate_email_rounded;
+      default:
+        return Icons.info_outline_rounded;
+    }
+  }
+
+  IconData _sectionIcon(String section) {
+    switch (section) {
+      case 'Basic':
+        return Icons.person_outline_rounded;
+      case 'Contact':
+        return Icons.contact_phone_outlined;
+      case 'Professional':
+        return Icons.work_outline_rounded;
+      case 'Address':
+        return Icons.location_on_outlined;
+      case 'Online':
+        return Icons.language_rounded;
+      case 'Additional':
+        return Icons.notes_rounded;
+      default:
+        return Icons.info_outline_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
     return StreamBuilder<ProfileMetaData>(
       stream: widget.db.watchProfileMeta(),
       builder: (context, metaSnapshot) {
@@ -221,6 +348,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   valueFor('lastName'),
                 ].whereType<String>().join(' ');
             final primaryPhone = valueFor('primaryPhone');
+            final jobTitle = valueFor('jobTitle');
+            final company = valueFor('company');
 
             // secondaryAnimation runs 0->1 while the QR sheet is being
             // pushed on top of this route, and — with an interactive
@@ -232,6 +361,228 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final secondaryAnimation = ModalRoute.of(
               context,
             )?.secondaryAnimation;
+
+            // ── Hero card ─────────────────────────────────────────────────
+            final heroCard = GlassContainer(
+              quality: GlassQuality.standard,
+              shape: const LiquidRoundedSuperellipse(borderRadius: 24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Avatar with camera-edit overlay
+                    GestureDetector(
+                      onTap: () => _changePhoto(context),
+                      child: Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: scheme.primary.withValues(alpha: 0.3),
+                                width: 2.5,
+                              ),
+                            ),
+                            child: CircleAvatar(
+                              radius: 36,
+                              backgroundColor: scheme.primary.withValues(
+                                alpha: 0.1,
+                              ),
+                              backgroundImage: hasPhoto
+                                  ? FileImage(File(photoPath))
+                                  : null,
+                              child: !hasPhoto
+                                  ? Icon(
+                                      Icons.person_rounded,
+                                      size: 38,
+                                      color: scheme.primary,
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: scheme.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: scheme.surface,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.camera_alt_rounded,
+                                size: 12,
+                                color: scheme.onPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Name / subtitle block
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayName.isNotEmpty
+                                ? displayName
+                                : 'Add your name',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.4,
+                              color: scheme.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (jobTitle != null || company != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              [jobTitle, company]
+                                  .whereType<String>()
+                                  .join(' · '),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: scheme.onSurfaceVariant.withValues(
+                                  alpha: 0.75,
+                                ),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          if (primaryPhone != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              primaryPhone,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: scheme.onSurfaceVariant.withValues(
+                                  alpha: 0.6,
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          GlassButton(
+                            onTap: () => Navigator.of(context).push(
+                              CupertinoPageRoute(
+                                builder: (_) =>
+                                    EditProfileScreen(db: widget.db),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.edit_rounded,
+                              size: 14,
+                            ),
+                            label: 'Edit Details',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+
+            // ── Field sections ─────────────────────────────────────────────
+            final sectionWidgets = profileSectionOrder.expand((section) {
+              final sectionFields = profileFieldDefs
+                  .where((def) => def.section == section)
+                  .map((def) => MapEntry(def, valueFor(def.key)))
+                  .where((entry) => entry.value != null)
+                  .toList();
+
+              if (sectionFields.isEmpty) return const <Widget>[];
+
+              return [
+                GlassGroupedSection(
+                  margin: const EdgeInsets.only(bottom: 18),
+                  shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+                  quality: GlassQuality.standard,
+                  header: _buildSectionHeader(
+                    context,
+                    title: section,
+                    icon: _sectionIcon(section),
+                  ),
+                  children: sectionFields.map((entry) {
+                    final def = entry.key;
+                    final value = entry.value!;
+                    return GlassListTile(
+                      leading: _buildTileLeading(_iconForField(def), scheme),
+                      title: Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      subtitle: Text(
+                        def.label,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ];
+            }).toList();
+
+            // ── Empty state (no fields filled yet) ─────────────────────────
+            final emptyState = sectionWidgets.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.person_add_outlined,
+                            size: 48,
+                            color: scheme.onSurfaceVariant.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Fill in your details',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurfaceVariant.withValues(
+                                alpha: 0.6,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Tap "Edit Details" above to get started',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: scheme.onSurfaceVariant.withValues(
+                                alpha: 0.45,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink();
 
             final scrollContent = NotificationListener<ScrollNotification>(
               onNotification: _handleScrollNotification,
@@ -252,108 +603,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     controller: widget.titleController,
                   ),
                   SliverPadding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        Center(
-                          child: Column(
-                            children: [
-                              GestureDetector(
-                                onTap: () => _changePhoto(context),
-                                child: Stack(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 40,
-                                      backgroundImage: hasPhoto
-                                          ? FileImage(File(photoPath))
-                                          : null,
-                                      child: photoPath == null
-                                          ? const Icon(Icons.person, size: 40)
-                                          : null,
-                                    ),
-                                    Positioned(
-                                      right: 0,
-                                      bottom: 0,
-                                      child: CircleAvatar(
-                                        radius: 12,
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        child: const Icon(
-                                          Icons.edit,
-                                          size: 14,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                displayName.isNotEmpty
-                                    ? displayName
-                                    : 'Add your name',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
-                              ),
-                              if (primaryPhone != null) Text(primaryPhone),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        ...profileSectionOrder.map((section) {
-                          final sectionFields = profileFieldDefs
-                              .where((def) => def.section == section)
-                              .map((def) => MapEntry(def, valueFor(def.key)))
-                              .where((entry) => entry.value != null)
-                              .toList();
-
-                          if (sectionFields.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  section,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blueGrey,
-                                  ),
-                                ),
-                                const Divider(),
-                                ...sectionFields.map(
-                                  (entry) => Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        SizedBox(
-                                          width: 120,
-                                          child: Text(
-                                            entry.key.label,
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(child: Text(entry.value!)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                        const SizedBox(height: 140),
+                        heroCard,
+                        const SizedBox(height: 20),
+                        emptyState,
+                        ...sectionWidgets,
+                        const SizedBox(height: 100),
                       ]),
                     ),
                   ),

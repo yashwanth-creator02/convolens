@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
@@ -22,6 +23,56 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4.5),
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 13, color: scheme.primary),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _sectionIcon(String section) {
+    switch (section) {
+      case 'Basic':
+        return Icons.person_outline_rounded;
+      case 'Contact':
+        return Icons.contact_phone_outlined;
+      case 'Professional':
+        return Icons.work_outline_rounded;
+      case 'Address':
+        return Icons.location_on_outlined;
+      case 'Online':
+        return Icons.language_rounded;
+      case 'Additional':
+        return Icons.notes_rounded;
+      default:
+        return Icons.info_outline_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GlassScaffold(
@@ -38,6 +89,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             type: MaterialType.transparency,
             child: CustomScrollView(
               controller: _titleController.scrollController,
+              physics: const BouncingScrollPhysics(),
               slivers: [
                 SliverToBoxAdapter(
                   child: SizedBox(
@@ -49,7 +101,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   controller: _titleController,
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate(
                       profileSectionOrder.map((section) {
@@ -58,33 +110,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             .toList();
 
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                section,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blueGrey,
-                                ),
-                              ),
-                              const Divider(),
-                              ...sectionDefs.map(
-                                (def) => _FieldEditor(
-                                  def: def,
-                                  entry: fields[def.key],
-                                  db: widget.db,
-                                ),
-                              ),
-                            ],
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: GlassGroupedSection(
+                            shape: const LiquidRoundedSuperellipse(
+                              borderRadius: 20,
+                            ),
+                            quality: GlassQuality.standard,
+                            header: _buildSectionHeader(
+                              context,
+                              title: section,
+                              icon: _sectionIcon(section),
+                            ),
+                            children: sectionDefs
+                                .map(
+                                  (def) => _FieldEditor(
+                                    def: def,
+                                    entry: fields[def.key],
+                                    db: widget.db,
+                                  ),
+                                )
+                                .toList(),
                           ),
                         );
                       }).toList(),
                     ),
                   ),
                 ),
-                const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             ),
           );
@@ -148,33 +199,75 @@ class _FieldEditorState extends State<_FieldEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final shared = widget.entry?.shared ?? false;
+    final isMultiline = widget.def.type == FieldInputType.multiline;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: isMultiline
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
           Expanded(
             child: TextField(
               controller: _controller,
               keyboardType: _keyboardTypeFor(widget.def.type),
-              maxLines: widget.def.type == FieldInputType.multiline ? 3 : 1,
-              decoration: InputDecoration(labelText: widget.def.label),
+              maxLines: isMultiline ? 3 : 1,
+              style: TextStyle(
+                fontSize: 14.5,
+                color: scheme.onSurface,
+              ),
+              decoration: InputDecoration(
+                labelText: widget.def.label,
+                labelStyle: TextStyle(
+                  fontSize: 13,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                ),
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(
+                    color: scheme.primary.withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 8,
+                ),
+              ),
               onChanged: (value) =>
                   widget.db.setProfileFieldValue(widget.def.key, value),
             ),
           ),
+          const SizedBox(width: 8),
           Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Share',
-                style: TextStyle(fontSize: 10, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
               ),
-              Switch(
+              const SizedBox(height: 4),
+              GlassSwitch(
                 value: shared,
-                onChanged: (value) =>
-                    widget.db.setProfileFieldShared(widget.def.key, value),
+                onChanged: (value) {
+                  HapticFeedback.selectionClick();
+                  widget.db.setProfileFieldShared(widget.def.key, value);
+                },
+                useOwnLayer: false,
+                quality: GlassQuality.standard,
+                activeColor: scheme.primary,
+                width: 44.0,
+                height: 26.0,
               ),
             ],
           ),
