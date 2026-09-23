@@ -7,7 +7,6 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/database/app_database.dart';
 import '../../history/repository/calls_repository.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
-import '../widgets/settings_glass_card.dart';
 import '../widgets/settings_glass_tile.dart';
 import 'app_features_screen.dart';
 import 'call_card_settings_screen.dart';
@@ -70,6 +69,111 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } else {
       HapticFeedback.selectionClick();
     }
+  }
+
+  Future<void> _toggleArchiveMode(BuildContext context, bool current) async {
+    final next = !current;
+    if (next) {
+      await widget.db.updateSetting(
+        const SettingsCompanion(archiveMode: Value(true)),
+      );
+      await CallsRepository(widget.db).syncFromDevice(archiveMode: true);
+      return;
+    }
+
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: 'Turn off Archive Mode?',
+      message:
+          'Calls that are removed from your phone\'s call log '
+          'will also be permanently deleted from Point the '
+          'next time it syncs. This cannot be undone.',
+      confirmLabel: 'Turn Off',
+      isDestructive: true,
+    );
+
+    if (!confirmed) return;
+
+    await widget.db.updateSetting(
+      const SettingsCompanion(archiveMode: Value(false)),
+    );
+
+    await CallsRepository(widget.db).syncFromDevice(archiveMode: false);
+  }
+
+  Widget _buildTitleWithInfo({
+    required String title,
+    required String infoTooltip,
+    required ColorScheme scheme,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.2,
+              color: scheme.onSurface,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        SettingsInfoTooltipButton(message: infoTooltip),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(4.5),
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, size: 13, color: scheme.primary),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+            letterSpacing: 0.8,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTileLeading(IconData icon, ColorScheme scheme) {
+    return Container(
+      width: 32,
+      height: 32,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: scheme.primary.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        icon,
+        size: 17,
+        color: scheme.primary,
+      ),
+    );
   }
 
   String _getThemeLabel(String theme) {
@@ -140,192 +244,245 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       // ── 1. Permissions & Privacy ─────────────────────────
-                      SettingsGlassCard(
-                        title: 'Permissions & Security',
-                        icon: Icons.shield_outlined,
-                        child: SettingsGlassTile(
-                          icon: Icons.lock_outline_rounded,
-                          title: 'App Permissions',
-                          infoTooltip:
-                              'Manage call log, contacts, and notification access permissions',
-                          onTap: () {
-                            Navigator.of(context).push(
-                              CupertinoPageRoute(
-                                builder: (context) => const PermissionsScreen(),
-                              ),
-                            );
-                          },
+                      GlassGroupedSection(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+                        quality: GlassQuality.standard,
+                        header: _buildSectionHeader(
+                          context,
+                          title: 'Permissions & Security',
+                          icon: Icons.shield_outlined,
                         ),
+                        children: [
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.lock_outline_rounded, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'App Permissions',
+                              infoTooltip:
+                                  'Manage call log, contacts, and notification access permissions',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassListTile.chevron,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) => const PermissionsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
 
                       // ── 2. Sync & Storage ────────────────────────────────
-                      SettingsGlassCard(
-                        title: 'Sync & Storage',
-                        icon: Icons.sync_rounded,
-                        child: Column(
-                          children: [
-                            SettingsGlassSwitchTile(
-                              icon: Icons.cloud_sync_outlined,
+                      GlassGroupedSection(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+                        quality: GlassQuality.standard,
+                        header: _buildSectionHeader(
+                          context,
+                          title: 'Sync & Storage',
+                          icon: Icons.sync_rounded,
+                        ),
+                        children: [
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.cloud_sync_outlined, scheme),
+                            title: _buildTitleWithInfo(
                               title: 'Enable Sync',
                               infoTooltip:
                                   'Keep call records synchronized with device logs',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassSwitch(
                               value: settings.syncEnabled,
                               onChanged: (value) {
                                 widget.db.updateSetting(
                                   SettingsCompanion(syncEnabled: Value(value)),
                                 );
                               },
+                              useOwnLayer: false,
+                              quality: GlassQuality.standard,
+                              activeColor: scheme.primary,
+                              width: 50.0,
+                              height: 28.0,
                             ),
-                            const SettingsGlassDivider(),
-                            SettingsGlassSwitchTile(
-                              icon: Icons.inventory_2_outlined,
+                            onTap: () {
+                              widget.db.updateSetting(
+                                SettingsCompanion(syncEnabled: Value(!settings.syncEnabled)),
+                              );
+                            },
+                          ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.inventory_2_outlined, scheme),
+                            title: _buildTitleWithInfo(
                               title: 'Archive Mode',
                               infoTooltip:
                                   'Preserve calls even if deleted from phone log',
-                              value: settings.archiveMode,
-                              onChanged: (value) async {
-                                if (value == true) {
-                                  await widget.db.updateSetting(
-                                    const SettingsCompanion(
-                                        archiveMode: Value(true)),
-                                  );
-                                  await CallsRepository(
-                                    widget.db,
-                                  ).syncFromDevice(archiveMode: true);
-                                  return;
-                                }
-
-                                final confirmed = await showConfirmDialog(
-                                  context: context,
-                                  title: 'Turn off Archive Mode?',
-                                  message:
-                                      'Calls that are removed from your phone\'s call log '
-                                      'will also be permanently deleted from Convolens the '
-                                      'next time it syncs. This cannot be undone.',
-                                  confirmLabel: 'Turn Off',
-                                  isDestructive: true,
-                                );
-
-                                if (!confirmed) return;
-
-                                await widget.db.updateSetting(
-                                  const SettingsCompanion(
-                                      archiveMode: Value(false)),
-                                );
-
-                                await CallsRepository(
-                                  widget.db,
-                                ).syncFromDevice(archiveMode: false);
-                              },
+                              scheme: scheme,
                             ),
-                          ],
-                        ),
+                            trailing: GlassSwitch(
+                              value: settings.archiveMode,
+                              onChanged: (_) => _toggleArchiveMode(context, settings.archiveMode),
+                              useOwnLayer: false,
+                              quality: GlassQuality.standard,
+                              activeColor: scheme.primary,
+                              width: 50.0,
+                              height: 28.0,
+                            ),
+                            onTap: () => _toggleArchiveMode(context, settings.archiveMode),
+                          ),
+                        ],
                       ),
 
                       // ── 3. Appearance & Display ──────────────────────────
-                      SettingsGlassCard(
-                        title: 'Appearance & Display',
-                        icon: Icons.palette_outlined,
-                        child: Column(
-                          children: [
-                            SettingsGlassTile(
-                              icon: Icons.color_lens_outlined,
+                      GlassGroupedSection(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+                        quality: GlassQuality.standard,
+                        header: _buildSectionHeader(
+                          context,
+                          title: 'Appearance & Display',
+                          icon: Icons.palette_outlined,
+                        ),
+                        children: [
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.color_lens_outlined, scheme),
+                            title: _buildTitleWithInfo(
                               title: 'Theme',
                               infoTooltip:
-                                  'Choose the visual appearance theme for ConvoLens',
-                              trailing: SettingsGlassPillBadge(
-                                label: _getThemeLabel(settings.theme),
-                                icon: _getThemeIcon(settings.theme),
-                              ),
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  CupertinoPageRoute(
-                                    builder: (context) =>
-                                        ThemeScreen(db: widget.db),
-                                  ),
-                                );
-                              },
+                                  'Choose the visual appearance theme for Point',
+                              scheme: scheme,
                             ),
-                            const SettingsGlassDivider(),
-                            SettingsGlassTile(
-                              icon: Icons.dashboard_customize_outlined,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SettingsGlassPillBadge(
+                                  label: _getThemeLabel(settings.theme),
+                                  icon: _getThemeIcon(settings.theme),
+                                ),
+                                const SizedBox(width: 4),
+                                GlassListTile.chevron,
+                              ],
+                            ),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) => ThemeScreen(db: widget.db),
+                                ),
+                              );
+                            },
+                          ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.dashboard_customize_outlined, scheme),
+                            title: _buildTitleWithInfo(
                               title: 'Call Card Display',
                               infoTooltip:
                                   'Choose which fields appear on each call history card',
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  CupertinoPageRoute(
-                                    builder: (context) =>
-                                        CallCardSettingsScreen(db: widget.db),
-                                  ),
-                                );
-                              },
+                              scheme: scheme,
                             ),
-                          ],
-                        ),
+                            trailing: GlassListTile.chevron,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) =>
+                                      CallCardSettingsScreen(db: widget.db),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
 
                       // ── 4. Developer Contact / Support ──────────────────
-                      SettingsGlassCard(
-                        title: 'Support & Feedback',
-                        icon: Icons.support_agent_rounded,
-                        child: SettingsGlassTile(
-                          icon: Icons.outgoing_mail,
-                          title: 'Connect with the developer',
-                          infoTooltip:
-                              'Compose an email to the developer at leo.two.dev@gmail.com',
-                          trailing: const SettingsGlassPillBadge(
-                            label: 'Contact',
-                            icon: Icons.send_rounded,
-                          ),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              CupertinoPageRoute(
-                                builder: (context) =>
-                                    const ConnectDeveloperScreen(),
-                              ),
-                            );
-                          },
+                      GlassGroupedSection(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+                        quality: GlassQuality.standard,
+                        header: _buildSectionHeader(
+                          context,
+                          title: 'Support & Feedback',
+                          icon: Icons.support_agent_rounded,
                         ),
+                        children: [
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.outgoing_mail, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'Connect with the developer',
+                              infoTooltip:
+                                  'Compose an email to the developer at leo.two.dev@gmail.com',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassListTile.chevron,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) =>
+                                      const ConnectDeveloperScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
 
                       // ── 5. Developer Options ─────────────────────────────
-                      SettingsGlassCard(
-                        title: 'Developer Options',
-                        icon: Icons.code_rounded,
-                        child: Column(
-                          children: [
-                            SettingsGlassSwitchTile(
-                              icon: Icons.terminal_rounded,
+                      GlassGroupedSection(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+                        quality: GlassQuality.standard,
+                        header: _buildSectionHeader(
+                          context,
+                          title: 'Developer Options',
+                          icon: Icons.code_rounded,
+                        ),
+                        children: [
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.developer_mode_outlined, scheme),
+                            title: _buildTitleWithInfo(
                               title: 'Developer Mode',
                               infoTooltip:
-                                  'Enable internal diagnostics, logs, and database inspection tools',
+                                  'Unlock advanced diagnostic tools, database browser, and experimental features',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassSwitch(
                               value: settings.devMode,
                               onChanged: (value) {
                                 widget.db.updateSetting(
                                   SettingsCompanion(devMode: Value(value)),
                                 );
                               },
+                              useOwnLayer: false,
+                              quality: GlassQuality.standard,
+                              activeColor: scheme.primary,
+                              width: 50.0,
+                              height: 28.0,
                             ),
-                            if (settings.devMode) ...[
-                              const SettingsGlassDivider(),
-                              SettingsGlassTile(
-                                icon: Icons.build_circle_outlined,
+                            onTap: () {
+                              widget.db.updateSetting(
+                                SettingsCompanion(devMode: Value(!settings.devMode)),
+                              );
+                            },
+                          ),
+                          if (settings.devMode)
+                            GlassListTile(
+                              leading: _buildTileLeading(Icons.build_circle_outlined, scheme),
+                              title: _buildTitleWithInfo(
                                 title: 'Developer Tools',
                                 infoTooltip:
                                     'Database browser, notification troubleshooting & test calls',
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    CupertinoPageRoute(
-                                      builder: (context) =>
-                                          DeveloperScreen(db: widget.db),
-                                    ),
-                                  );
-                                },
+                                scheme: scheme,
                               ),
-                            ],
-                          ],
-                        ),
+                              trailing: GlassListTile.chevron,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  CupertinoPageRoute(
+                                    builder: (context) =>
+                                        DeveloperScreen(db: widget.db),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
                       ),
 
                       // ── 6. App Information & Branding ────────────────────
