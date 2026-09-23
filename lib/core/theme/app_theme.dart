@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'app_theme_type.dart';
-import 'themes/light_theme.dart';
-import 'themes/dark_theme.dart';
 import 'themes/cosmo_theme.dart';
+import 'themes/dark_theme.dart';
+import 'themes/light_theme.dart';
+import 'themes/purple_theme.dart';
 
 class AppTheme {
   static ThemeData getTheme(AppThemeType type) {
@@ -13,6 +14,9 @@ class AppTheme {
 
       case AppThemeType.dark:
         return DarkTheme.data;
+
+      case AppThemeType.purple:
+        return PurpleTheme.data;
 
       case AppThemeType.cosmo:
         return CosmoTheme.data;

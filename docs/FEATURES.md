@@ -1,6 +1,6 @@
 # ✨ Feature Documentation
 
-This document provides an in-depth explanation of the primary features and user experience modules in **Convolens**.
+This document provides an in-depth explanation of the primary features and user experience modules in **ConvoLens**.
 
 ---
 
