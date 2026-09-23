@@ -28,9 +28,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _titleController = GlassLargeTitleController();
   int _easterEggTapCount = 0;
   DateTime? _lastEasterEggTap;
+  VoidCallback? _currentToastDismiss;
 
   @override
   void dispose() {
+    try {
+      _currentToastDismiss?.call();
+    } catch (_) {}
+    _currentToastDismiss = null;
     _titleController.dispose();
     super.dispose();
   }
@@ -47,6 +52,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (_easterEggTapCount >= 7) {
       _easterEggTapCount = 0;
+      try {
+        _currentToastDismiss?.call();
+      } catch (_) {}
+      _currentToastDismiss = null;
       HapticFeedback.heavyImpact();
       Navigator.of(context).push(
         CupertinoPageRoute(
@@ -56,15 +65,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } else if (_easterEggTapCount >= 4) {
       HapticFeedback.selectionClick();
       final remaining = 7 - _easterEggTapCount;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Tap $remaining more ${remaining == 1 ? "time" : "times"} to explore features...',
-          ),
-          duration: const Duration(milliseconds: 700),
-          behavior: SnackBarBehavior.floating,
-        ),
+      try {
+        _currentToastDismiss?.call();
+      } catch (_) {}
+      _currentToastDismiss = GlassToast.show(
+        context,
+        message:
+            'Tap $remaining more ${remaining == 1 ? "time" : "times"} to explore features',
+        icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+        type: GlassToastType.info,
+        position: GlassToastPosition.bottom,
+        duration: const Duration(milliseconds: 1200),
       );
     } else {
       HapticFeedback.selectionClick();
