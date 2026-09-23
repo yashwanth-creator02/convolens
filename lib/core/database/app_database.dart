@@ -213,19 +213,40 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<Call>> searchCalls({
-    required String contactQuery,
-    required String noteQuery,
-    required String tagQuery,
-    required bool hasAttachment,
-    required bool hasReminder,
+    String contactQuery = '',
+    String noteQuery = '',
+    String tagQuery = '',
+    Iterable<String>? selectedTags,
+    bool hasAttachment = false,
+    bool hasReminder = false,
+    String? generalQuery,
+    bool hasNotes = false,
+    int? callType,
   }) {
     final selectQuery = select(calls).join([
       leftOuterJoin(callDetails, callDetails.callId.equalsExp(calls.id)),
     ]);
 
+    if (generalQuery != null && generalQuery.trim().isNotEmpty) {
+      final likeQuery = '%${generalQuery.trim()}%';
+      selectQuery.where(
+        calls.name.like(likeQuery) |
+            calls.number.like(likeQuery) |
+            callDetails.note.like(likeQuery) |
+            existsQuery(
+              selectOnly(callTags)
+                  .join([innerJoin(tags, tags.id.equalsExp(callTags.tagId))])
+                ..addColumns([callTags.callId])
+                ..where(
+                  callTags.callId.equalsExp(calls.id) &
+                      tags.name.like(likeQuery),
+                ),
+            ),
+      );
+    }
+
     if (contactQuery.isNotEmpty) {
       final likeQuery = '%$contactQuery%';
-
       selectQuery.where(
         calls.name.like(likeQuery) | calls.number.like(likeQuery),
       );
@@ -262,6 +283,31 @@ class AppDatabase extends _$AppDatabase {
             ),
         ),
       );
+    }
+
+    if (selectedTags != null && selectedTags.isNotEmpty) {
+      selectQuery.where(
+        existsQuery(
+          selectOnly(
+              callTags,
+            ).join([innerJoin(tags, tags.id.equalsExp(callTags.tagId))])
+            ..addColumns([callTags.callId])
+            ..where(
+              callTags.callId.equalsExp(calls.id) &
+                  tags.name.isIn(selectedTags),
+            ),
+        ),
+      );
+    }
+
+    if (hasNotes) {
+      selectQuery.where(
+        callDetails.note.isNotNull() & callDetails.note.equals('').not(),
+      );
+    }
+
+    if (callType != null) {
+      selectQuery.where(calls.type.equals(callType));
     }
 
     selectQuery.orderBy([
