@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/native/device_channel.dart';
 import '../../../core/toast/toast_service.dart';
-import '../widgets/settings_glass_card.dart';
 
 /// Predefined email templates to help users quickly connect with the developer.
 enum EmailTemplateType {
@@ -139,6 +138,15 @@ class _ConnectDeveloperScreenState extends State<ConnectDeveloperScreen> {
     });
   }
 
+  void _resetTemplate() {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _subjectController.text = _selectedTemplate.subject;
+      _bodyController.text = _selectedTemplate.body;
+    });
+    ToastService.info(context, 'Reset to template defaults.');
+  }
+
   String _encodeQueryParameters(Map<String, String> params) {
     return params.entries
         .map((e) =>
@@ -219,6 +227,69 @@ class _ConnectDeveloperScreenState extends State<ConnectDeveloperScreen> {
     }
   }
 
+  Widget _buildHarmonizedCard({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required Widget child,
+    Widget? trailing,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: scheme.outlineVariant.withValues(alpha: 0.35),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: scheme.shadow.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: scheme.primary.withValues(alpha: 0.9),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                if (trailing != null) ...[
+                  const Spacer(),
+                  trailing,
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -228,223 +299,213 @@ class _ConnectDeveloperScreenState extends State<ConnectDeveloperScreen> {
       appBar: GlassAppBar.pinned(
         title: const Text('Connect with Developer'),
         largeTitleController: _titleController,
+        actions: [
+          GlassBarItem.menu(
+            icon: const Icon(Icons.more_horiz),
+            id: 'developer_menu',
+            label: 'More',
+            menuAlignment: GlassMenuAlignment.topRight,
+            menuWidth: 160,
+            menuItems: [
+              GlassMenuItem(
+                title: 'Copy',
+                icon: Icon(
+                  Icons.copy_rounded,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
+                titleStyle: TextStyle(
+                  decoration: TextDecoration.none,
+                  color: scheme.onSurface,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
+                onTap: () => _copyToClipboard(showToast: true),
+              ),
+              GlassMenuItem(
+                title: 'Reset',
+                icon: Icon(
+                  Icons.refresh_rounded,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
+                titleStyle: TextStyle(
+                  decoration: TextDecoration.none,
+                  color: scheme.onSurface,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                ),
+                onTap: _resetTemplate,
+              ),
+            ],
+          ),
+        ],
       ),
       body: Material(
         type: MaterialType.transparency,
-        child: CustomScrollView(
-          controller: _titleController.scrollController,
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: MediaQuery.of(context).padding.top + kToolbarHeight,
-              ),
-            ),
-            GlassLargeTitle(
-              text: 'Connect with Developer',
-              controller: _titleController,
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  // ── Destination Text (Plain text, no container) ──
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 12),
-                    child: Row(
-                      children: [
-                        Text(
-                          'To: ',
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w500,
-                            color: scheme.onSurfaceVariant
-                                .withValues(alpha: 0.75),
-                          ),
-                        ),
-                        Text(
-                          ConnectDeveloperScreen.developerEmail,
-                          style: TextStyle(
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w600,
-                            color: scheme.primary,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(Icons.copy_rounded, size: 16),
-                          tooltip: 'Copy Email Address',
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          color: scheme.onSurfaceVariant
-                              .withValues(alpha: 0.7),
-                          onPressed: () {
-                            Clipboard.setData(
-                              const ClipboardData(
-                                text: ConnectDeveloperScreen.developerEmail,
+        child: Stack(
+          children: [
+            CustomScrollView(
+              controller: _titleController.scrollController,
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height:
+                        MediaQuery.of(context).padding.top + kToolbarHeight,
+                  ),
+                ),
+                GlassLargeTitle(
+                  text: 'Connect with Developer',
+                  controller: _titleController,
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 80),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // ── 1. Destination Text (Plain text, no container) ──
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 12),
+                        child: Row(
+                          children: [
+                            Text(
+                              'To: ',
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w500,
+                                color: scheme.onSurfaceVariant
+                                    .withValues(alpha: 0.75),
                               ),
-                            );
-                            HapticFeedback.selectionClick();
-                            ToastService.success(
-                              context,
-                              'Email address copied.',
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── Horizontal Scrolling Templates Bar ───────────
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children: EmailTemplateType.values.map((template) {
-                          final isSelected =
-                              _selectedTemplate == template;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: GlassChip(
-                              label: template.title,
-                              selected: isSelected,
-                              onTap: () => _onTemplateSelected(template),
                             ),
-                          );
-                        }).toList(),
+                            Text(
+                              ConnectDeveloperScreen.developerEmail,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.primary,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.copy_rounded, size: 16),
+                              tooltip: 'Copy Email Address',
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
+                              onPressed: () {
+                                Clipboard.setData(
+                                  const ClipboardData(
+                                    text:
+                                        ConnectDeveloperScreen.developerEmail,
+                                  ),
+                                );
+                                HapticFeedback.selectionClick();
+                                ToastService.success(
+                                  context,
+                                  'Email address copied.',
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
 
-                  // ── Subject Field ────────────────────────────────
-                  SettingsGlassCard(
-                    title: 'Subject',
-                    icon: Icons.subject_rounded,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
+                      // ── 2. Horizontal Scrolling Templates Bar ─────────
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
+                          child: Row(
+                            children: EmailTemplateType.values.map((template) {
+                              final isSelected =
+                                  _selectedTemplate == template;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: GlassChip(
+                                  label: template.title,
+                                  selected: isSelected,
+                                  onTap: () => _onTemplateSelected(template),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
                       ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest
-                              .withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
+
+                      // ── 3. Subject Section (Unified Card) ────────────
+                      _buildHarmonizedCard(
+                        context: context,
+                        title: 'Subject',
+                        icon: Icons.subject_rounded,
                         child: TextField(
                           controller: _subjectController,
                           style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w500,
                             color: scheme.onSurface,
                           ),
                           decoration: InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
-                            hintText: 'Email Subject…',
+                            contentPadding: EdgeInsets.zero,
+                            hintText: 'Enter subject…',
                             hintStyle: TextStyle(
                               color: scheme.onSurfaceVariant
-                                  .withValues(alpha: 0.6),
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.normal,
+                                  .withValues(alpha: 0.55),
+                              fontSize: 14,
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
 
-                  // ── Message Body Field ───────────────────────────
-                  SettingsGlassCard(
-                    title: 'Message Body',
-                    icon: Icons.edit_note_rounded,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 10,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest
-                              .withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
+                      // ── 4. Message Body Section (Unified Card) ───────
+                      _buildHarmonizedCard(
+                        context: context,
+                        title: 'Message Body',
+                        icon: Icons.edit_note_rounded,
                         child: TextField(
                           controller: _bodyController,
                           maxLines: 10,
                           minLines: 5,
                           style: TextStyle(
-                            fontSize: 13.5,
+                            fontSize: 14,
                             height: 1.45,
                             color: scheme.onSurface,
                           ),
                           decoration: InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
                             hintText: 'Compose your message…',
                             hintStyle: TextStyle(
                               color: scheme.onSurfaceVariant
-                                  .withValues(alpha: 0.6),
-                              fontSize: 13,
+                                  .withValues(alpha: 0.55),
+                              fontSize: 13.5,
                             ),
                           ),
                         ),
                       ),
-                    ),
+                    ]),
                   ),
+                ),
+              ],
+            ),
 
-                  const SizedBox(height: 12),
-
-                  // ── Action Buttons ───────────────────────────────
-                  FilledButton.icon(
-                    onPressed: _sendEmail,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: const Icon(Icons.send_rounded, size: 18),
-                    label: const Text(
-                      'Send Email',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: () => _copyToClipboard(showToast: true),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      side: BorderSide(
-                        color: scheme.outline.withValues(alpha: 0.35),
-                      ),
-                    ),
-                    icon: const Icon(Icons.copy_rounded, size: 17),
-                    label: const Text(
-                      'Copy Email Details',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ]),
+            // ── Small Floating Send Button in Bottom Right Corner ─
+            Positioned(
+              bottom: MediaQuery.paddingOf(context).bottom + 20,
+              right: 20,
+              child: GlassButton(
+                onTap: _sendEmail,
+                icon: const Icon(Icons.send_rounded, size: 25),
+                label: 'Send',
+                quality: GlassQuality.standard,
               ),
             ),
           ],

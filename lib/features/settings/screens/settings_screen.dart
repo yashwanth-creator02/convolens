@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
@@ -8,6 +9,7 @@ import '../../history/repository/calls_repository.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../widgets/settings_glass_card.dart';
 import '../widgets/settings_glass_tile.dart';
+import 'app_features_screen.dart';
 import 'call_card_settings_screen.dart';
 import 'connect_developer_screen.dart';
 import 'developer_screen.dart';
@@ -25,11 +27,49 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _titleController = GlassLargeTitleController();
+  int _easterEggTapCount = 0;
+  DateTime? _lastEasterEggTap;
 
   @override
   void dispose() {
     _titleController.dispose();
     super.dispose();
+  }
+
+  void _handleEasterEggTap() {
+    final now = DateTime.now();
+    if (_lastEasterEggTap == null ||
+        now.difference(_lastEasterEggTap!) > const Duration(seconds: 2)) {
+      _easterEggTapCount = 1;
+    } else {
+      _easterEggTapCount++;
+    }
+    _lastEasterEggTap = now;
+
+    if (_easterEggTapCount >= 7) {
+      _easterEggTapCount = 0;
+      HapticFeedback.heavyImpact();
+      Navigator.of(context).push(
+        CupertinoPageRoute(
+          builder: (context) => const AppFeaturesScreen(),
+        ),
+      );
+    } else if (_easterEggTapCount >= 4) {
+      HapticFeedback.selectionClick();
+      final remaining = 7 - _easterEggTapCount;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Tap $remaining more ${remaining == 1 ? "time" : "times"} to explore features...',
+          ),
+          duration: const Duration(milliseconds: 700),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      HapticFeedback.selectionClick();
+    }
   }
 
   String _getThemeLabel(String theme) {
@@ -232,8 +272,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         child: SettingsGlassTile(
                           icon: Icons.outgoing_mail,
                           title: 'Connect with the developer',
-                          subtitle:
-                              'Send feedback, report bugs, or request features',
                           infoTooltip:
                               'Compose an email to the developer at leo.two.dev@gmail.com',
                           trailing: const SettingsGlassPillBadge(
@@ -294,44 +332,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Center(
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  color: scheme.primary.withValues(alpha: 0.12),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: scheme.primary.withValues(alpha: 0.25),
+                          child: GestureDetector(
+                            onTap: _handleEasterEggTap,
+                            behavior: HitTestBehavior.opaque,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.asset(
+                                    'assets/icons/logo.png',
+                                    width: 48,
+                                    height: 48,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: scheme.primary.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        Icons.all_inclusive_rounded,
+                                        size: 26,
+                                        color: scheme.primary,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                                child: Icon(
-                                  Icons.graphic_eq_rounded,
-                                  size: 24,
-                                  color: scheme.primary,
+                                const SizedBox(height: 10),
+                                Text(
+                                  'Point',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 0.3,
+                                    color: scheme.onSurface,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'ConvoLens',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.3,
-                                  color: scheme.onSurface,
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Version 1.0.0 • Liquid Glass UI',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: scheme.onSurfaceVariant
+                                        .withValues(alpha: 0.65),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Version 1.0.0 • Liquid Glass UI',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: scheme.onSurfaceVariant
-                                      .withValues(alpha: 0.65),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
