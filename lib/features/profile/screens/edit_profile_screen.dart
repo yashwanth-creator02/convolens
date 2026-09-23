@@ -29,28 +29,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required IconData icon,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4.5),
-          decoration: BoxDecoration(
-            color: scheme.primary.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4.5),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 13, color: scheme.primary),
           ),
-          child: Icon(icon, size: 13, color: scheme.primary),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title.toUpperCase(),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-            letterSpacing: 0.8,
+          const SizedBox(width: 8),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+              letterSpacing: 0.8,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -160,16 +163,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               icon: Icons.visibility_off_outlined,
                             ),
                             children: [
-                              // Description tile
+                              // Description
                               Padding(
                                 padding: const EdgeInsets.fromLTRB(
                                   4,
-                                  6,
                                   4,
-                                  2,
+                                  4,
+                                  10,
                                 ),
                                 child: Text(
-                                  'Fields toggled on will be hidden when you share your contact card.',
+                                  'Tap a field chip to hide it when sharing your contact card.',
                                   style: TextStyle(
                                     fontSize: 12.5,
                                     height: 1.45,
@@ -179,11 +182,51 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   ),
                                 ),
                               ),
-                              ...filledDefs.map(
-                                (def) => _ExcludeTile(
-                                  def: def,
-                                  entry: fields[def.key],
-                                  db: widget.db,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: filledDefs.map((def) {
+                                    final entry = fields[def.key];
+                                    final isExcluded = !(entry?.shared ?? true);
+                                    return GlassChip(
+                                      label: def.label,
+                                      selected: isExcluded,
+                                      selectedColor: scheme.error.withValues(
+                                        alpha: 0.22,
+                                      ),
+                                      icon: Icon(
+                                        isExcluded
+                                            ? Icons.visibility_off_rounded
+                                            : Icons.visibility_outlined,
+                                        size: 14,
+                                        color: isExcluded
+                                            ? scheme.error
+                                            : scheme.onSurfaceVariant.withValues(
+                                                alpha: 0.7,
+                                              ),
+                                      ),
+                                      labelStyle: TextStyle(
+                                        color: isExcluded
+                                            ? scheme.error
+                                            : scheme.onSurface,
+                                        fontWeight: isExcluded
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        fontSize: 13,
+                                      ),
+                                      quality: GlassQuality.standard,
+                                      useOwnLayer: false,
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        widget.db.setProfileFieldShared(
+                                          def.key,
+                                          isExcluded,
+                                        );
+                                      },
+                                    );
+                                  }).toList(),
                                 ),
                               ),
                             ],
@@ -261,102 +304,42 @@ class _FieldEditorState extends State<_FieldEditor> {
     final isMultiline = widget.def.type == FieldInputType.multiline;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: TextField(
-        controller: _controller,
-        keyboardType: _keyboardTypeFor(widget.def.type),
-        maxLines: isMultiline ? 3 : 1,
-        style: TextStyle(fontSize: 14.5, color: scheme.onSurface),
-        decoration: InputDecoration(
-          labelText: widget.def.label,
-          labelStyle: TextStyle(
-            fontSize: 13,
-            color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
-          ),
-          filled: false,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: UnderlineInputBorder(
-            borderSide: BorderSide(
-              color: scheme.primary.withValues(alpha: 0.5),
-              width: 1.5,
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 4,
-            vertical: 8,
-          ),
-        ),
-        onChanged: (value) =>
-            widget.db.setProfileFieldValue(widget.def.key, value),
-      ),
-    );
-  }
-}
-
-// ── Exclude tile (GlassSwitch to mark a field as excluded from sharing) ────
-
-class _ExcludeTile extends StatelessWidget {
-  final ProfileFieldDef def;
-  final ProfileFieldEntry? entry;
-  final AppDatabase db;
-
-  const _ExcludeTile({
-    required this.def,
-    required this.entry,
-    required this.db,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    // excluded == NOT shared  →  switch ON = excluded = shared: false
-    final isExcluded = !(entry?.shared ?? true);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  def.label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: scheme.onSurface,
-                  ),
-                ),
-                if (entry?.value != null && entry!.value!.isNotEmpty)
-                  Text(
-                    entry!.value!,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.65),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 6),
+            child: Text(
+              widget.def.label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                letterSpacing: 0.2,
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          GlassSwitch(
-            value: isExcluded,
-            onChanged: (excluded) {
-              HapticFeedback.selectionClick();
-              // excluded = true  →  shared = false
-              // excluded = false →  shared = true
-              db.setProfileFieldShared(def.key, !excluded);
-            },
-            useOwnLayer: false,
+          GlassTextField(
+            controller: _controller,
+            placeholder: 'Enter ${widget.def.label.toLowerCase()}…',
+            keyboardType: _keyboardTypeFor(widget.def.type),
+            minLines: 1,
+            maxLines: isMultiline ? 3 : 1,
             quality: GlassQuality.standard,
-            activeColor: scheme.error, // red = excluded
-            width: 44.0,
-            height: 26.0,
+            useOwnLayer: false,
+            shape: const LiquidRoundedRectangle(borderRadius: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            textStyle: TextStyle(
+              fontSize: 14.5,
+              color: scheme.onSurface,
+            ),
+            placeholderStyle: TextStyle(
+              fontSize: 14,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
+            ),
+            onChanged: (value) =>
+                widget.db.setProfileFieldValue(widget.def.key, value),
           ),
         ],
       ),

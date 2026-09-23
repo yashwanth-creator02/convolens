@@ -190,28 +190,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required IconData icon,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4.5),
-          decoration: BoxDecoration(
-            color: scheme.primary.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4.5),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 13, color: scheme.primary),
           ),
-          child: Icon(icon, size: 13, color: scheme.primary),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title.toUpperCase(),
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-            letterSpacing: 0.8,
+          const SizedBox(width: 8),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+              letterSpacing: 0.8,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -308,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final screenHeight = MediaQuery.of(context).size.height;
-    final heroHeight = (screenHeight * 0.32).clamp(220.0, 270.0);
+    final heroHeight = (screenHeight * 0.42).clamp(280.0, 360.0);
 
     return StreamBuilder<ProfileMetaData>(
       stream: widget.db.watchProfileMeta(),
@@ -403,131 +406,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                     ),
 
-                    // Gradient scrim — lighter top, darker bottom
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withValues(alpha: 0.04),
-                              Colors.black.withValues(alpha: 0.14),
-                              Colors.black.withValues(alpha: 0.62),
-                            ],
-                            stops: const [0.0, 0.45, 1.0],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Long-press hint badge (top-right, subtle)
-                    Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.camera_alt_rounded,
-                              size: 12,
-                              color: Colors.white.withValues(alpha: 0.8),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Hold to change',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.75),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Name + subtitle at bottom-left
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 14,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            displayName.isNotEmpty
-                                ? displayName
-                                : 'Add your name',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                              shadows: [
-                                Shadow(blurRadius: 8, color: Colors.black54),
-                              ],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (jobTitle != null || company != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              [jobTitle, company]
-                                  .whereType<String>()
-                                  .join(' · '),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white.withValues(alpha: 0.8),
-                                shadows: const [
-                                  Shadow(
-                                    blurRadius: 6,
-                                    color: Colors.black45,
-                                  ),
-                                ],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          if (primaryPhone != null) ...[
-                            const SizedBox(height: 1),
-                            Text(
-                              primaryPhone,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white.withValues(alpha: 0.65),
-                                shadows: const [
-                                  Shadow(
-                                    blurRadius: 6,
-                                    color: Colors.black45,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
             );
+
+            // ── Name / subtitle below photo ────────────────────────────────
+            final nameBlock = displayName.isNotEmpty || primaryPhone != null ||
+                    jobTitle != null || company != null
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 14, 4, 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          displayName.isNotEmpty ? displayName : 'Add your name',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.6,
+                            color: scheme.onSurface,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (jobTitle != null || company != null) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            [jobTitle, company].whereType<String>().join(' · '),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (primaryPhone != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            primaryPhone,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink();
 
             // ── Visible sections — Basic + Contact only ────────────────────
             const visibleSections = ['Basic', 'Contact'];
@@ -682,7 +611,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         hero,
-                        const SizedBox(height: 20),
+                        nameBlock,
+                        const SizedBox(height: 16),
                         emptyState,
                         ...sectionWidgets,
                         if (hasAnyFields) fullInfoTile,
