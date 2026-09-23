@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../shared/widgets/dome_glass_button.dart';
@@ -67,11 +68,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _takePhoto() async {
-    // FilePicker doesn't expose a camera source directly — use it in image mode
-    // which on Android prompts the system picker (includes camera option).
-    // For a true camera-first flow, image_picker would be ideal; for now we
-    // fall back to the gallery picker and let the OS show the camera option.
-    await _pickFromGallery();
+    final picker = ImagePicker();
+
+    try {
+      final XFile? photo = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 90,
+      );
+
+      if (photo == null) return;
+
+      final savedPath = await AttachmentStorage.saveProfilePhoto(
+        photo.path,
+      );
+
+      await widget.db.setProfilePhotoPath(savedPath);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not take photo.'),
+        ),
+      );
+    }
   }
 
   void _showPhotoOptions(BuildContext context) {
@@ -102,29 +122,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: 20),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: GlassButton(
-                        icon: const Icon(CupertinoIcons.camera),
-                        label: 'Take Photo',
-                        quality: GlassQuality.standard,
-                        onTap: () {
-                          Navigator.of(ctx).pop();
-                          _takePhoto();
-                        },
-                      ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GlassIconButton(
+                          icon: const Icon(CupertinoIcons.camera),
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            _takePhoto();
+                          },
+                          size: 56,
+                          quality: GlassQuality.standard,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Take Photo',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: GlassButton(
-                        icon: const Icon(CupertinoIcons.photo_on_rectangle),
-                        label: 'Choose Gallery',
-                        quality: GlassQuality.standard,
-                        onTap: () {
-                          Navigator.of(ctx).pop();
-                          _pickFromGallery();
-                        },
-                      ),
+
+                    const SizedBox(width: 36),
+
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GlassIconButton(
+                          icon: const Icon(CupertinoIcons.photo_on_rectangle),
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            _pickFromGallery();
+                          },
+                          size: 56,
+                          quality: GlassQuality.standard,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Gallery',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
