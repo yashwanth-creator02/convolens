@@ -76,32 +76,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showPhotoOptions(BuildContext context) {
     HapticFeedback.mediumImpact();
-    showCupertinoModalPopup<void>(
+
+    GlassSheet.show<void>(
       context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: const Text('Profile Photo'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _takePhoto();
-            },
-            child: const Text('Take Photo'),
+      quality: GlassQuality.standard,
+      showDragIndicator: true,
+      topBorderRadius: 24,
+      bottomBorderRadius: 0,
+      margin: EdgeInsets.zero,
+      builder: (ctx) {
+        final scheme = Theme.of(ctx).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Profile Photo',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GlassButton(
+                        icon: const Icon(CupertinoIcons.camera),
+                        label: 'Take Photo',
+                        quality: GlassQuality.standard,
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _takePhoto();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: GlassButton(
+                        icon: const Icon(CupertinoIcons.photo_on_rectangle),
+                        label: 'Choose Gallery',
+                        quality: GlassQuality.standard,
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _pickFromGallery();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _pickFromGallery();
-            },
-            child: const Text('Choose from Gallery'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
-        ),
-      ),
+        );
+      },
     );
   }
 
