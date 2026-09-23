@@ -88,12 +88,25 @@ class _ProfileQrSheetState extends State<ProfileQrSheet> {
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Share Contact',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.qr_code_2_rounded,
+                          size: 22,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Share Contact',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
                     GlassSegmentedControl(
