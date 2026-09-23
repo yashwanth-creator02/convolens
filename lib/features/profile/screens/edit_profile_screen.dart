@@ -124,26 +124,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             .toList();
 
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 18),
-                          child: GlassGroupedSection(
-                            shape: const LiquidRoundedSuperellipse(
-                              borderRadius: 20,
-                            ),
-                            quality: GlassQuality.standard,
-                            header: _buildSectionHeader(
-                              context,
-                              title: section,
-                              icon: _sectionIcon(section),
-                            ),
-                            children: sectionDefs
-                                .map(
-                                  (def) => _FieldEditor(
-                                    def: def,
-                                    entry: fields[def.key],
-                                    db: widget.db,
-                                  ),
-                                )
-                                .toList(),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSectionHeader(
+                                context,
+                                title: section,
+                                icon: _sectionIcon(section),
+                              ),
+                              const SizedBox(height: 12),
+                              ...sectionDefs.map(
+                                (def) => _FieldEditor(
+                                  def: def,
+                                  entry: fields[def.key],
+                                  db: widget.db,
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }),
@@ -151,25 +149,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       // ── Exclude from Sharing section ───────────────────
                       if (filledDefs.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(bottom: 18),
-                          child: GlassGroupedSection(
-                            shape: const LiquidRoundedSuperellipse(
-                              borderRadius: 20,
-                            ),
-                            quality: GlassQuality.standard,
-                            header: _buildSectionHeader(
-                              context,
-                              title: 'Exclude from Sharing',
-                              icon: Icons.visibility_off_outlined,
-                            ),
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Description
+                              _buildSectionHeader(
+                                context,
+                                title: 'Exclude from Sharing',
+                                icon: Icons.visibility_off_outlined,
+                              ),
+                              const SizedBox(height: 8),
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  4,
-                                  4,
-                                  4,
-                                  10,
+                                padding: const EdgeInsets.only(
+                                  left: 2,
+                                  bottom: 12,
                                 ),
                                 child: Text(
                                   'Tap a field chip to hide it when sharing your contact card.',
@@ -182,52 +175,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   ),
                                 ),
                               ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: filledDefs.map((def) {
-                                    final entry = fields[def.key];
-                                    final isExcluded = !(entry?.shared ?? true);
-                                    return GlassChip(
-                                      label: def.label,
-                                      selected: isExcluded,
-                                      selectedColor: scheme.error.withValues(
-                                        alpha: 0.22,
-                                      ),
-                                      icon: Icon(
-                                        isExcluded
-                                            ? Icons.visibility_off_rounded
-                                            : Icons.visibility_outlined,
-                                        size: 14,
-                                        color: isExcluded
-                                            ? scheme.error
-                                            : scheme.onSurfaceVariant.withValues(
-                                                alpha: 0.7,
-                                              ),
-                                      ),
-                                      labelStyle: TextStyle(
-                                        color: isExcluded
-                                            ? scheme.error
-                                            : scheme.onSurface,
-                                        fontWeight: isExcluded
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
-                                        fontSize: 13,
-                                      ),
-                                      quality: GlassQuality.standard,
-                                      useOwnLayer: false,
-                                      onTap: () {
-                                        HapticFeedback.selectionClick();
-                                        widget.db.setProfileFieldShared(
-                                          def.key,
-                                          isExcluded,
-                                        );
-                                      },
-                                    );
-                                  }).toList(),
-                                ),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: filledDefs.map((def) {
+                                  final entry = fields[def.key];
+                                  final isExcluded = !(entry?.shared ?? true);
+                                  return GlassChip(
+                                    label: def.label,
+                                    selected: isExcluded,
+                                    selectedColor: scheme.error.withValues(
+                                      alpha: 0.22,
+                                    ),
+                                    icon: Icon(
+                                      isExcluded
+                                          ? Icons.visibility_off_rounded
+                                          : Icons.visibility_outlined,
+                                      size: 14,
+                                      color: isExcluded
+                                          ? scheme.error
+                                          : scheme.onSurfaceVariant.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                    ),
+                                    labelStyle: TextStyle(
+                                      color: isExcluded
+                                          ? scheme.error
+                                          : scheme.onSurface,
+                                      fontWeight: isExcluded
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      fontSize: 13,
+                                    ),
+                                    quality: GlassQuality.standard,
+                                    useOwnLayer: false,
+                                    onTap: () {
+                                      HapticFeedback.selectionClick();
+                                      widget.db.setProfileFieldShared(
+                                        def.key,
+                                        isExcluded,
+                                      );
+                                    },
+                                  );
+                                }).toList(),
                               ),
                             ],
                           ),
@@ -304,7 +294,7 @@ class _FieldEditorState extends State<_FieldEditor> {
     final isMultiline = widget.def.type == FieldInputType.multiline;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
