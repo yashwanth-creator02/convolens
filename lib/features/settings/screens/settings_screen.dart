@@ -9,6 +9,7 @@ import '../../../shared/widgets/confirm_dialog.dart';
 import '../widgets/settings_glass_card.dart';
 import '../widgets/settings_glass_tile.dart';
 import 'call_card_settings_screen.dart';
+import 'connect_developer_screen.dart';
 import 'developer_screen.dart';
 import 'permissions_screen.dart';
 import 'theme_screen.dart';
@@ -224,7 +225,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
 
-                      // ── 4. Developer Options ─────────────────────────────
+                      // ── 4. Developer Contact / Support ──────────────────
+                      SettingsGlassCard(
+                        title: 'Support & Feedback',
+                        icon: Icons.support_agent_rounded,
+                        child: SettingsGlassTile(
+                          icon: Icons.outgoing_mail,
+                          title: 'Connect with the developer',
+                          subtitle:
+                              'Send feedback, report bugs, or request features',
+                          infoTooltip:
+                              'Compose an email to the developer at leo.two.dev@gmail.com',
+                          trailing: const SettingsGlassPillBadge(
+                            label: 'Contact',
+                            icon: Icons.send_rounded,
+                          ),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              CupertinoPageRoute(
+                                builder: (context) =>
+                                    const ConnectDeveloperScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+
+                      // ── 5. Developer Options ─────────────────────────────
                       SettingsGlassCard(
                         title: 'Developer Options',
                         icon: Icons.code_rounded,
@@ -263,7 +290,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
 
-                      // ── 5. App Information & Branding ────────────────────
+                      // ── 6. App Information & Branding ────────────────────
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Center(

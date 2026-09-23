@@ -181,6 +181,26 @@ class MainActivity : FlutterActivity() {
                     result.success(installed)
                 }
 
+                "openEmailChooser" -> {
+                    val to = call.argument<String>("to") ?: ""
+                    val subject = call.argument<String>("subject") ?: ""
+                    val body = call.argument<String>("body") ?: ""
+                    val chooserTitle = call.argument<String>("chooserTitle") ?: "Send Email"
+
+                    try {
+                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:$to")
+                            if (subject.isNotEmpty()) putExtra(Intent.EXTRA_SUBJECT, subject)
+                            if (body.isNotEmpty()) putExtra(Intent.EXTRA_TEXT, body)
+                        }
+                        val chooser = Intent.createChooser(intent, chooserTitle)
+                        startActivity(chooser)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("EMAIL_CHOOSER_FAILED", e.message, null)
+                    }
+                }
+
                 else -> result.notImplemented()
             }
         }

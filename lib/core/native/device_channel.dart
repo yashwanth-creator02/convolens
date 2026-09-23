@@ -52,4 +52,23 @@ class DeviceChannel {
       return false;
     }
   }
+
+  static Future<bool> openEmailChooser({
+    required String to,
+    String? subject,
+    String? body,
+    String chooserTitle = 'Send Email',
+  }) async {
+    try {
+      final result = await _channel.invokeMethod('openEmailChooser', {
+        'to': to,
+        'subject': ?subject,
+        'body': ?body,
+        'chooserTitle': chooserTitle,
+      });
+      return result == true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
