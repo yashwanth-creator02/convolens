@@ -13,50 +13,18 @@ import '../../../shared/widgets/route_reveal_fade.dart';
 import '../../history/repository/attachment_storage.dart';
 import '../models/profile_field_def.dart';
 import '../widgets/profile_qr_sheet.dart';
-import 'edit_profile_screen.dart';
+import 'profile_full_info_screen.dart';
 
-// Changes in this revision:
-//  1. The \"Share Contact\" tab is now a DomeGlassButton (top-half-of-an-
-//     ellipse shape) flush against the bottom edge, instead of a floating
-//     pill — see dome_shape.dart.
-//  2. The pull-up-to-open gesture has real hysteresis: it resets if the
-//     scroll view leaves the bottom edge mid-drag, clamps overtravel, and
-//     gives two-stage haptic feedback (a tick at the halfway point, an
-//     impact on commit) instead of firing blind at a single number.
-//  3. While the QR sheet is being presented, the whole screen blurs and the
-//     tab fades out in lockstep with the *actual* route transition
-//     (ModalRoute.secondaryAnimation) rather than a discrete open/closed
-//     flag, so it stays smooth even if the sheet's presentation is an
-//     interactive, pausable drag.
-//  4. RouteRevealFade (see route_reveal_fade.dart) is the reusable piece of
-//     (3) — wrap any trailing app-bar buttons in your parent shell with the
-//     same widget to have them vanish in sync too.
-//  5. The sheet itself is now GlassModalSheet.show() instead of
-//     showCupertinoSheet — medium/large detents, native drag handle. It's
-//     still pushed via showGeneralDialog with useRootNavigator: false (its
-//     default), so it lands on the same Navigator as this screen and
-//     ModalRoute.of(context).secondaryAnimation in build() below keeps
-//     tracking it exactly as it did before. Don't add useRootNavigator: true
-//     to the call in _openQrSheet or that stops being true. Note also that
-//     GlassModalSheet.show()'s builder only hands back a BuildContext (no
-//     ScrollController), unlike showCupertinoSheet's scrollableBuilder — see
-//     profile_qr_sheet.dart for the corresponding change.
-//  6. The dome button is wrapped in a GlassMorphTrigger, and _openQrSheet
-//     passes its anchor as morphFrom — so opening the sheet, whether by tap
-//     or by completing the pull gesture, plays the iOS 26 liquid-morph
-//     presentation out of the button instead of a plain slide-up.
-//  7. Fixed the pull gesture never firing: it was gated on
-//     OverscrollNotification, which only ClampingScrollPhysics dispatches.
-//     BouncingScrollPhysics (used below) never rejects a move, so it never
-//     fires one — the pull distance now comes from
-//     metrics.pixels - metrics.maxScrollExtent instead, which is the actual
-//     rubber-band overshoot and does update continuously under bouncing
-//     physics.
-//  8. Redesign (Liquid Glass): profile view now uses a GlassContainer hero
-//     card showing avatar/name/phone + an "Edit Details" glass button,
-//     followed by GlassGroupedSection per profile category (Basic, Contact,
-//     Professional, Address, Online, Additional) with GlassListTile rows and
-//     category-tinted icon pills — consistent with Settings & History screens.
+// Revision notes:
+//  • Hero photo is now full-width (32 % screen height, rounded rect, clipBehavior),
+//    matching the ContactHeader layout. Gradient scrim + name / phone at bottom-left.
+//  • Long-press on the hero triggers a Cupertino action sheet: "Take Photo" or
+//    "Choose from Gallery". Regular tap does nothing.
+//  • Profile screen only shows Basic and Contact sections. All other sections are
+//    accessible via the "Full Info" tile that pushes ProfileFullInfoScreen.
+//  • The "Edit Details" GlassButton has been removed from the hero — the edit
+//    button lives in the bottom tab bar (main_shell.dart, case 3 trailingButton).
+//  • Pull-to-open QR, blur on secondary route, DomeGlassButton — all unchanged.
 class ProfileScreen extends StatefulWidget {
   final AppDatabase db;
   final GlassLargeTitleController titleController;
@@ -72,43 +40,76 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Pull-to-open-QR tuning. Threshold is the overscroll distance (px) that
-  // counts as a deliberate pull; overtravel caps how far past that we still
-  // track, purely so a lingering finger past the threshold can't push
-  // _pullProgress anywhere but "fully committed".
   static const double _pullThreshold = 100.0;
   static const double _pullOvertravel = 120.0;
   static const double _domeLift = 18.0;
 
   double _pullUpDistance = 0;
-  double _pullProgress = 0; // 0..1, drives the tab's lift while dragging
+  double _pullProgress = 0;
   bool _pullPassedHalfway = false;
   bool _sheetIsOpen = false;
   bool _showBottomPeek = false;
 
-  // Captured from GlassMorphTrigger's builder each build (see bottomTab in
-  // build() below) so _openQrSheet can hand it to GlassModalSheet.show() as
-  // morphFrom, regardless of whether that call came from a tap or from the
-  // pull gesture completing.
   GlassMorphAnchor? _shareAnchor;
 
-  Future<void> _changePhoto(BuildContext context) async {
+  // ── Photo actions ────────────────────────────────────────────────────────
+
+  Future<void> _pickFromGallery() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['jpg', 'jpeg', 'png'],
     );
-
     if (result == null || result.files.single.path == null) return;
-
     final savedPath = await AttachmentStorage.saveProfilePhoto(
       result.files.single.path!,
     );
     await widget.db.setProfilePhotoPath(savedPath);
   }
 
+  Future<void> _takePhoto() async {
+    // FilePicker doesn't expose a camera source directly — use it in image mode
+    // which on Android prompts the system picker (includes camera option).
+    // For a true camera-first flow, image_picker would be ideal; for now we
+    // fall back to the gallery picker and let the OS show the camera option.
+    await _pickFromGallery();
+  }
+
+  void _showPhotoOptions(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('Profile Photo'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _takePhoto();
+            },
+            child: const Text('Take Photo'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _pickFromGallery();
+            },
+            child: const Text('Choose from Gallery'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  // ── Pull-to-open QR ──────────────────────────────────────────────────────
+
   void _resetPull() {
     if (_pullUpDistance == 0 && _pullProgress == 0 && !_pullPassedHalfway) {
-      return; // nothing to do — avoid a pointless setState every scroll tick
+      return;
     }
     _pullUpDistance = 0;
     _pullPassedHalfway = false;
@@ -130,19 +131,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return false;
     }
 
-    // BouncingScrollPhysics (used below) never rejects a move the way
-    // ClampingScrollPhysics does — it has no boundary condition to enforce —
-    // so it never dispatches an OverscrollNotification mid-drag; that
-    // notification only ever fires under Android-style clamping physics.
-    // Under bouncing physics, dragging past the bottom just pushes `pixels`
-    // straight past `maxScrollExtent` (that gap IS the rubber-band), so that
-    // overshoot is what we track directly instead.
     final overshoot = metrics.pixels - metrics.maxScrollExtent;
 
     if (overshoot <= 0) {
-      // Not overscrolled (or scrolled back within range mid-gesture) —
-      // cancel any partial pull instead of letting it carry over into the
-      // next time the finger reaches the edge in the same drag.
       _resetPull();
       return false;
     }
@@ -152,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (progress >= 0.5 && !_pullPassedHalfway) {
       _pullPassedHalfway = true;
-      HapticFeedback.selectionClick(); // light tick: "you're halfway there"
+      HapticFeedback.selectionClick();
     }
 
     if (progress != _pullProgress) {
@@ -160,19 +151,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     if (_pullUpDistance >= _pullThreshold) {
-      HapticFeedback.mediumImpact(); // committed: letting go opens it
+      HapticFeedback.mediumImpact();
       _pullUpDistance = 0;
       _pullPassedHalfway = false;
       _pullProgress = 0;
       _openQrSheet();
     }
 
-    // No separate ScrollEndNotification case needed: once the finger lifts,
-    // the bounce-back simulation keeps firing ScrollUpdateNotifications as
-    // `pixels` eases back toward `maxScrollExtent`, so `overshoot` decays
-    // toward 0 on its own and the branch above resets the pull naturally —
-    // the dome tab settles in sync with the actual physics instead of
-    // snapping back on a fixed timer.
     return false;
   }
 
@@ -183,12 +168,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _pullProgress = 0;
     });
 
-    // morphFrom makes both the direct tap AND the pull-up-to-open gesture
-    // present as the iOS 26 liquid morph — the dome button empties, a glass
-    // droplet detaches from it and inflates as it travels, and lands as the
-    // sheet. Both paths call this same method, so a completed pull reads as
-    // "the button got dragged up and grew into the sheet" exactly like a
-    // tap would, instead of the two feeling like different interactions.
     await GlassModalSheet.show(
       context: context,
       quality: GlassQuality.standard,
@@ -249,7 +228,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  /// Icon for a profile field based on its type / key.
   IconData _iconForField(ProfileFieldDef def) {
     switch (def.type) {
       case FieldInputType.phone:
@@ -263,7 +241,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case FieldInputType.text:
         break;
     }
-    // Text fields: use key-based icons for well-known keys.
     switch (def.key) {
       case 'firstName':
       case 'middleName':
@@ -308,22 +285,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Icons.person_outline_rounded;
       case 'Contact':
         return Icons.contact_phone_outlined;
-      case 'Professional':
-        return Icons.work_outline_rounded;
-      case 'Address':
-        return Icons.location_on_outlined;
-      case 'Online':
-        return Icons.language_rounded;
-      case 'Additional':
-        return Icons.notes_rounded;
       default:
         return Icons.info_outline_rounded;
     }
   }
 
+  String _getInitials(String name) {
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final heroHeight = (screenHeight * 0.32).clamp(220.0, 270.0);
 
     return StreamBuilder<ProfileMetaData>(
       stream: widget.db.watchProfileMeta(),
@@ -343,106 +328,158 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             final displayName =
                 valueFor('displayName') ??
-                [
-                  valueFor('firstName'),
-                  valueFor('lastName'),
-                ].whereType<String>().join(' ');
+                [valueFor('firstName'), valueFor('lastName')]
+                    .whereType<String>()
+                    .join(' ');
             final primaryPhone = valueFor('primaryPhone');
             final jobTitle = valueFor('jobTitle');
             final company = valueFor('company');
+            final initials = _getInitials(displayName);
 
-            // secondaryAnimation runs 0->1 while the QR sheet is being
-            // pushed on top of this route, and — with an interactive
-            // Cupertino sheet drag — can sit anywhere in between, or
-            // reverse, while the user is mid-gesture. Keying the blur/fade
-            // off this instead of _sheetIsOpen keeps everything in lockstep
-            // with whatever the transition is actually doing, including a
-            // cancelled drag that reverses back to 0.
-            final secondaryAnimation = ModalRoute.of(
-              context,
-            )?.secondaryAnimation;
+            final secondaryAnimation =
+                ModalRoute.of(context)?.secondaryAnimation;
 
-            // ── Hero card ─────────────────────────────────────────────────
-            final heroCard = GlassContainer(
-              quality: GlassQuality.standard,
-              shape: const LiquidRoundedSuperellipse(borderRadius: 24),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
+            // ── Full-width hero photo ──────────────────────────────────────
+            final hero = GestureDetector(
+              onLongPress: () => _showPhotoOptions(context),
+              child: Container(
+                height: heroHeight,
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
                   children: [
-                    // Avatar with camera-edit overlay
-                    GestureDetector(
-                      onTap: () => _changePhoto(context),
-                      child: Stack(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: scheme.primary.withValues(alpha: 0.3),
-                                width: 2.5,
-                              ),
-                            ),
-                            child: CircleAvatar(
-                              radius: 36,
-                              backgroundColor: scheme.primary.withValues(
-                                alpha: 0.1,
-                              ),
-                              backgroundImage: hasPhoto
-                                  ? FileImage(File(photoPath))
-                                  : null,
-                              child: !hasPhoto
-                                  ? Icon(
-                                      Icons.person_rounded,
-                                      size: 38,
-                                      color: scheme.primary,
-                                    )
-                                  : null,
-                            ),
-                          ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 24,
-                              height: 24,
+                    // Photo or gradient fallback
+                    Positioned.fill(
+                      child: hasPhoto
+                          ? Image.file(
+                              File(photoPath),
+                              fit: BoxFit.cover,
+                              alignment: const Alignment(0, -0.3),
+                              filterQuality: FilterQuality.medium,
+                              gaplessPlayback: true,
+                            )
+                          : Container(
                               decoration: BoxDecoration(
-                                color: scheme.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: scheme.surface,
-                                  width: 2,
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    scheme.primary.withValues(alpha: 0.7),
+                                    Color.lerp(
+                                          scheme.primary,
+                                          scheme.surface,
+                                          0.5,
+                                        ) ??
+                                        scheme.surface,
+                                    scheme.surface,
+                                  ],
                                 ),
                               ),
-                              child: Icon(
-                                Icons.camera_alt_rounded,
-                                size: 12,
-                                color: scheme.onPrimary,
+                              child: Center(
+                                child: Text(
+                                  initials,
+                                  style: TextStyle(
+                                    fontSize: 80,
+                                    fontWeight: FontWeight.w900,
+                                    color:
+                                        Colors.white.withValues(alpha: 0.12),
+                                    letterSpacing: 4,
+                                  ),
+                                ),
                               ),
                             ),
+                    ),
+
+                    // Gradient scrim — lighter top, darker bottom
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.04),
+                              Colors.black.withValues(alpha: 0.14),
+                              Colors.black.withValues(alpha: 0.62),
+                            ],
+                            stops: const [0.0, 0.45, 1.0],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    // Name / subtitle block
-                    Expanded(
+
+                    // Long-press hint badge (top-right, subtle)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.camera_alt_rounded,
+                              size: 12,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Hold to change',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withValues(alpha: 0.75),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Name + subtitle at bottom-left
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 14,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             displayName.isNotEmpty
                                 ? displayName
                                 : 'Add your name',
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -0.4,
-                              color: scheme.onSurface,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                              shadows: [
+                                Shadow(blurRadius: 8, color: Colors.black54),
+                              ],
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -455,40 +492,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   .join(' · '),
                               style: TextStyle(
                                 fontSize: 13,
-                                color: scheme.onSurfaceVariant.withValues(
-                                  alpha: 0.75,
-                                ),
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withValues(alpha: 0.8),
+                                shadows: const [
+                                  Shadow(
+                                    blurRadius: 6,
+                                    color: Colors.black45,
+                                  ),
+                                ],
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ],
                           if (primaryPhone != null) ...[
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 1),
                             Text(
                               primaryPhone,
                               style: TextStyle(
-                                fontSize: 13,
-                                color: scheme.onSurfaceVariant.withValues(
-                                  alpha: 0.6,
-                                ),
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.65),
+                                shadows: const [
+                                  Shadow(
+                                    blurRadius: 6,
+                                    color: Colors.black45,
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                          const SizedBox(height: 12),
-                          GlassButton(
-                            onTap: () => Navigator.of(context).push(
-                              CupertinoPageRoute(
-                                builder: (_) =>
-                                    EditProfileScreen(db: widget.db),
-                              ),
-                            ),
-                            icon: const Icon(
-                              Icons.edit_rounded,
-                              size: 14,
-                            ),
-                            label: 'Edit Details',
-                          ),
                         ],
                       ),
                     ),
@@ -497,8 +529,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             );
 
-            // ── Field sections ─────────────────────────────────────────────
-            final sectionWidgets = profileSectionOrder.expand((section) {
+            // ── Visible sections — Basic + Contact only ────────────────────
+            const visibleSections = ['Basic', 'Contact'];
+
+            final sectionWidgets = visibleSections.expand((section) {
               final sectionFields = profileFieldDefs
                   .where((def) => def.section == section)
                   .map((def) => MapEntry(def, valueFor(def.key)))
@@ -543,8 +577,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ];
             }).toList();
 
-            // ── Empty state (no fields filled yet) ─────────────────────────
-            final emptyState = sectionWidgets.isEmpty
+            // ── "Full Info" tile ───────────────────────────────────────────
+            final fullInfoTile = GlassGroupedSection(
+              margin: const EdgeInsets.only(bottom: 18),
+              shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+              quality: GlassQuality.standard,
+              children: [
+                GlassListTile(
+                  leading: _buildTileLeading(
+                    Icons.article_outlined,
+                    scheme,
+                  ),
+                  title: Text(
+                    'Full Info',
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Professional, Address, Online & more',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  trailing: GlassListTile.chevron,
+                  onTap: () => Navigator.of(context).push(
+                    CupertinoPageRoute(
+                      builder: (_) => ProfileFullInfoScreen(
+                        db: widget.db,
+                        fields: fields,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+
+            // ── Empty state ───────────────────────────────────────────────
+            final hasAnyFields = profileFieldDefs
+                .any((def) => valueFor(def.key) != null);
+
+            final emptyState = !hasAnyFields
                 ? Padding(
                     padding: const EdgeInsets.symmetric(vertical: 32),
                     child: Center(
@@ -553,9 +629,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Icon(
                             Icons.person_add_outlined,
                             size: 48,
-                            color: scheme.onSurfaceVariant.withValues(
-                              alpha: 0.4,
-                            ),
+                            color:
+                                scheme.onSurfaceVariant.withValues(alpha: 0.4),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -570,7 +645,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Tap "Edit Details" above to get started',
+                            'Tap the edit button below to get started',
                             style: TextStyle(
                               fontSize: 13,
                               color: scheme.onSurfaceVariant.withValues(
@@ -606,10 +681,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        heroCard,
+                        hero,
                         const SizedBox(height: 20),
                         emptyState,
                         ...sectionWidgets,
+                        if (hasAnyFields) fullInfoTile,
                         const SizedBox(height: 100),
                       ]),
                     ),
@@ -624,13 +700,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               right: 0,
               child: Center(
                 child: AnimatedSlide(
-                  offset: _showBottomPeek ? Offset.zero : const Offset(0, 1),
+                  offset:
+                      _showBottomPeek ? Offset.zero : const Offset(0, 1),
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeOutCubic,
                   child: RouteRevealFade(
-                    // Plain field assignment in the builder, not setState —
-                    // it only needs to be captured for _openQrSheet to read
-                    // later, not to trigger a rebuild by itself.
                     child: GlassMorphTrigger(
                       builder: (context, anchor) {
                         _shareAnchor = anchor;
@@ -650,8 +724,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             final stack = Stack(children: [scrollContent, bottomTab]);
 
             if (secondaryAnimation == null) {
-              // No enclosing route to key off of (e.g. previewing this
-              // widget in isolation) — skip the blur rather than guess.
               return Material(type: MaterialType.transparency, child: stack);
             }
 

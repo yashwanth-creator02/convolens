@@ -84,6 +84,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         stream: widget.db.watchProfileFields(),
         builder: (context, snapshot) {
           final fields = snapshot.data ?? {};
+          final scheme = Theme.of(context).colorScheme;
+
+          // Collect all fields that have a non-empty value (used in Exclude section)
+          final filledDefs = profileFieldDefs
+              .where((def) {
+                final v = fields[def.key]?.value;
+                return v != null && v.isNotEmpty;
+              })
+              .toList();
 
           return Material(
             type: MaterialType.transparency,
@@ -93,7 +102,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               slivers: [
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                    height:
+                        MediaQuery.of(context).padding.top + kToolbarHeight,
                   ),
                 ),
                 GlassLargeTitle(
@@ -103,8 +113,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                   sliver: SliverList(
-                    delegate: SliverChildListDelegate(
-                      profileSectionOrder.map((section) {
+                    delegate: SliverChildListDelegate([
+                      // ── Field input sections ───────────────────────────
+                      ...profileSectionOrder.map((section) {
                         final sectionDefs = profileFieldDefs
                             .where((def) => def.section == section)
                             .toList();
@@ -132,8 +143,53 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 .toList(),
                           ),
                         );
-                      }).toList(),
-                    ),
+                      }),
+
+                      // ── Exclude from Sharing section ───────────────────
+                      if (filledDefs.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 18),
+                          child: GlassGroupedSection(
+                            shape: const LiquidRoundedSuperellipse(
+                              borderRadius: 20,
+                            ),
+                            quality: GlassQuality.standard,
+                            header: _buildSectionHeader(
+                              context,
+                              title: 'Exclude from Sharing',
+                              icon: Icons.visibility_off_outlined,
+                            ),
+                            children: [
+                              // Description tile
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  4,
+                                  6,
+                                  4,
+                                  2,
+                                ),
+                                child: Text(
+                                  'Fields toggled on will be hidden when you share your contact card.',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    height: 1.45,
+                                    color: scheme.onSurfaceVariant.withValues(
+                                      alpha: 0.65,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              ...filledDefs.map(
+                                (def) => _ExcludeTile(
+                                  def: def,
+                                  entry: fields[def.key],
+                                  db: widget.db,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ]),
                   ),
                 ),
               ],
@@ -144,6 +200,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 }
+
+// ── Field editor (text input only, no share toggle) ────────────────────────
 
 class _FieldEditor extends StatefulWidget {
   final ProfileFieldDef def;
@@ -200,76 +258,105 @@ class _FieldEditorState extends State<_FieldEditor> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final shared = widget.entry?.shared ?? false;
     final isMultiline = widget.def.type == FieldInputType.multiline;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        crossAxisAlignment: isMultiline
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              keyboardType: _keyboardTypeFor(widget.def.type),
-              maxLines: isMultiline ? 3 : 1,
-              style: TextStyle(
-                fontSize: 14.5,
-                color: scheme.onSurface,
-              ),
-              decoration: InputDecoration(
-                labelText: widget.def.label,
-                labelStyle: TextStyle(
-                  fontSize: 13,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
-                ),
-                filled: false,
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                    color: scheme.primary.withValues(alpha: 0.5),
-                    width: 1.5,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 8,
-                ),
-              ),
-              onChanged: (value) =>
-                  widget.db.setProfileFieldValue(widget.def.key, value),
+      child: TextField(
+        controller: _controller,
+        keyboardType: _keyboardTypeFor(widget.def.type),
+        maxLines: isMultiline ? 3 : 1,
+        style: TextStyle(fontSize: 14.5, color: scheme.onSurface),
+        decoration: InputDecoration(
+          labelText: widget.def.label,
+          labelStyle: TextStyle(
+            fontSize: 13,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+          ),
+          filled: false,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(
+              color: scheme.primary.withValues(alpha: 0.5),
+              width: 1.5,
             ),
           ),
-          const SizedBox(width: 8),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Share',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 8,
+          ),
+        ),
+        onChanged: (value) =>
+            widget.db.setProfileFieldValue(widget.def.key, value),
+      ),
+    );
+  }
+}
+
+// ── Exclude tile (GlassSwitch to mark a field as excluded from sharing) ────
+
+class _ExcludeTile extends StatelessWidget {
+  final ProfileFieldDef def;
+  final ProfileFieldEntry? entry;
+  final AppDatabase db;
+
+  const _ExcludeTile({
+    required this.def,
+    required this.entry,
+    required this.db,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    // excluded == NOT shared  →  switch ON = excluded = shared: false
+    final isExcluded = !(entry?.shared ?? true);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  def.label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurface,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              GlassSwitch(
-                value: shared,
-                onChanged: (value) {
-                  HapticFeedback.selectionClick();
-                  widget.db.setProfileFieldShared(widget.def.key, value);
-                },
-                useOwnLayer: false,
-                quality: GlassQuality.standard,
-                activeColor: scheme.primary,
-                width: 44.0,
-                height: 26.0,
-              ),
-            ],
+                if (entry?.value != null && entry!.value!.isNotEmpty)
+                  Text(
+                    entry!.value!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.65),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          GlassSwitch(
+            value: isExcluded,
+            onChanged: (excluded) {
+              HapticFeedback.selectionClick();
+              // excluded = true  →  shared = false
+              // excluded = false →  shared = true
+              db.setProfileFieldShared(def.key, !excluded);
+            },
+            useOwnLayer: false,
+            quality: GlassQuality.standard,
+            activeColor: scheme.error, // red = excluded
+            width: 44.0,
+            height: 26.0,
           ),
         ],
       ),
