@@ -24,6 +24,7 @@ import '../widgets/contribution_heatmap.dart';
 import '../widgets/dunbar_rings_chart.dart';
 import '../widgets/hour_clock_face.dart';
 import '../widgets/hour_histogram.dart';
+import '../widgets/milestone_badges_grid.dart';
 import '../widgets/network_concentration_meter.dart';
 import '../widgets/personality_chips.dart';
 import '../widgets/relationship_web.dart';
@@ -441,6 +442,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         sliver: SliverList(
           delegate: SliverChildListDelegate([
+            // ── 0. Executive Pulse Summary ───────────────────────────────────
+            _buildExecutiveSummary(summary),
+
             // ── 1. Hero 2x2 Metric Grid ──────────────────────────────────────
             Row(
               children: [
@@ -569,6 +573,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                       value:
                           '${summary.weekdayCalls} weekday • ${summary.weekendCalls} weekend',
                     ),
+                    const SizedBox(height: 10),
+                    _buildWeekdayWeekendSplitBar(summary),
                   ],
                 ),
               ),
@@ -1003,54 +1009,72 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
             AnalyticsCard(
               title: 'Call Length Distribution',
               icon: Icons.timelapse_rounded,
+              accentColor: const Color(0xFF8B5CF6),
               subtitle: 'Breakdown of short check-ins vs deep conversations',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _buildDurationDistribution(
-                  summary.durationDistribution,
-                ),
+              child: _buildDurationDistribution(
+                summary.durationDistribution,
               ),
             ),
 
             // 7. Unusual Activity
             if (summary.anomalyDays.isNotEmpty)
               AnalyticsCard(
-                title: 'Unusual Days',
-                icon: Icons.warning_amber_rounded,
+                title: 'Activity Spikes',
+                icon: Icons.bolt_rounded,
                 accentColor: const Color(0xFFF59E0B),
                 subtitle:
-                    'Days that stood out sharply from your normal pattern',
+                    'Days that stood out sharply from your normal communication volume',
                 child: Column(
                   children: summary.anomalyDays.map((e) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                        ),
+                      ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            e.key,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                size: 16,
+                                color: Color(0xFFF59E0B),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                e.key,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
+                              horizontal: 9,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFFF59E0B,
-                              ).withValues(alpha: 0.15),
+                              color: const Color(0xFFF59E0B),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               '${e.value} calls',
                               style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11.5,
-                                color: Color(0xFFF59E0B),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 11,
+                                color: Colors.white,
                               ),
                             ),
                           ),
@@ -1164,90 +1188,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
             AnalyticsCard(
               title: 'Initiation Dynamics',
               icon: Icons.swap_calls_rounded,
-              subtitle: 'Who starts phone calls more often',
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.call_received_rounded,
-                        size: 14,
-                        color: Color(0xFF10B981),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'THEY CALL YOU MORE',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: Color(0xFF10B981),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  if (summary.theyInitiateMore.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4, bottom: 8),
-                      child: Text(
-                        'No one yet.',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    )
-                  else
-                    ...summary.theyInitiateMore.take(4).map(
-                          (c) => _buildContactTile(
-                            contact: c,
-                            subtitle:
-                                '${c.incoming} incoming vs ${c.outgoing} outgoing',
-                          ),
-                        ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(height: 1),
-                  ),
-
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.call_made_rounded,
-                        size: 14,
-                        color: Color(0xFF3B82F6),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'YOU CALL THEM MORE',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: Color(0xFF3B82F6),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  if (summary.youInitiateMore.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4, bottom: 8),
-                      child: Text(
-                        'No one yet.',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    )
-                  else
-                    ...summary.youInitiateMore.take(4).map(
-                          (c) => _buildContactTile(
-                            contact: c,
-                            subtitle:
-                                '${c.outgoing} outgoing vs ${c.incoming} incoming',
-                          ),
-                        ),
-                ],
-              ),
+              accentColor: const Color(0xFF3B82F6),
+              subtitle: 'Who starts phone calls more often across your network',
+              child: _buildInitiationDynamicsSection(summary),
             ),
 
             // 4. Favorites vs Everyone Else
@@ -1283,9 +1226,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: Theme.of(context)
-                              .colorScheme
-                              .primary
-                              .withValues(alpha: 0.25),
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.25),
                         ),
                       ),
                       child: Row(
@@ -1325,11 +1268,13 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 ),
               ),
 
-            // 6. Haven't Talked To In A While
+            // 6. Keep In Touch
             AnalyticsCard(
-              title: "Haven't Talked In A While",
+              title: 'Keep In Touch',
               icon: Icons.hourglass_empty_rounded,
-              subtitle: 'Saved contacts you rarely or haven\'t recently called',
+              accentColor: const Color(0xFFF59E0B),
+              subtitle:
+                  'Contacts you used to call regularly who haven\'t been reached lately',
               child: summary.silentContacts.isEmpty
                   ? const Text(
                       "You're in touch with everyone!",
@@ -1342,13 +1287,12 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                           subtitle: c.lastCallAt == null
                               ? 'Never called from this phone'
                               : 'Last called ${_daysAgo(c.lastCallAt!)} days ago',
-                          trailing: Icon(
-                            Icons.chevron_right_rounded,
-                            size: 18,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant
-                                .withValues(alpha: 0.4),
+                          trailing: GlassChip(
+                            label: 'Call',
+                            icon: const Icon(Icons.call_outlined, size: 12),
+                            quality: GlassQuality.standard,
+                            useOwnLayer: false,
+                            onTap: () => _openContact(c),
                           ),
                         );
                       }).toList(),
@@ -1370,6 +1314,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         sliver: SliverList(
           delegate: SliverChildListDelegate([
+            // 1. All-Time Record Call
             if (summary.longestCallWith != null) ...[
               AnalyticsCard(
                 title: 'All-Time Record Call',
@@ -1379,17 +1324,37 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 child: _buildLongestCallCard(summary.longestCallWith!),
               ),
             ],
+
+            // 2. Hall of Fame Milestones Bento
+            AnalyticsCard(
+              title: 'Hall of Fame',
+              icon: Icons.military_tech_rounded,
+              accentColor: const Color(0xFFF59E0B),
+              subtitle: 'All-time bests and personal communication records',
+              child: _buildHallOfFameBento(summary),
+            ),
+
+            // 3. Milestones & Badges
+            AnalyticsCard(
+              title: 'Milestones & Badges',
+              icon: Icons.workspace_premium_rounded,
+              accentColor: const Color(0xFF8B5CF6),
+              subtitle: 'Unlock communication achievements by hitting milestones',
+              child: MilestoneBadgesGrid(summary: summary),
+            ),
+
+            // 4. Network Expansion
             AnalyticsCard(
               title: 'New Connections',
               icon: Icons.person_add_alt_1_rounded,
-              accentColor: const Color(0xFF8B5CF6),
+              accentColor: const Color(0xFF10B981),
               subtitle: 'First-time callers appearing in your call log by month',
               child: AnalyticsBarChart(
                 values: summary.newContactsByMonth.values.toList(),
                 labels: summary.newContactsByMonth.keys
                     .map((k) => k.contains('-') ? k.split('-')[1] : k)
                     .toList(),
-                barColor: const Color(0xFF8B5CF6),
+                barColor: const Color(0xFF10B981),
               ),
             ),
           ]),
@@ -1429,54 +1394,85 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               children: [
                 if (rank != null) ...[
                   Container(
-                    width: 22,
-                    height: 22,
+                    width: 24,
+                    height: 24,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: rank == 1
-                          ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
+                      gradient: rank == 1
+                          ? const LinearGradient(
+                              colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
+                            )
                           : (rank == 2
-                              ? Colors.grey.withValues(alpha: 0.2)
+                              ? const LinearGradient(
+                                  colors: [Color(0xFF94A3B8), Color(0xFF64748B)],
+                                )
                               : (rank == 3
-                                  ? const Color(0xFFD97706)
-                                      .withValues(alpha: 0.2)
-                                  : scheme.surfaceContainerHighest
-                                      .withValues(alpha: 0.3))),
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFFD97706), Color(0xFFB45309)],
+                                    )
+                                  : null)),
+                      color: rank > 3
+                          ? scheme.surfaceContainerHighest.withValues(alpha: 0.4)
+                          : null,
                       shape: BoxShape.circle,
+                      boxShadow: rank <= 3
+                          ? [
+                              BoxShadow(
+                                color: (rank == 1
+                                        ? const Color(0xFFF59E0B)
+                                        : (rank == 2
+                                            ? const Color(0xFF94A3B8)
+                                            : const Color(0xFFD97706)))
+                                    .withValues(alpha: 0.35),
+                                blurRadius: 6,
+                                offset: const Offset(0, 1),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: Text(
                       '$rank',
                       style: TextStyle(
-                        fontSize: 10.5,
+                        fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: rank == 1
-                            ? const Color(0xFFF59E0B)
-                            : (rank == 2
-                                ? Colors.grey[400]
-                                : (rank == 3
-                                    ? const Color(0xFFD97706)
-                                    : scheme.onSurfaceVariant)),
+                        color: rank <= 3 ? Colors.white : scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                 ],
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: scheme.primary.withValues(alpha: 0.12),
-                  backgroundImage: contact.deviceContact?.thumbnail != null
-                      ? MemoryImage(contact.deviceContact!.thumbnail!)
-                      : null,
-                  child: contact.deviceContact?.thumbnail == null
-                      ? Text(
-                          initials,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.primary,
-                          ),
-                        )
-                      : null,
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: rank != null && rank <= 3
+                        ? Border.all(
+                            color: rank == 1
+                                ? const Color(0xFFF59E0B)
+                                : (rank == 2
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFFD97706)),
+                            width: 1.5,
+                          )
+                        : null,
+                  ),
+                  child: CircleAvatar(
+                    radius: 17,
+                    backgroundColor: scheme.primary.withValues(alpha: 0.12),
+                    backgroundImage: contact.deviceContact?.thumbnail != null
+                        ? MemoryImage(contact.deviceContact!.thumbnail!)
+                        : null,
+                    child: contact.deviceContact?.thumbnail == null
+                        ? Text(
+                            initials,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.primary,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1829,65 +1825,874 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     return DateTime.now().difference(date).inDays;
   }
 
-  List<Widget> _buildDurationDistribution(Map<String, int> dist) {
+  Widget _buildExecutiveSummary(AnalyticsSummary summary) {
     final scheme = Theme.of(context).colorScheme;
-    final total = dist.values.fold<int>(0, (a, b) => a + b);
-    if (total == 0) {
-      return [
-        Text(
-          'No call duration data yet.',
-          style: TextStyle(
-            color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
-            fontSize: 12,
-          ),
-        ),
-      ];
+    final answeredRate = (1.0 - summary.missedCallRate).clamp(0.0, 1.0);
+    final avgDurationMins = summary.totalCalls > 0
+        ? (summary.totalTalkSeconds / summary.totalCalls / 60).round()
+        : 0;
+
+    String pulseStatus;
+    Color pulseColor;
+    String pulseDescription;
+
+    if (summary.totalCalls == 0) {
+      pulseStatus = 'Dormant';
+      pulseColor = Colors.grey;
+      pulseDescription = 'No call activity detected during this time window.';
+    } else if (summary.currentStreak >= 3 || summary.totalCalls >= 20) {
+      pulseStatus = 'Vibrant Pulse';
+      pulseColor = const Color(0xFF10B981);
+      pulseDescription =
+          'High communication momentum with ${(answeredRate * 100).round()}% connection rate across ${summary.totalContacts} active contacts.';
+    } else if (summary.missedCallRate > 0.4) {
+      pulseStatus = 'Attention Needed';
+      pulseColor = const Color(0xFFF59E0B);
+      pulseDescription =
+          'Elevated missed call rate (${(summary.missedCallRate * 100).round()}%). Follow-ups could restore balance.';
+    } else {
+      pulseStatus = 'Steady Rhythm';
+      pulseColor = const Color(0xFF3B82F6);
+      pulseDescription =
+          'Consistent call cadence averaging $avgDurationMins min per conversation.';
     }
 
-    return dist.entries.map((entry) {
-      final fraction = entry.value / total;
-      final pct = (fraction * 100).round();
-
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  entry.key,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: pulseColor.withValues(alpha: 0.3),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: pulseColor.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 9,
+                    height: 9,
+                    decoration: BoxDecoration(
+                      color: pulseColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: pulseColor.withValues(alpha: 0.6),
+                          blurRadius: 6,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'NETWORK PULSE',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: pulseColor,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 3.5,
+                ),
+                decoration: BoxDecoration(
+                  color: pulseColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  pulseStatus,
                   style: TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurface,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: pulseColor,
                   ),
                 ),
-                Text(
-                  '${entry.value} calls ($pct%)',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
-                  ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            pulseDescription,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              height: 1.35,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMiniIndicator(
+                  icon: Icons.check_circle_outline_rounded,
+                  color: const Color(0xFF10B981),
+                  label: 'Success Rate',
+                  value: '${(answeredRate * 100).round()}%',
+                ),
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: scheme.outlineVariant.withValues(alpha: 0.3),
+                ),
+                _buildMiniIndicator(
+                  icon: Icons.schedule_rounded,
+                  color: const Color(0xFF8B5CF6),
+                  label: 'Avg Length',
+                  value: '${avgDurationMins}m',
+                ),
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: scheme.outlineVariant.withValues(alpha: 0.3),
+                ),
+                _buildMiniIndicator(
+                  icon: Icons.people_outline_rounded,
+                  color: const Color(0xFF06B6D4),
+                  label: 'Contacts',
+                  value: '${summary.totalContacts}',
                 ),
               ],
             ),
-            const SizedBox(height: 5),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: fraction,
-                minHeight: 8,
-                backgroundColor:
-                    scheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniIndicator({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String value,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
               ),
             ),
           ],
         ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeekdayWeekendSplitBar(AnalyticsSummary summary) {
+    final scheme = Theme.of(context).colorScheme;
+    final total = summary.weekdayCalls + summary.weekendCalls;
+    if (total == 0) return const SizedBox.shrink();
+
+    final weekdayPct = (summary.weekdayCalls / total).clamp(0.0, 1.0);
+    final weekendPct = (summary.weekendCalls / total).clamp(0.0, 1.0);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3B82F6),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Workweek (${(weekdayPct * 100).round()}%)',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    'Weekend (${(weekendPct * 100).round()}%)',
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF59E0B),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: summary.weekdayCalls > 0 ? summary.weekdayCalls : 1,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF3B82F6), Color(0xFF06B6D4)],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Expanded(
+                    flex: summary.weekendCalls > 0 ? summary.weekendCalls : 0,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInitiationDynamicsSection(AnalyticsSummary summary) {
+    final scheme = Theme.of(context).colorScheme;
+    final totalIn =
+        summary.theyInitiateMore.fold<int>(0, (acc, c) => acc + c.incoming);
+    final totalOut =
+        summary.youInitiateMore.fold<int>(0, (acc, c) => acc + c.outgoing);
+    final sum = totalIn + totalOut;
+
+    final inPct = sum > 0 ? (totalIn / sum) : 0.5;
+    final outPct = sum > 0 ? (totalOut / sum) : 0.5;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (sum > 0) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF10B981),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'They Reach Out (${(inPct * 100).round()}%)',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          'You Reach Out (${(outPct * 100).round()}%)',
+                          style: const TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF3B82F6),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SizedBox(
+                    height: 8,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: totalIn > 0 ? totalIn : 1,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF10B981), Color(0xFF06B6D4)],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          flex: totalOut > 0 ? totalOut : 1,
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.call_received_rounded,
+                size: 13,
+                color: Color(0xFF10B981),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'THEY CALL YOU MORE',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+                color: Color(0xFF10B981),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (summary.theyInitiateMore.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'No asymmetric incoming calls detected.',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                fontSize: 12,
+              ),
+            ),
+          )
+        else
+          ...summary.theyInitiateMore.take(4).map(
+                (c) => _buildContactTile(
+                  contact: c,
+                  subtitle: '${c.incoming} incoming • ${c.outgoing} outgoing',
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${c.incoming > 0 && (c.incoming + c.outgoing) > 0 ? ((c.incoming / (c.incoming + c.outgoing)) * 100).round() : 0}% in',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF10B981),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Divider(height: 1),
+        ),
+
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.call_made_rounded,
+                size: 13,
+                color: Color(0xFF3B82F6),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'YOU CALL THEM MORE',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.6,
+                color: Color(0xFF3B82F6),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (summary.youInitiateMore.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'No asymmetric outgoing calls detected.',
+              style: TextStyle(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                fontSize: 12,
+              ),
+            ),
+          )
+        else
+          ...summary.youInitiateMore.take(4).map(
+                (c) => _buildContactTile(
+                  contact: c,
+                  subtitle: '${c.outgoing} outgoing • ${c.incoming} incoming',
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${c.outgoing > 0 && (c.incoming + c.outgoing) > 0 ? ((c.outgoing / (c.incoming + c.outgoing)) * 100).round() : 0}% out',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF3B82F6),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+      ],
+    );
+  }
+
+  Widget _buildHallOfFameBento(AnalyticsSummary summary) {
+    final topContact = summary.mostContacted.firstOrNull;
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildHallOfFameItem(
+                icon: Icons.bolt_rounded,
+                color: const Color(0xFFF59E0B),
+                label: 'PEAK DAY',
+                value: summary.busiestDayDate != null
+                    ? '${summary.busiestDayCount} calls'
+                    : '0 calls',
+                subtitle: summary.busiestDayDate ?? 'No calls recorded',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildHallOfFameItem(
+                icon: Icons.local_fire_department_rounded,
+                color: const Color(0xFFEF4444),
+                label: 'BEST STREAK',
+                value: '${summary.longestStreak} days',
+                subtitle: 'Current: ${summary.currentStreak}d',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildHallOfFameItem(
+                icon: Icons.military_tech_rounded,
+                color: const Color(0xFF8B5CF6),
+                label: 'TOP CONTACT',
+                value: topContact?.displayName ?? 'None',
+                subtitle: topContact != null
+                    ? '${topContact.callCount} calls • ${(topContact.totalDuration / 60).round()}m'
+                    : 'No contacts',
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _buildHallOfFameItem(
+                icon: Icons.hourglass_top_rounded,
+                color: const Color(0xFF10B981),
+                label: 'TOTAL TIME',
+                value: _formatDuration(summary.totalTalkSeconds),
+                subtitle: '${summary.totalCalls} calls logged',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHallOfFameItem({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String value,
+    required String subtitle,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+              color: scheme.onSurface,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10.5,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDurationDistribution(Map<String, int> dist) {
+    final scheme = Theme.of(context).colorScheme;
+    final total = dist.values.fold<int>(0, (a, b) => a + b);
+    if (total == 0) {
+      return Text(
+        'No call duration data yet.',
+        style: TextStyle(
+          color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+          fontSize: 12,
+        ),
       );
-    }).toList();
+    }
+
+    final categoryMeta = {
+      'Quick (<30s)': (
+        color: const Color(0xFF06B6D4),
+        icon: Icons.bolt_rounded,
+        desc: 'Quick check-ins & status updates'
+      ),
+      'Short (30s–3m)': (
+        color: const Color(0xFF3B82F6),
+        icon: Icons.chat_bubble_outline_rounded,
+        desc: 'Concise daily conversations'
+      ),
+      'Medium (3–10m)': (
+        color: const Color(0xFF8B5CF6),
+        icon: Icons.forum_outlined,
+        desc: 'Substantial catch-ups'
+      ),
+      'Long (10m+)': (
+        color: const Color(0xFFEC4899),
+        icon: Icons.timer_outlined,
+        desc: 'Deep discussions & catch-ups'
+      ),
+    };
+
+    String maxKey = '';
+    int maxVal = -1;
+    for (final entry in dist.entries) {
+      if (entry.value > maxVal) {
+        maxVal = entry.value;
+        maxKey = entry.key;
+      }
+    }
+
+    String insightText;
+    if (maxKey == 'Quick (<30s)' || maxKey == 'Short (30s–3m)') {
+      insightText =
+          '⚡ Most calls are brief check-ins under 3 minutes, reflecting efficient communication.';
+    } else if (maxKey == 'Long (10m+)') {
+      insightText =
+          '🎙️ Extended calls dominate your profile, showing high conversational depth.';
+    } else {
+      insightText =
+          '✨ Balanced blend of brief check-ins and meaningful medium conversations.';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...dist.entries.map((entry) {
+          final fraction = total > 0 ? (entry.value / total) : 0.0;
+          final pct = (fraction * 100).round();
+          final meta = categoryMeta[entry.key] ??
+              (
+                color: scheme.primary,
+                icon: Icons.schedule_rounded,
+                desc: 'Call segment'
+              );
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: meta.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(meta.icon, size: 14, color: meta.color),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry.key,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            meta.desc,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: meta.color.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${entry.value} ($pct%)',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: meta.color,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Stack(
+                    children: [
+                      Container(
+                        height: 7,
+                        width: double.infinity,
+                        color: scheme.surfaceContainerHighest
+                            .withValues(alpha: 0.35),
+                      ),
+                      FractionallySizedBox(
+                        widthFactor: fraction.clamp(0.0, 1.0),
+                        child: Container(
+                          height: 7,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                meta.color.withValues(alpha: 0.7),
+                                meta.color,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.25),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  insightText,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
