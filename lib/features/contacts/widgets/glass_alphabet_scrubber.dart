@@ -164,8 +164,11 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
               ),
 
             // Open Letters column with expanded vertical spacing (22px) and fluid wave displacement
-            Container(
-              key: _columnKey,
+            AnimatedOpacity(
+              opacity: _isInteracting ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                key: _columnKey,
               width: _columnWidth,
               height: totalLettersHeight,
               alignment: Alignment.centerRight,
@@ -218,6 +221,7 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
                 }),
               ),
             ),
+          ),
 
             // Floating Magnifier Bubble Callout centered vertically with active letter
             if (_isInteracting && _activeLetter != null)
