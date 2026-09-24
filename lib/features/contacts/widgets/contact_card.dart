@@ -9,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/services/contact_cache.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../core/widgets/favorite_avatar_ring.dart';
 import '../../profile/utils/vcard_builder.dart';
 import '../models/contact_summary.dart';
 
@@ -153,43 +154,51 @@ class ContactCard extends StatelessWidget {
                           HapticFeedback.selectionClick();
                           togglePopover();
                         },
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: !hasThumb
-                                ? LinearGradient(
-                                    colors: gradient,
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                : null,
-                            border: Border.all(
-                              color: scheme.outlineVariant
-                                  .withValues(alpha: 0.25),
-                              width: 1,
+                        child: FavoriteAvatarRing(
+                          isFavorite: isFavorite,
+                          scheme: scheme,
+                          ringPadding: 2.0,
+                          starSize: 9.0,
+                          child: Container(
+                            width: isFavorite ? 38 : 42,
+                            height: isFavorite ? 38 : 42,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: !hasThumb
+                                  ? LinearGradient(
+                                      colors: gradient,
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                  : null,
+                              border: Border.all(
+                                color: isFavorite
+                                    ? Colors.transparent
+                                    : scheme.outlineVariant
+                                        .withValues(alpha: 0.25),
+                                width: 1,
+                              ),
                             ),
-                          ),
-                          child: ClipOval(
-                            child: hasThumb
-                                ? Image.memory(
-                                    contact.deviceContact!.thumbnail!,
-                                    fit: BoxFit.cover,
-                                    width: 42,
-                                    height: 42,
-                                  )
-                                : Center(
-                                    child: Text(
-                                      getInitials(titleText),
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
-                                        letterSpacing: 0.5,
+                            child: ClipOval(
+                              child: hasThumb
+                                  ? Image.memory(
+                                      contact.deviceContact!.thumbnail!,
+                                      fit: BoxFit.cover,
+                                      width: isFavorite ? 38 : 42,
+                                      height: isFavorite ? 38 : 42,
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        getInitials(titleText),
+                                        style: TextStyle(
+                                          fontSize: isFavorite ? 13 : 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
                                     ),
-                                  ),
+                            ),
                           ),
                         ),
                       );

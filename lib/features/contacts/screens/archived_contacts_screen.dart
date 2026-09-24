@@ -41,36 +41,42 @@ class _ArchivedContactsScreenState extends State<ArchivedContactsScreen> {
         title: const Text('Archived Contacts'),
         largeTitleController: _titleController,
       ),
-      body: StreamBuilder<List<ContactSummary>>(
-        stream: repository.watchArchivedContacts(widget.deviceContacts),
-        builder: (context, snapshot) {
-          final contacts = snapshot.data ?? [];
+      body: StreamBuilder<Set<String>>(
+        stream: widget.db.watchFavoriteNumbers(),
+        builder: (context, favSnapshot) {
+          final favNumbers = favSnapshot.data ?? const {};
 
-          if (contacts.isEmpty) {
-            return const Center(child: Text('No archived contacts.'));
-          }
+          return StreamBuilder<List<ContactSummary>>(
+            stream: repository.watchArchivedContacts(widget.deviceContacts),
+            builder: (context, snapshot) {
+              final contacts = snapshot.data ?? [];
 
-          return Material(
-            type: MaterialType.transparency,
-            child: CustomScrollView(
-              controller: _titleController.scrollController,
-              slivers: [
-                SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: MediaQuery.of(context).padding.top + kToolbarHeight,
-                  ),
-                ),
-                GlassLargeTitle(
-                  text: 'Archived Contacts',
-                  controller: _titleController,
-                ),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final contact = contacts[index];
-                    return ContactCard(
-                      contact: contact,
-                      db: widget.db,
-                      isArchived: true,
+              if (contacts.isEmpty) {
+                return const Center(child: Text('No archived contacts.'));
+              }
+
+              return Material(
+                type: MaterialType.transparency,
+                child: CustomScrollView(
+                  controller: _titleController.scrollController,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                      ),
+                    ),
+                    GlassLargeTitle(
+                      text: 'Archived Contacts',
+                      controller: _titleController,
+                    ),
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final contact = contacts[index];
+                        return ContactCard(
+                          contact: contact,
+                          db: widget.db,
+                          isArchived: true,
+                          isFavorite: favNumbers.contains(contact.normalizedNumber),
                       onTap: contact.displayNumber.isEmpty
                           ? null
                           : () => Navigator.of(context).push(
@@ -90,6 +96,8 @@ class _ArchivedContactsScreenState extends State<ArchivedContactsScreen> {
                 const SliverToBoxAdapter(child: SizedBox(height: 40)),
               ],
             ),
+              );
+            },
           );
         },
       ),

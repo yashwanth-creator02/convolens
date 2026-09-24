@@ -169,60 +169,68 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
                     builder: (context, tagSnapshot) {
                       final tagNumbers = tagSnapshot.data;
 
-                      return StreamBuilder<List<ContactSummary>>(
-                        stream: _repository.watchContacts(_deviceContacts),
-                        builder: (context, snapshot) {
-                          final contacts = snapshot.data ?? [];
+                      return StreamBuilder<Set<String>>(
+                        stream: widget.db.watchFavoriteNumbers(),
+                        builder: (context, favSnapshot) {
+                          final favNumbers = favSnapshot.data ?? const {};
 
-                          final filtered = contacts.where((c) {
-                            final matchesQuery =
-                                _query.isEmpty ||
-                                c.displayName.toLowerCase().contains(_query) ||
-                                c.displayNumber.toLowerCase().contains(_query);
-                            final matchesTag =
-                                tagNumbers == null ||
-                                tagNumbers.contains(c.normalizedNumber);
-                            return matchesQuery && matchesTag;
-                          }).toList();
+                          return StreamBuilder<List<ContactSummary>>(
+                            stream: _repository.watchContacts(_deviceContacts),
+                            builder: (context, snapshot) {
+                              final contacts = snapshot.data ?? [];
 
-                          if (_query.isEmpty && _selectedTagId == null) {
-                            return const SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: Center(
-                                child: Text(
-                                  'Type to search, or pick a tag.',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            );
-                          }
+                              final filtered = contacts.where((c) {
+                                final matchesQuery =
+                                    _query.isEmpty ||
+                                    c.displayName.toLowerCase().contains(_query) ||
+                                    c.displayNumber.toLowerCase().contains(_query);
+                                final matchesTag =
+                                    tagNumbers == null ||
+                                    tagNumbers.contains(c.normalizedNumber);
+                                return matchesQuery && matchesTag;
+                              }).toList();
 
-                          if (filtered.isEmpty) {
-                            return const SliverFillRemaining(
-                              hasScrollBody: false,
-                              child: Center(
-                                child: Text(
-                                  'No matching contacts.',
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            );
-                          }
+                              if (_query.isEmpty && _selectedTagId == null) {
+                                return const SliverFillRemaining(
+                                  hasScrollBody: false,
+                                  child: Center(
+                                    child: Text(
+                                      'Type to search, or pick a tag.',
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ),
+                                );
+                              }
 
-                          return SliverList(
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              final contact = filtered[index];
-                              return ContactCard(
-                                contact: contact,
-                                db: widget.db,
-                                onTap: contact.displayNumber.isEmpty
-                                    ? null
-                                    : () => _openContact(contact),
+                              if (filtered.isEmpty) {
+                                return const SliverFillRemaining(
+                                  hasScrollBody: false,
+                                  child: Center(
+                                    child: Text(
+                                      'No matching contacts.',
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              return SliverList(
+                                delegate: SliverChildBuilderDelegate((
+                                  context,
+                                  index,
+                                ) {
+                                  final contact = filtered[index];
+                                  return ContactCard(
+                                    contact: contact,
+                                    db: widget.db,
+                                    isFavorite: favNumbers.contains(contact.normalizedNumber),
+                                    onTap: contact.displayNumber.isEmpty
+                                        ? null
+                                        : () => _openContact(contact),
+                                  );
+                                }, childCount: filtered.length),
                               );
-                            }, childCount: filtered.length),
+                            },
                           );
                         },
                       );

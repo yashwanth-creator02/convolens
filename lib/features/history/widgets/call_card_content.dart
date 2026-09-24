@@ -5,6 +5,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/utils/call_launcher.dart';
 import '../../../core/utils/normalize_number.dart';
+import '../../../core/widgets/favorite_avatar_ring.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../screens/call_details_screen.dart';
 import '../utils/call_type_label.dart';
@@ -330,53 +331,76 @@ class CallCardContent extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              final num = phoneNumber ?? '';
-                              Navigator.of(context).push(
-                                CupertinoPageRoute(
-                                  builder: (context) => ContactDetailScreen(
-                                    normalizedNumber: normalizePhoneNumber(num),
-                                    displayName: displayTitle,
-                                    displayNumber: num,
-                                    deviceContact: deviceContact,
-                                    db: db,
+                          StreamBuilder<ContactDetail?>(
+                            stream: (phoneNumber != null && phoneNumber.isNotEmpty)
+                                ? db.watchContactDetails(
+                                    normalizePhoneNumber(phoneNumber),
+                                  )
+                                : null,
+                            builder: (context, contactDetailSnap) {
+                              final isFav =
+                                  contactDetailSnap.data?.isFavorite == true;
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  final num = phoneNumber ?? '';
+                                  Navigator.of(context).push(
+                                    CupertinoPageRoute(
+                                      builder: (context) => ContactDetailScreen(
+                                        normalizedNumber:
+                                            normalizePhoneNumber(num),
+                                        displayName: displayTitle,
+                                        displayNumber: num,
+                                        deviceContact: deviceContact,
+                                        db: db,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: FavoriteAvatarRing(
+                                  isFavorite: isFav,
+                                  scheme: scheme,
+                                  ringPadding: 2.0,
+                                  starSize: 9.0,
+                                  child: CircleAvatar(
+                                    radius: isFav ? 20 : 22,
+                                    backgroundImage: deviceContact?.thumbnail !=
+                                            null
+                                        ? ResizeImage(
+                                            MemoryImage(
+                                                deviceContact!.thumbnail!),
+                                            width: 96,
+                                            height: 96,
+                                          )
+                                        : deviceContact?.photo != null
+                                            ? ResizeImage(
+                                                MemoryImage(
+                                                    deviceContact!.photo!),
+                                                width: 96,
+                                                height: 96,
+                                              )
+                                            : null,
+                                    backgroundColor: scheme.secondaryContainer,
+                                    child: (deviceContact?.thumbnail == null &&
+                                            deviceContact?.photo == null)
+                                        ? Text(
+                                            _getInitials(
+                                              hasName
+                                                  ? contactName!
+                                                  : displayTitle,
+                                            ),
+                                            style: TextStyle(
+                                              color:
+                                                  scheme.onSecondaryContainer,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: isFav ? 13 : 14,
+                                            ),
+                                          )
+                                        : null,
                                   ),
                                 ),
                               );
                             },
-                            child: CircleAvatar(
-                              radius: 22,
-                              backgroundImage: deviceContact?.thumbnail != null
-                                  ? ResizeImage(
-                                      MemoryImage(deviceContact!.thumbnail!),
-                                      width: 96,
-                                      height: 96,
-                                    )
-                                  : deviceContact?.photo != null
-                                  ? ResizeImage(
-                                      MemoryImage(deviceContact!.photo!),
-                                      width: 96,
-                                      height: 96,
-                                    )
-                                  : null,
-                              backgroundColor: scheme.secondaryContainer,
-                              child:
-                                  (deviceContact?.thumbnail == null &&
-                                      deviceContact?.photo == null)
-                                  ? Text(
-                                      _getInitials(
-                                        hasName ? contactName! : displayTitle,
-                                      ),
-                                      style: TextStyle(
-                                        color: scheme.onSecondaryContainer,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    )
-                                  : null,
-                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(

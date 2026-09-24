@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -213,28 +214,41 @@ class _ContactHeaderState extends State<ContactHeader>
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // ── Contact image as the full background of the upper header ─────
+          // ── Contact image: ambient blurred backdrop + entire uncropped picture ──
           Positioned.fill(
             child: photo != null && photo.isNotEmpty
-                ? Image.memory(
-                    photo,
-                    fit: BoxFit.cover,
-                    alignment: const Alignment(0, -0.3),
-                    filterQuality: FilterQuality.medium,
-                    gaplessPlayback: true,
-                    frameBuilder:
-                        (context, child, frame, wasSynchronouslyLoaded) {
-                      if (wasSynchronouslyLoaded) return child;
-                      return AnimatedOpacity(
-                        opacity: frame == null ? 0.0 : 1.0,
-                        duration: const Duration(milliseconds: 180),
-                        curve: Curves.easeOut,
-                        child: child,
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) =>
-                        _buildGradientBackground(
-                            bannerColor, scheme, initials),
+                ? Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Ambient blurred background filling the header
+                      ImageFiltered(
+                        imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                        child: Image.memory(
+                          photo,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildGradientBackground(
+                                  bannerColor, scheme, initials),
+                        ),
+                      ),
+                      // Subtle darkening so the uncropped picture and buttons pop
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      // Entire uncropped picture with high filter quality
+                      Center(
+                        child: Image.memory(
+                          photo,
+                          fit: BoxFit.contain,
+                          filterQuality: FilterQuality.high,
+                          gaplessPlayback: true,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        ),
+                      ),
+                    ],
                   )
                 : _buildGradientBackground(bannerColor, scheme, initials),
           ),
@@ -247,9 +261,9 @@ class _ContactHeaderState extends State<ContactHeader>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.05),
-                    Colors.black.withValues(alpha: 0.15),
-                    Colors.black.withValues(alpha: 0.60),
+                    Colors.black.withValues(alpha: 0.04),
+                    Colors.black.withValues(alpha: 0.10),
+                    Colors.black.withValues(alpha: 0.42),
                   ],
                   stops: const [0.0, 0.45, 1.0],
                 ),
