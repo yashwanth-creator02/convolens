@@ -67,10 +67,12 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     try {
       final full = await FlutterContacts.getContact(
         _deviceContact!.id,
+        withAccounts: true,
+        withProperties: true,
         withPhoto: true,
         withThumbnail: true,
       );
-      if (full != null && full.photo != null && mounted) {
+      if (full != null && mounted) {
         setState(() {
           _deviceContact = full;
         });
