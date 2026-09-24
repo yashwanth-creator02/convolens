@@ -13,6 +13,11 @@ import '../models/analytics_filters.dart';
 import '../models/analytics_summary.dart';
 import '../models/comparison_config.dart';
 import '../repository/analytics_repository.dart';
+import '../widgets/analytics_bar_chart.dart';
+import '../widgets/analytics_card.dart';
+import '../widgets/analytics_filter_banner.dart';
+import '../widgets/analytics_filter_sheet.dart';
+import '../widgets/analytics_metric_card.dart';
 import '../widgets/answered_missed_declined_bars.dart';
 import '../widgets/calendar_grid_heatmap.dart';
 import '../widgets/contribution_heatmap.dart';
@@ -27,7 +32,6 @@ import '../widgets/social_momentum_card.dart';
 import '../widgets/social_score_gauge.dart';
 import '../widgets/talk_ratio_bar.dart';
 import '../widgets/weekday_chart.dart';
-import '../widgets/analytics_filter_sheet.dart';
 import 'comparison_screen.dart';
 import 'yearly_recap_screen.dart';
 
@@ -205,14 +209,17 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.calendar_month_rounded),
               title: const Text('This Month vs Last Month'),
               onTap: () => Navigator.pop(context, 'month'),
             ),
             ListTile(
+              leading: const Icon(Icons.calendar_today_rounded),
               title: const Text('This Year vs Last Year'),
               onTap: () => Navigator.pop(context, 'year'),
             ),
             ListTile(
+              leading: const Icon(Icons.people_outline_rounded),
               title: const Text('Contact vs Contact'),
               onTap: () => Navigator.pop(context, 'contact'),
             ),
@@ -304,14 +311,41 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
+  String _formatDuration(int seconds) {
+    if (seconds < 60) return '${seconds}s';
+    final minutes = (seconds / 60).round();
+    if (minutes < 60) return '${minutes}m';
+    final hours = minutes ~/ 60;
+    final remMin = minutes % 60;
+    if (remMin == 0) return '${hours}h';
+    return '${hours}h ${remMin}m';
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_cachedSummary == null) {
-      return const Center(child: CircularProgressIndicator());
+    if (_loading || _cachedSummary == null) {
+      return Material(
+        type: MaterialType.transparency,
+        child: CustomScrollView(
+          controller: widget.titleController.scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: MediaQuery.of(context).padding.top + kToolbarHeight,
+              ),
+            ),
+            GlassLargeTitle(
+              text: 'Analytics',
+              controller: widget.titleController,
+            ),
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ],
+        ),
+      );
     }
 
     final summary = _cachedSummary!;
@@ -320,6 +354,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       type: MaterialType.transparency,
       child: CustomScrollView(
         controller: widget.titleController.scrollController,
+        physics: const BouncingScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
             child: SizedBox(
@@ -351,6 +386,27 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
             ),
           ),
+          SliverToBoxAdapter(
+            child: AnalyticsFilterBanner(
+              filters: filters,
+              contactName: selectedContactName,
+              tagName: selectedTagName,
+              onOpenFilters: _showFilters,
+              onClearDateRange: () => applyFilters(
+                filters.copyWith(dateRange: DateRangeOption.last30),
+              ),
+              onClearContact: () => applyFilters(
+                filters.copyWith(clearContact: true),
+              ),
+              onClearTag: () => applyFilters(
+                filters.copyWith(clearTag: true),
+              ),
+              onClearCallType: () => applyFilters(
+                filters.copyWith(callType: CallTypeFilter.all),
+              ),
+              onResetAll: () => applyFilters(const AnalyticsFilters()),
+            ),
+          ),
           ..._buildTabSlivers(summary),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
@@ -375,266 +431,483 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     }
   }
 
-  List<Widget> _buildSocialSlivers(AnalyticsSummary summary) {
-    return [
-      SliverPadding(
-        padding: const EdgeInsets.all(16),
-        sliver: SliverList(
-          delegate: SliverChildListDelegate([
-            // 1. Social Score Gauge
-            SocialScoreGauge(
-              score: summary.socialHealthScore,
-              label: summary.socialHealthLabel,
-            ),
-            const SizedBox(height: 20),
-
-            // 2. Social Momentum
-            SocialMomentumCard(momentum: summary.socialMomentum),
-            const SizedBox(height: 24),
-
-            // 3. Score Breakdown
-            const Text(
-              'Score Breakdown',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'The four pillars determining your social connectivity score',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ScoreBreakdownBars(breakdown: summary.scoreBreakdown),
-            const SizedBox(height: 28),
-
-            // 4. Inferred Communication Personality
-            const Text(
-              'Communication Style',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Habits and rhythms detected from your calling patterns',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 12),
-            PersonalityChips(labels: summary.personalityLabels),
-            const SizedBox(height: 28),
-
-            // 5. Network Concentration
-            NetworkConcentrationMeter(
-              concentration: summary.networkConcentration,
-            ),
-            const SizedBox(height: 28),
-
-            // 6. Relationship Tiers (Dunbar's Layers)
-            const Text(
-              'Relationship Layers',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Concentric circles of connection based on call frequency',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 16),
-            DunbarRingsChart(
-              tiers: summary.relationshipTiers,
-              onContactTap: _openContact,
-            ),
-            const SizedBox(height: 28),
-
-            // 7. Drifting Relationships (Contacts slipping away)
-            const Text(
-              'Drifting Connections',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Contacts you used to call regularly who haven\'t been reached in 30+ days',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (summary.driftingContacts.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.25),
-                  ),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 20),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'None! You have kept your close relationships well attended.',
-                        style: TextStyle(fontSize: 12, color: Color(0xFF10B981)),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ...summary.driftingContacts.take(5).map(
-                (c) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundImage: c.deviceContact?.thumbnail != null
-                        ? MemoryImage(c.deviceContact!.thumbnail!)
-                        : null,
-                    child: c.deviceContact?.thumbnail == null
-                        ? Text(
-                            c.displayName.isNotEmpty
-                                ? c.displayName[0].toUpperCase()
-                                : '?',
-                          )
-                        : null,
-                  ),
-                  title: Text(c.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text(
-                    c.lastCallAt == null
-                        ? '${c.callCount} calls total'
-                        : '${c.callCount} calls total • Last active ${_daysAgo(c.lastCallAt!)} days ago',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  trailing: TextButton.icon(
-                    onPressed: () => _openContact(c),
-                    icon: const Icon(Icons.call_outlined, size: 14),
-                    label: const Text('Reach Out', style: TextStyle(fontSize: 12)),
-                  ),
-                ),
-              ),
-          ]),
-        ),
-      ),
-    ];
-  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 1. OVERVIEW TAB
+  // ═══════════════════════════════════════════════════════════════════════════
 
   List<Widget> _buildOverviewSlivers(AnalyticsSummary summary) {
     return [
       SliverPadding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         sliver: SliverList(
           delegate: SliverChildListDelegate([
+            // ── 1. Hero 2x2 Metric Grid ──────────────────────────────────────
             Row(
               children: [
-                _statCard('Calls', '${summary.totalCalls}'),
-                const SizedBox(width: 12),
-                _statCard('Contacts', '${summary.totalContacts}'),
-                const SizedBox(width: 12),
-                _statCard(
-                  'Talk Time',
-                  '${(summary.totalTalkSeconds / 60).round()}m',
+                Expanded(
+                  child: AnalyticsMetricCard(
+                    label: 'Total Calls',
+                    value: '${summary.totalCalls}',
+                    icon: Icons.phone_in_talk_rounded,
+                    gradientColors: const [Color(0xFF3B82F6), Color(0xFF06B6D4)],
+                    subtitle:
+                        '${summary.callTypeCounts[1] ?? 0} in • ${summary.callTypeCounts[2] ?? 0} out',
+                    badgeText:
+                        '${(summary.missedCallRate * 100).round()}% missed',
+                    badgeColor: summary.missedCallRate > 0.25
+                        ? const Color(0xFFEF4444)
+                        : const Color(0xFF10B981),
+                  ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                _statCard('🔥 Streak', '${summary.currentStreak}d'),
                 const SizedBox(width: 12),
-                _statCard('Best Streak', '${summary.longestStreak}d'),
-                const SizedBox(width: 12),
-                _statCard(
-                  'Longest Call',
-                  '${(summary.longestCallSeconds / 60).round()}m',
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            if (summary.busiestDayDate != null)
-              Text(
-                'Busiest day: ${summary.busiestDayDate} '
-                '(${summary.busiestDayCount} calls)',
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-
-            Text(
-              'Missed call rate: '
-              '${(summary.missedCallRate * 100).round()}%',
-              style: const TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-
-            const SizedBox(height: 24),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Activity',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextButton(
-                  onPressed: () =>
-                      setState(() => _useCalendarGrid = !_useCalendarGrid),
-                  child: Text(
-                    _useCalendarGrid ? 'Heatmap View' : 'Calendar View',
+                Expanded(
+                  child: AnalyticsMetricCard(
+                    label: 'Talk Time',
+                    value: _formatDuration(summary.totalTalkSeconds),
+                    icon: Icons.timer_outlined,
+                    gradientColors: const [Color(0xFF8B5CF6), Color(0xFFD946EF)],
+                    subtitle: summary.totalCalls > 0
+                        ? 'Avg ${(summary.totalTalkSeconds / summary.totalCalls / 60).round()}m / call'
+                        : 'No calls yet',
                   ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 8),
-
-            RepaintBoundary(
-              child: _useCalendarGrid
-                  ? CalendarGridHeatmap(
-                      countsByDate: summary.heatmapData,
-                      month: DateTime.now().month,
-                      year: DateTime.now().year,
-                    )
-                  : ContributionHeatmap(
-                      countsByDate: summary.heatmapData,
-                      onDayTap: (day, count) =>
-                          _showDayDetail(context, day, count),
-                    ),
-            ),
-
-            const SizedBox(height: 24),
-
+            const SizedBox(height: 12),
             Row(
               children: [
-                OutlinedButton.icon(
-                  onPressed: () => _showComparisonOptions(context),
-                  icon: const Icon(Icons.compare_arrows, size: 18),
-                  label: const Text('Compare'),
+                Expanded(
+                  child: AnalyticsMetricCard(
+                    label: 'Unique Contacts',
+                    value: '${summary.totalContacts}',
+                    icon: Icons.people_alt_rounded,
+                    gradientColors: const [Color(0xFF10B981), Color(0xFF14B8A6)],
+                    subtitle: summary.busiestDayDate != null
+                        ? 'Peak: ${summary.busiestDayCount} calls'
+                        : 'Active network',
+                  ),
                 ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      CupertinoPageRoute(
-                        builder: (context) => YearlyRecapScreen(
-                          db: widget.db,
-                          deviceContacts: deviceContacts,
-                          year: DateTime.now().year,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.auto_awesome, size: 18),
-                  label: Text('${DateTime.now().year} Recap'),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AnalyticsMetricCard(
+                    label: 'Daily Streak',
+                    value: '${summary.currentStreak}d',
+                    icon: Icons.local_fire_department_rounded,
+                    gradientColors: const [Color(0xFFF59E0B), Color(0xFFF97316)],
+                    badgeText: 'Best: ${summary.longestStreak}d',
+                    badgeColor: const Color(0xFFF59E0B),
+                  ),
                 ),
               ],
+            ),
+            const SizedBox(height: 16),
+
+            // ── 2. Quick Actions ──────────────────────────────────────────────
+            _buildQuickActionsRow(context),
+            const SizedBox(height: 16),
+
+            // ── 3. Activity Heatmap ───────────────────────────────────────────
+            AnalyticsCard(
+              title: 'Activity Patterns',
+              icon: Icons.calendar_today_rounded,
+              subtitle: 'Daily communication volume over time',
+              trailing: GlassChip(
+                label: _useCalendarGrid ? 'Calendar' : 'Heatmap',
+                icon: Icon(
+                  _useCalendarGrid
+                      ? Icons.calendar_month_rounded
+                      : Icons.grid_view_rounded,
+                  size: 13,
+                ),
+                quality: GlassQuality.standard,
+                useOwnLayer: false,
+                onTap: () =>
+                    setState(() => _useCalendarGrid = !_useCalendarGrid),
+              ),
+              child: RepaintBoundary(
+                child: _useCalendarGrid
+                    ? CalendarGridHeatmap(
+                        countsByDate: summary.heatmapData,
+                        month: DateTime.now().month,
+                        year: DateTime.now().year,
+                      )
+                    : ContributionHeatmap(
+                        countsByDate: summary.heatmapData,
+                        onDayTap: (day, count) =>
+                            _showDayDetail(context, day, count),
+                      ),
+              ),
+            ),
+
+            // ── 4. Key Highlights ─────────────────────────────────────────────
+            if (summary.busiestDayDate != null || summary.longestCallSeconds > 0)
+              AnalyticsCard(
+                title: 'Quick Insights',
+                icon: Icons.lightbulb_outline_rounded,
+                accentColor: const Color(0xFFF59E0B),
+                child: Column(
+                  children: [
+                    if (summary.busiestDayDate != null)
+                      _buildInsightRow(
+                        icon: Icons.bolt_rounded,
+                        color: const Color(0xFFF59E0B),
+                        title: 'Busiest Day',
+                        value:
+                            '${summary.busiestDayDate} (${summary.busiestDayCount} calls)',
+                      ),
+                    if (summary.longestCallSeconds > 0)
+                      _buildInsightRow(
+                        icon: Icons.emoji_events_outlined,
+                        color: const Color(0xFF8B5CF6),
+                        title: 'Longest Conversation',
+                        value: _formatDuration(summary.longestCallSeconds),
+                      ),
+                    _buildInsightRow(
+                      icon: Icons.wb_sunny_outlined,
+                      color: const Color(0xFF06B6D4),
+                      title: 'Weekend vs Weekday',
+                      value:
+                          '${summary.weekdayCalls} weekday • ${summary.weekendCalls} weekend',
+                    ),
+                  ],
+                ),
+              ),
+          ]),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildQuickActionsRow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Row(
+      children: [
+        Expanded(
+          child: GestureDetector(
+            onTap: () => _showComparisonOptions(context),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: scheme.outlineVariant.withValues(alpha: 0.3),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: scheme.shadow.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.compare_arrows_rounded,
+                      size: 18,
+                      color: scheme.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Compare',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          'Periods / Contacts',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color:
+                                scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              Navigator.of(context).push(
+                CupertinoPageRoute(
+                  builder: (context) => YearlyRecapScreen(
+                    db: widget.db,
+                    deviceContacts: deviceContacts,
+                    year: DateTime.now().year,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                    const Color(0xFFEC4899).withValues(alpha: 0.1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF8B5CF6), Color(0xFFEC4899)],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${DateTime.now().year} Recap',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          'Your year in calls',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            color:
+                                scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInsightRow({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String value,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 14, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 2. SOCIAL TAB
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  List<Widget> _buildSocialSlivers(AnalyticsSummary summary) {
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        sliver: SliverList(
+          delegate: SliverChildListDelegate([
+            // 1. Social Score Gauge & Momentum
+            AnalyticsCard(
+              title: 'Social Connectivity Meter',
+              icon: Icons.favorite_rounded,
+              accentColor: const Color(0xFF10B981),
+              subtitle: 'Overall health of your phone connection network',
+              child: Column(
+                children: [
+                  SocialScoreGauge(
+                    score: summary.socialHealthScore,
+                    label: summary.socialHealthLabel,
+                  ),
+                  const SizedBox(height: 16),
+                  SocialMomentumCard(momentum: summary.socialMomentum),
+                ],
+              ),
+            ),
+
+            // 2. Score Breakdown
+            AnalyticsCard(
+              title: 'Score Breakdown',
+              icon: Icons.bar_chart_rounded,
+              accentColor: const Color(0xFF3B82F6),
+              subtitle:
+                  'The four pillars determining your social connectivity score',
+              child: ScoreBreakdownBars(breakdown: summary.scoreBreakdown),
+            ),
+
+            // 3. Communication Style
+            AnalyticsCard(
+              title: 'Communication Style',
+              icon: Icons.psychology_rounded,
+              accentColor: const Color(0xFF8B5CF6),
+              subtitle:
+                  'Habits and rhythms detected from your calling patterns',
+              child: PersonalityChips(labels: summary.personalityLabels),
+            ),
+
+            // 4. Network Concentration
+            AnalyticsCard(
+              title: 'Network Balance',
+              icon: Icons.hub_rounded,
+              accentColor: const Color(0xFF06B6D4),
+              subtitle:
+                  'Distribution of calls across regular vs primary contacts',
+              child: NetworkConcentrationMeter(
+                concentration: summary.networkConcentration,
+              ),
+            ),
+
+            // 5. Relationship Layers
+            AnalyticsCard(
+              title: 'Relationship Layers',
+              icon: Icons.blur_circular_rounded,
+              accentColor: const Color(0xFFEC4899),
+              subtitle:
+                  'Concentric circles of connection based on call frequency',
+              child: DunbarRingsChart(
+                tiers: summary.relationshipTiers,
+                onContactTap: _openContact,
+              ),
+            ),
+
+            // 6. Drifting Connections
+            AnalyticsCard(
+              title: 'Drifting Connections',
+              icon: Icons.sync_problem_rounded,
+              accentColor: const Color(0xFFF59E0B),
+              subtitle:
+                  'Contacts you used to call regularly who haven\'t been reached in 30+ days',
+              child: summary.driftingContacts.isEmpty
+                  ? Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFF10B981)
+                              .withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: Color(0xFF10B981),
+                            size: 18,
+                          ),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'None! You have kept your close relationships well attended.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF10B981),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                      children: summary.driftingContacts.take(5).map((c) {
+                        return _buildContactTile(
+                          contact: c,
+                          subtitle: c.lastCallAt == null
+                              ? '${c.callCount} calls total'
+                              : '${c.callCount} calls total • Last active ${_daysAgo(c.lastCallAt!)}d ago',
+                          trailing: GlassChip(
+                            label: 'Reach Out',
+                            icon: const Icon(Icons.call_outlined, size: 13),
+                            quality: GlassQuality.standard,
+                            useOwnLayer: false,
+                            onTap: () => _openContact(c),
+                          ),
+                        );
+                      }).toList(),
+                    ),
             ),
           ]),
         ),
@@ -642,330 +915,482 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     ];
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 3. ACTIVITY TAB
+  // ═══════════════════════════════════════════════════════════════════════════
+
   List<Widget> _buildActivitySlivers(AnalyticsSummary summary) {
     return [
       SliverPadding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         sliver: SliverList(
           delegate: SliverChildListDelegate([
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Trend',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+            // 1. Calling Trend
+            AnalyticsCard(
+              title: 'Activity Trend',
+              icon: Icons.show_chart_rounded,
+              subtitle: 'Daily call distribution over the selected period',
+              trailing: GlassChip(
+                label: _showDuration ? 'Duration' : 'Count',
+                icon: Icon(
+                  _showDuration ? Icons.timer_outlined : Icons.call_rounded,
+                  size: 13,
                 ),
-                TextButton(
-                  onPressed: () =>
-                      setState(() => _showDuration = !_showDuration),
-                  child: Text(_showDuration ? 'Show Count' : 'Show Duration'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            RepaintBoundary(
-              child: _buildBarChart(
-                _showDuration
-                    ? summary.durationTrend.map((s) => (s / 60).round()).toList()
+                quality: GlassQuality.standard,
+                useOwnLayer: false,
+                onTap: () => setState(() => _showDuration = !_showDuration),
+              ),
+              child: AnalyticsBarChart(
+                values: _showDuration
+                    ? summary.durationTrend
+                        .map((s) => (s / 60).round())
+                        .toList()
                     : summary.callsPerDay,
-                summary.dayLabels,
+                labels: summary.dayLabels,
+                unit: _showDuration ? 'm' : '',
               ),
             ),
 
-            const SizedBox(height: 24),
-            const Text(
-              'Talk Ratio',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            RepaintBoundary(
+            // 2. Talk Ratio
+            AnalyticsCard(
+              title: 'Talk Ratio',
+              icon: Icons.sync_alt_rounded,
+              subtitle: 'Balance between incoming and outgoing call time',
               child: TalkRatioBar(callTypeCounts: summary.callTypeCounts),
             ),
 
-            const SizedBox(height: 24),
-            const Text(
-              'Answered / Missed / Declined',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            RepaintBoundary(
+            // 3. Outcomes
+            AnalyticsCard(
+              title: 'Call Outcomes',
+              icon: Icons.phone_callback_rounded,
+              subtitle: 'Answered, missed, and rejected calls',
               child: AnsweredMissedDeclinedBars(
                 callTypeCounts: summary.callTypeCounts,
               ),
             ),
 
-            const SizedBox(height: 24),
-            const Text(
-              'Day of Week',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            RepaintBoundary(
+            // 4. Day of Week
+            AnalyticsCard(
+              title: 'Day of Week Distribution',
+              icon: Icons.calendar_view_week_rounded,
+              subtitle: 'Call volume patterns by weekday',
               child: WeekdayChart(weekdayCounts: summary.weekdayCounts),
             ),
 
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Busiest Hours',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+            // 5. Busiest Hours
+            AnalyticsCard(
+              title: 'Busiest Hours',
+              icon: Icons.access_time_rounded,
+              subtitle: 'Time of day when calls occur most often',
+              trailing: GlassChip(
+                label: _useClockFace ? 'Clock' : 'Bars',
+                icon: Icon(
+                  _useClockFace
+                      ? Icons.schedule_rounded
+                      : Icons.bar_chart_rounded,
+                  size: 13,
                 ),
-                TextButton(
-                  onPressed: () =>
-                      setState(() => _useClockFace = !_useClockFace),
-                  child: Text(_useClockFace ? 'Bar View' : 'Clock View'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            RepaintBoundary(
+                quality: GlassQuality.standard,
+                useOwnLayer: false,
+                onTap: () => setState(() => _useClockFace = !_useClockFace),
+              ),
               child: _useClockFace
                   ? HourClockFace(hourCounts: summary.hourCounts)
                   : HourHistogram(hourCounts: summary.hourCounts),
             ),
 
-            const SizedBox(height: 24),
-            const Text(
-              'Call Length Distribution',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            ..._buildDurationDistribution(summary.durationDistribution),
-
-            if (summary.anomalyDays.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              const Text(
-                'Unusual Days',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Days that stood out from your normal pattern',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              ...summary.anomalyDays.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(e.key, style: const TextStyle(fontSize: 12)),
-                      Text(
-                        '${e.value} calls',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+            // 6. Call Length Distribution
+            AnalyticsCard(
+              title: 'Call Length Distribution',
+              icon: Icons.timelapse_rounded,
+              subtitle: 'Breakdown of short check-ins vs deep conversations',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _buildDurationDistribution(
+                  summary.durationDistribution,
                 ),
               ),
-            ],
+            ),
+
+            // 7. Unusual Activity
+            if (summary.anomalyDays.isNotEmpty)
+              AnalyticsCard(
+                title: 'Unusual Days',
+                icon: Icons.warning_amber_rounded,
+                accentColor: const Color(0xFFF59E0B),
+                subtitle:
+                    'Days that stood out sharply from your normal pattern',
+                child: Column(
+                  children: summary.anomalyDays.map((e) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            e.key,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFFF59E0B,
+                              ).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${e.value} calls',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11.5,
+                                color: Color(0xFFF59E0B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
           ]),
         ),
       ),
     ];
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 4. PEOPLE TAB
+  // ═══════════════════════════════════════════════════════════════════════════
 
   List<Widget> _buildPeopleSlivers(AnalyticsSummary summary) {
     return [
       SliverPadding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         sliver: SliverList(
           delegate: SliverChildListDelegate([
-            const Text(
-              'Your Network',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Line thickness reflects how often you talk',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            RepaintBoundary(
-              child: RelationshipWeb(
-                contacts: summary.mostContacted,
-                onContactTap: _openContact,
+            // 1. Relationship Web
+            AnalyticsCard(
+              title: 'Your Network Web',
+              icon: Icons.hub_outlined,
+              subtitle: 'Line thickness reflects how frequently you talk',
+              child: RepaintBoundary(
+                child: RelationshipWeb(
+                  contacts: summary.mostContacted,
+                  onContactTap: _openContact,
+                ),
               ),
             ),
 
-            const SizedBox(height: 24),
-            const Text(
-              'People Who Call You',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Contacts who initiate more often than you do',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            if (summary.theyInitiateMore.isEmpty)
-              const Text('No one yet.', style: TextStyle(color: Colors.grey))
-            else
-              ...summary.theyInitiateMore.map(
-                (c) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(c.displayName),
-                  trailing: Text('${c.incoming} calls from them'),
-                  onTap: () => _openContact(c),
+            // 2. Most Contacted
+            AnalyticsCard(
+              title: 'Most Contacted',
+              icon: Icons.star_rounded,
+              accentColor: const Color(0xFFF59E0B),
+              subtitle: 'Your top connections ranked by activity',
+              trailing: GlassChip(
+                label: _rankByDuration ? 'By Time' : 'By Calls',
+                icon: Icon(
+                  _rankByDuration ? Icons.schedule_rounded : Icons.call_rounded,
+                  size: 13,
                 ),
+                quality: GlassQuality.standard,
+                useOwnLayer: false,
+                onTap: () =>
+                    setState(() => _rankByDuration = !_rankByDuration),
               ),
-
-            const SizedBox(height: 24),
-            const Text(
-              'People You Call',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Contacts you initiate more often than they do',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            if (summary.youInitiateMore.isEmpty)
-              const Text('No one yet.', style: TextStyle(color: Colors.grey))
-            else
-              ...summary.youInitiateMore.map(
-                (c) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(c.displayName),
-                  trailing: Text('${c.outgoing} calls from you'),
-                  onTap: () => _openContact(c),
-                ),
-              ),
-
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Most Contacted',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                TextButton(
-                  onPressed: () =>
-                      setState(() => _rankByDuration = !_rankByDuration),
-                  child: Text(_rankByDuration ? 'By Calls' : 'By Talk Time'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (summary.mostContacted.isEmpty)
-              const Text('No calls yet.', style: TextStyle(color: Colors.grey))
-            else
-              ...(_rankByDuration
-                      ? ([...summary.mostContacted]..sort(
-                          (a, b) => b.totalDuration.compareTo(a.totalDuration),
-                        ))
-                      : summary.mostContacted)
-                  .take(5)
-                  .map(
-                    (c) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(c.displayName),
-                      trailing: Text(
-                        _rankByDuration
-                            ? '${(c.totalDuration / 60).round()}m'
-                            : '${c.callCount} calls',
-                      ),
-                      onTap: () => _openContact(c),
+              child: summary.mostContacted.isEmpty
+                  ? const Text(
+                      'No calls yet.',
+                      style: TextStyle(color: Colors.grey),
+                    )
+                  : Column(
+                      children: (_rankByDuration
+                              ? ([...summary.mostContacted]..sort(
+                                  (a, b) => b.totalDuration
+                                      .compareTo(a.totalDuration),
+                                ))
+                              : summary.mostContacted)
+                          .take(5)
+                          .toList()
+                          .asMap()
+                          .entries
+                          .map((entry) {
+                            final index = entry.key + 1;
+                            final c = entry.value;
+                            return _buildContactTile(
+                              contact: c,
+                              rank: index,
+                              subtitle: _rankByDuration
+                                  ? '${c.callCount} calls total'
+                                  : '${(c.totalDuration / 60).round()}m total talk time',
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  _rankByDuration
+                                      ? '${(c.totalDuration / 60).round()}m'
+                                      : '${c.callCount} calls',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            );
+                          })
+                          .toList(),
                     ),
-                  ),
-
-            const SizedBox(height: 24),
-            const Text(
-              'Favorites vs Everyone Else',
-              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            _buildFavoritesComparison(summary),
 
-            const SizedBox(height: 24),
-            const Text('By Tag', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (summary.tagCounts.isEmpty)
-              const Text(
-                'No tagged calls yet.',
-                style: TextStyle(color: Colors.grey),
-              )
-            else
-              ...summary.tagCounts.entries.map(
-                (entry) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [Text(entry.key), Text('${entry.value}')],
+            // 3. Initiation Dynamics
+            AnalyticsCard(
+              title: 'Initiation Dynamics',
+              icon: Icons.swap_calls_rounded,
+              subtitle: 'Who starts phone calls more often',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.call_received_rounded,
+                        size: 14,
+                        color: Color(0xFF10B981),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'THEY CALL YOU MORE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: Color(0xFF10B981),
+                        ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 6),
+                  if (summary.theyInitiateMore.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, bottom: 8),
+                      child: Text(
+                        'No one yet.',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    )
+                  else
+                    ...summary.theyInitiateMore.take(4).map(
+                          (c) => _buildContactTile(
+                            contact: c,
+                            subtitle:
+                                '${c.incoming} incoming vs ${c.outgoing} outgoing',
+                          ),
+                        ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(height: 1),
+                  ),
+
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.call_made_rounded,
+                        size: 14,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'YOU CALL THEM MORE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: Color(0xFF3B82F6),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  if (summary.youInitiateMore.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4, bottom: 8),
+                      child: Text(
+                        'No one yet.',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    )
+                  else
+                    ...summary.youInitiateMore.take(4).map(
+                          (c) => _buildContactTile(
+                            contact: c,
+                            subtitle:
+                                '${c.outgoing} outgoing vs ${c.incoming} incoming',
+                          ),
+                        ),
+                ],
+              ),
+            ),
+
+            // 4. Favorites vs Everyone Else
+            AnalyticsCard(
+              title: 'Favorites vs Everyone Else',
+              icon: Icons.star_border_rounded,
+              accentColor: const Color(0xFFF59E0B),
+              subtitle:
+                  'Comparing calling frequency to your starred favorites',
+              child: _buildFavoritesComparison(summary),
+            ),
+
+            // 5. Calls by Tag
+            if (summary.tagCounts.isNotEmpty)
+              AnalyticsCard(
+                title: 'Calls by Tag',
+                icon: Icons.label_outline_rounded,
+                subtitle: 'Categorized conversation volume',
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: summary.tagCounts.entries.map((entry) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .primary
+                              .withValues(alpha: 0.25),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            entry.key,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${entry.value}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
 
-            const SizedBox(height: 24),
-            const Text(
-              "Haven't Talked To In A While",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Contacts you have saved but rarely or never call',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
-            if (summary.silentContacts.isEmpty)
-              const Text(
-                "You're in touch with everyone!",
-                style: TextStyle(color: Colors.grey),
-              )
-            else
-              ...summary.silentContacts
-                  .take(10)
-                  .map(
-                    (c) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(c.displayName),
-                      subtitle: Text(
-                        c.lastCallAt == null
-                            ? 'Never called'
-                            : 'Last called ${_daysAgo(c.lastCallAt!)} days ago',
-                      ),
-                      onTap: () => _openContact(c),
+            // 6. Haven't Talked To In A While
+            AnalyticsCard(
+              title: "Haven't Talked In A While",
+              icon: Icons.hourglass_empty_rounded,
+              subtitle: 'Saved contacts you rarely or haven\'t recently called',
+              child: summary.silentContacts.isEmpty
+                  ? const Text(
+                      "You're in touch with everyone!",
+                      style: TextStyle(color: Colors.grey),
+                    )
+                  : Column(
+                      children: summary.silentContacts.take(8).map((c) {
+                        return _buildContactTile(
+                          contact: c,
+                          subtitle: c.lastCallAt == null
+                              ? 'Never called from this phone'
+                              : 'Last called ${_daysAgo(c.lastCallAt!)} days ago',
+                          trailing: Icon(
+                            Icons.chevron_right_rounded,
+                            size: 18,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.4),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                  ),
+            ),
           ]),
         ),
       ),
     ];
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // 5. RECORDS TAB
+  // ═══════════════════════════════════════════════════════════════════════════
 
   List<Widget> _buildRecordsSlivers(AnalyticsSummary summary) {
     return [
       SliverPadding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         sliver: SliverList(
           delegate: SliverChildListDelegate([
-            if (summary.longestCallWith != null)
-              _buildLongestCallCard(summary.longestCallWith!),
-            const SizedBox(height: 24),
-            const Text(
-              'New Relationships',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const Text(
-              'Genuinely new contacts appearing in your call log by month',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            _buildBarChart(
-              summary.newContactsByMonth.values.toList(),
-              summary.newContactsByMonth.keys
-                  .map((k) => k.split('-')[1])
-                  .toList(),
-              color: Theme.of(context).colorScheme.tertiary,
+            if (summary.longestCallWith != null) ...[
+              AnalyticsCard(
+                title: 'All-Time Record Call',
+                icon: Icons.emoji_events_rounded,
+                accentColor: const Color(0xFFF59E0B),
+                subtitle: 'Your longest recorded telephone conversation',
+                child: _buildLongestCallCard(summary.longestCallWith!),
+              ),
+            ],
+            AnalyticsCard(
+              title: 'New Connections',
+              icon: Icons.person_add_alt_1_rounded,
+              accentColor: const Color(0xFF8B5CF6),
+              subtitle: 'First-time callers appearing in your call log by month',
+              child: AnalyticsBarChart(
+                values: summary.newContactsByMonth.values.toList(),
+                labels: summary.newContactsByMonth.keys
+                    .map((k) => k.contains('-') ? k.split('-')[1] : k)
+                    .toList(),
+                barColor: const Color(0xFF8B5CF6),
+              ),
             ),
           ]),
         ),
@@ -973,11 +1398,156 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     ];
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildContactTile({
+    required ContactSummary contact,
+    String? subtitle,
+    Widget? trailing,
+    int? rank,
+    VoidCallback? onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final initials = contact.displayName.isNotEmpty
+        ? (contact.displayName.length >= 2
+            ? contact.displayName.substring(0, 2).toUpperCase()
+            : contact.displayName[0].toUpperCase())
+        : '?';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap ?? () => _openContact(contact),
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              children: [
+                if (rank != null) ...[
+                  Container(
+                    width: 22,
+                    height: 22,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: rank == 1
+                          ? const Color(0xFFF59E0B).withValues(alpha: 0.2)
+                          : (rank == 2
+                              ? Colors.grey.withValues(alpha: 0.2)
+                              : (rank == 3
+                                  ? const Color(0xFFD97706)
+                                      .withValues(alpha: 0.2)
+                                  : scheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.3))),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '$rank',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: rank == 1
+                            ? const Color(0xFFF59E0B)
+                            : (rank == 2
+                                ? Colors.grey[400]
+                                : (rank == 3
+                                    ? const Color(0xFFD97706)
+                                    : scheme.onSurfaceVariant)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: scheme.primary.withValues(alpha: 0.12),
+                  backgroundImage: contact.deviceContact?.thumbnail != null
+                      ? MemoryImage(contact.deviceContact!.thumbnail!)
+                      : null,
+                  child: contact.deviceContact?.thumbnail == null
+                      ? Text(
+                          initials,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.primary,
+                          ),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        contact.displayName,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurface,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: scheme.onSurfaceVariant
+                                .withValues(alpha: 0.7),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing,
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFavoritesComparison(AnalyticsSummary summary) {
+    final scheme = Theme.of(context).colorScheme;
+
     if (summary.favoriteContactCount == 0) {
-      return const Text(
-        'Star some contacts as Favorites to see this comparison.',
-        style: TextStyle(color: Colors.grey, fontSize: 12),
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.star_border_rounded,
+              size: 18,
+              color: scheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Star your close friends as Favorites in Contacts to see this comparison.',
+                style:
+                    TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
       );
     }
 
@@ -986,60 +1556,247 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
         : 0.0;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
             Expanded(
-              child: Column(
-                children: [
-                  Text(
-                    summary.avgCallsPerFavorite.toStringAsFixed(1),
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 14,
+                          color: Color(0xFFF59E0B),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Favorites (${summary.favoriteContactCount})',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFFF59E0B),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  Text(
-                    'avg calls per Favorite (${summary.favoriteContactCount})',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Text(
+                      summary.avgCallsPerFavorite.toStringAsFixed(1),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFF59E0B),
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      'avg calls each',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
+            const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                children: [
-                  Text(
-                    summary.avgCallsPerOther.toStringAsFixed(1),
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHighest
+                      .withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: scheme.outlineVariant.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_outline_rounded,
+                          size: 14,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Others (${summary.otherContactCount})',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  Text(
-                    'avg calls per other contact (${summary.otherContactCount})',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ],
+                    const SizedBox(height: 6),
+                    Text(
+                      summary.avgCallsPerOther.toStringAsFixed(1),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: scheme.onSurface,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    Text(
+                      'avg calls each',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        if (ratio > 0)
-          Center(
-            child: Text(
-              ratio >= 1
-                  ? 'You call your Favorites ${ratio.toStringAsFixed(1)}x more than others.'
-                  : 'You actually call your Favorites less than everyone else.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+        if (ratio > 0) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: (ratio >= 1
+                      ? const Color(0xFFF59E0B)
+                      : const Color(0xFF3B82F6))
+                  .withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  ratio >= 1
+                      ? Icons.trending_up_rounded
+                      : Icons.trending_down_rounded,
+                  size: 16,
+                  color: ratio >= 1
+                      ? const Color(0xFFF59E0B)
+                      : const Color(0xFF3B82F6),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  ratio >= 1
+                      ? 'You call your Favorites ${ratio.toStringAsFixed(1)}x more than others'
+                      : 'You call your Favorites less often than other contacts',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: ratio >= 1
+                        ? const Color(0xFFF59E0B)
+                        : const Color(0xFF3B82F6),
+                  ),
+                ),
+              ],
             ),
           ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildLongestCallCard(Map<String, dynamic> longest) {
+    final scheme = Theme.of(context).colorScheme;
+    final name = longest['name'] as String?;
+    final number = longest['number'] as String;
+    final duration = longest['duration'] as int;
+    final displayName = (name != null && name.isNotEmpty) ? name : number;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFF59E0B).withValues(alpha: 0.12),
+            const Color(0xFFF97316).withValues(alpha: 0.06),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFF59E0B), Color(0xFFF97316)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.emoji_events_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'RECORD CALL DURATION',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: Color(0xFFF59E0B),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _formatDuration(duration),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'with $displayName',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1073,130 +1830,64 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   List<Widget> _buildDurationDistribution(Map<String, int> dist) {
+    final scheme = Theme.of(context).colorScheme;
     final total = dist.values.fold<int>(0, (a, b) => a + b);
     if (total == 0) {
       return [
-        const Text('No calls yet.', style: TextStyle(color: Colors.grey)),
+        Text(
+          'No call duration data yet.',
+          style: TextStyle(
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+            fontSize: 12,
+          ),
+        ),
       ];
     }
 
     return dist.entries.map((entry) {
       final fraction = entry.value / total;
+      final pct = (fraction * 100).round();
+
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${entry.key} — ${entry.value} (${(fraction * 100).round()}%)',
-              style: const TextStyle(fontSize: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  entry.key,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                Text(
+                  '${entry.value} calls ($pct%)',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: 5),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: fraction,
-                minHeight: 6,
-                backgroundColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
+                minHeight: 8,
+                backgroundColor:
+                    scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                valueColor: AlwaysStoppedAnimation<Color>(scheme.primary),
               ),
             ),
           ],
         ),
       );
     }).toList();
-  }
-
-  Widget _buildLongestCallCard(Map<String, dynamic> longest) {
-    final name = longest['name'] as String?;
-    final number = longest['number'] as String;
-    final duration = longest['duration'] as int;
-    final displayName = (name != null && name.isNotEmpty) ? name : number;
-
-    return Card(
-      child: ListTile(
-        leading: const Icon(Icons.emoji_events, color: Colors.amber),
-        title: Text('Longest call: ${(duration / 60).toStringAsFixed(1)} min'),
-        subtitle: Text('with $displayName'),
-      ),
-    );
-  }
-
-  Widget _statCard(String label, String value) {
-    return Expanded(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                label,
-                style: const TextStyle(color: Colors.grey, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBarChart(List<int> values, List<String> labels, {Color? color}) {
-    if (values.isEmpty) {
-      return const Text('No data.', style: TextStyle(color: Colors.grey));
-    }
-
-    final maxValue = values.reduce((a, b) => a > b ? a : b).clamp(1, 999999);
-    final barColor = color ?? Theme.of(context).colorScheme.primary;
-
-    return SizedBox(
-      height: 110,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: List.generate(values.length, (index) {
-          final value = values[index];
-          final heightFraction = (value / maxValue).clamp(0.0, 1.0);
-
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 1),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Text(
-                    '$value',
-                    style: const TextStyle(fontSize: 9),
-                    maxLines: 1,
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    height: 60 * heightFraction,
-                    decoration: BoxDecoration(
-                      color: barColor,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    labels[index],
-                    style: const TextStyle(fontSize: 8),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ),
-    );
   }
 }
