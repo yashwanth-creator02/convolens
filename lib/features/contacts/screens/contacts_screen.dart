@@ -491,6 +491,10 @@ class ContactsScreenState extends State<ContactsScreen>
 
                     return ContactCard(
                       contact: contact,
+                      db: widget.db,
+                      isArchived: _filterMode == ContactFilterMode.archived,
+                      isFavorite: _cachedFavorites.contains(contact.normalizedNumber),
+                      onArchive: () => _loadDeviceContacts(),
                       onTap: contact.displayNumber.isEmpty
                           ? null
                           : () => _openContact(contact),

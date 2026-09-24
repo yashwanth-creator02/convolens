@@ -217,6 +217,7 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
                               final contact = filtered[index];
                               return ContactCard(
                                 contact: contact,
+                                db: widget.db,
                                 onTap: contact.displayNumber.isEmpty
                                     ? null
                                     : () => _openContact(contact),

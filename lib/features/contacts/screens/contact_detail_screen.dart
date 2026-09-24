@@ -13,6 +13,7 @@ import '../tabs/contact_analytics_tab.dart';
 import '../tabs/contact_more_tab.dart';
 import '../tabs/contact_overview_tab.dart';
 import '../widgets/contact_header.dart';
+import '../widgets/contact_share_qr_sheet.dart';
 import '../widgets/edit_contact_screen.dart';
 import '../widgets/add_contact_screen.dart';
 
@@ -200,13 +201,14 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                         letterSpacing: -0.2,
                       ),
                       onTap: () {
-                        final info = widget.displayName !=
-                                widget.displayNumber
-                            ? '${widget.displayName}\n${widget.displayNumber}'
-                            : widget.displayNumber;
-                        Clipboard.setData(ClipboardData(text: info));
-                        ToastService.info(
-                            context, 'Contact details copied to share.');
+                        showContactShareQrSheet(
+                          context,
+                          displayName: _getTitleText(),
+                          phoneNumber: widget.displayNumber.isNotEmpty
+                              ? widget.displayNumber
+                              : widget.normalizedNumber,
+                          deviceContact: _deviceContact,
+                        );
                       },
                     ),
                     if (_deviceContact != null)

@@ -69,6 +69,8 @@ class _ArchivedContactsScreenState extends State<ArchivedContactsScreen> {
                     final contact = contacts[index];
                     return ContactCard(
                       contact: contact,
+                      db: widget.db,
+                      isArchived: true,
                       onTap: contact.displayNumber.isEmpty
                           ? null
                           : () => Navigator.of(context).push(
