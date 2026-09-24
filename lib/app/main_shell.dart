@@ -258,6 +258,9 @@ class _MainShellState extends State<MainShell> {
 
     final result = await GlassModalSheet.show<AnalyticsFilters>(
       context: context,
+      quality: GlassQuality.standard,
+      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
+      initialState: GlassSheetState.half,
       morphFrom: anchor,
       builder: (context) => AnalyticsFilterSheet(
         db: widget.db,

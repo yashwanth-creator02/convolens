@@ -81,7 +81,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     _loadContacts();
   }
 
-  Future<void> openFilters() => _showFilters();
+  Future<void> openFilters({GlassMorphAnchor? anchor}) =>
+      _showFilters(anchor: anchor);
 
   void setActive(bool active) {
     if (_isActive == active) return;
@@ -111,11 +112,13 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     _updateSubscription();
   }
 
-  Future<void> _showFilters() async {
-    final result = await showModalBottomSheet<AnalyticsFilters>(
+  Future<void> _showFilters({GlassMorphAnchor? anchor}) async {
+    final result = await GlassModalSheet.show<AnalyticsFilters>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      quality: GlassQuality.standard,
+      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
+      initialState: GlassSheetState.half,
+      morphFrom: anchor,
       builder: (context) => AnalyticsFilterSheet(
         db: widget.db,
         repository: repository,
@@ -393,6 +396,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               contactName: selectedContactName,
               tagName: selectedTagName,
               onOpenFilters: _showFilters,
+              onOpenFiltersMorph: (anchor) => _showFilters(anchor: anchor),
               onClearDateRange: () => applyFilters(
                 filters.copyWith(dateRange: DateRangeOption.last30),
               ),

@@ -8,6 +8,7 @@ class AnalyticsFilterBanner extends StatelessWidget {
   final String? contactName;
   final String? tagName;
   final VoidCallback onOpenFilters;
+  final void Function(GlassMorphAnchor anchor)? onOpenFiltersMorph;
   final VoidCallback onClearDateRange;
   final VoidCallback onClearContact;
   final VoidCallback onClearTag;
@@ -20,6 +21,7 @@ class AnalyticsFilterBanner extends StatelessWidget {
     this.contactName,
     this.tagName,
     required this.onOpenFilters,
+    this.onOpenFiltersMorph,
     required this.onClearDateRange,
     required this.onClearContact,
     required this.onClearTag,
@@ -76,41 +78,57 @@ class AnalyticsFilterBanner extends StatelessWidget {
         child: Row(
           children: [
             // Filter trigger pill
-            GestureDetector(
-              onTap: onOpenFilters,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: hasAnyFilter
-                      ? scheme.primary.withValues(alpha: 0.15)
-                      : scheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: hasAnyFilter
-                        ? scheme.primary.withValues(alpha: 0.4)
-                        : scheme.outlineVariant.withValues(alpha: 0.25),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.tune_rounded,
-                      size: 13,
-                      color: hasAnyFilter ? scheme.primary : scheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      _dateRangeLabel(filters.dateRange),
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        color: hasAnyFilter ? scheme.primary : scheme.onSurface,
+            GlassMorphTrigger(
+              builder: (context, anchor) {
+                return GestureDetector(
+                  onTap: () {
+                    if (onOpenFiltersMorph != null) {
+                      onOpenFiltersMorph!(anchor);
+                    } else {
+                      onOpenFilters();
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: hasAnyFilter
+                          ? scheme.primary.withValues(alpha: 0.15)
+                          : scheme.surfaceContainerHighest
+                              .withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: hasAnyFilter
+                            ? scheme.primary.withValues(alpha: 0.4)
+                            : scheme.outlineVariant.withValues(alpha: 0.25),
                       ),
                     ),
-                  ],
-                ),
-              ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.tune_rounded,
+                          size: 13,
+                          color: hasAnyFilter
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          _dateRangeLabel(filters.dateRange),
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: hasAnyFilter
+                                ? scheme.primary
+                                : scheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
 
             if (hasContact) ...[
