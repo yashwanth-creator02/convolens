@@ -15,17 +15,19 @@ import '../widgets/contacts_filter_chips.dart';
 import '../widgets/favorites_carousel.dart';
 import '../widgets/glass_alphabet_scrubber.dart';
 import 'contact_detail_screen.dart';
-import 'contact_search_screen.dart';
-import '../../../shared/utils/stretch_reveal_route.dart';
 
 class ContactsScreen extends StatefulWidget {
   final AppDatabase db;
   final GlassLargeTitleController titleController;
+  /// Called when the user wants to open the contact search screen.
+  /// The shell owns the navigation so it can update its own app-bar icon.
+  final VoidCallback? onOpenSearch;
 
   const ContactsScreen({
     super.key,
     required this.db,
     required this.titleController,
+    this.onOpenSearch,
   });
 
   @override
@@ -280,7 +282,7 @@ class ContactsScreenState extends State<ContactsScreen>
   void _onSearchFocusChanged() {
     if (_searchFocusNode.hasFocus) {
       _searchFocusNode.unfocus();
-      _openContactSearch();
+      widget.onOpenSearch?.call();
     }
   }
 
@@ -290,7 +292,7 @@ class ContactsScreenState extends State<ContactsScreen>
     // Overscrolling at the top shows as negative pixels.
     if (metrics.pixels < -80 && !_pullSearchTriggered) {
       _pullSearchTriggered = true;
-      _openContactSearch();
+      widget.onOpenSearch?.call();
     }
 
     if (notification is ScrollEndNotification) {
@@ -298,14 +300,6 @@ class ContactsScreenState extends State<ContactsScreen>
     }
 
     return false; // let the notification keep bubbling
-  }
-
-  void _openContactSearch() {
-    Navigator.of(context).push(
-      StretchRevealRoute(
-        builder: (context) => ContactSearchScreen(db: widget.db),
-      ),
-    );
   }
 
   void _openContact(ContactSummary contact) {

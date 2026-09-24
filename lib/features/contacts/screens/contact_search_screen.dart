@@ -144,7 +144,7 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
             ),
           GlassBarItem.icon(
             icon: const Icon(Icons.close_rounded, size: 20),
-            id: GlassActionIds.contactSearch,
+            id: GlassActionIds.settings,
             label: 'Close',
             onTap: () => Navigator.of(context).pop(),
           ),

@@ -9,6 +9,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/services/contact_cache.dart';
 import '../../../core/utils/normalize_number.dart';
+import '../../../shared/glass_action_ids.dart';
 import '../models/search_filters.dart';
 import '../widgets/call_card.dart';
 
@@ -135,7 +136,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
           GlassBarItem.icon(
             icon: const Icon(Icons.close_rounded, size: 20),
-            id: 'search_close_button',
+            id: GlassActionIds.settings,
             label: 'Close',
             onTap: () => Navigator.of(context).pop(),
           ),

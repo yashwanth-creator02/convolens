@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../shared/glass_action_ids.dart';
+import '../shared/utils/stretch_reveal_route.dart';
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
 import '../features/analytics/repository/insight_checker.dart';
 import '../features/analytics/screens/analytics_screen.dart';
 import '../features/analytics/models/analytics_filters.dart';
 import '../features/analytics/widgets/analytics_filter_sheet.dart';
+import '../features/contacts/screens/contact_search_screen.dart';
 import '../features/contacts/screens/contacts_screen.dart';
 import '../features/contacts/widgets/add_contact_screen.dart';
 import '../features/history/screens/history_screen.dart';
@@ -63,6 +65,7 @@ class _MainShellState extends State<MainShell> {
   // ---------------------------------------------------------------------------
 
   int _selectedIndex = 0;
+  bool _contactSearchOpen = false;
 
   static const List<String> _titles = [
     'History',
@@ -91,6 +94,7 @@ class _MainShellState extends State<MainShell> {
         key: _contactsScreenKey,
         db: _db,
         titleController: _contactsTitleController,
+        onOpenSearch: _openContactSearch,
       ),
     ),
     RepaintBoundary(
@@ -195,6 +199,17 @@ class _MainShellState extends State<MainShell> {
     ).push(CupertinoPageRoute(builder: (context) => SettingsScreen(db: _db)));
   }
 
+  Future<void> _openContactSearch() async {
+    if (_contactSearchOpen) return;
+    setState(() => _contactSearchOpen = true);
+    await Navigator.of(context).push(
+      StretchRevealRoute(
+        builder: (context) => ContactSearchScreen(db: _db),
+      ),
+    );
+    if (mounted) setState(() => _contactSearchOpen = false);
+  }
+
   // ---------------------------------------------------------------------------
   // Bottom-bar actions
   // ---------------------------------------------------------------------------
@@ -283,8 +298,26 @@ class _MainShellState extends State<MainShell> {
           ),
         ];
 
-      case 1:
       case 2:
+        // Contacts tab: swap settings gear for X while search is open
+        return [
+          if (_contactSearchOpen)
+            GlassBarItem.icon(
+              icon: const Icon(Icons.close_rounded, size: 20),
+              id: GlassActionIds.settings,
+              label: 'Close',
+              onTap: () => Navigator.of(context).pop(),
+            )
+          else
+            GlassBarItem.icon(
+              icon: const Icon(Icons.settings),
+              id: GlassActionIds.settings,
+              label: 'Settings',
+              onTap: _openSettings,
+            ),
+        ];
+
+      case 1:
       case 3:
         return [
           GlassBarItem.icon(

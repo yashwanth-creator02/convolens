@@ -12,6 +12,7 @@ import '../../../core/toast/toast_service.dart';
 import '../../../core/widgets/favorite_avatar_ring.dart';
 import '../../profile/utils/vcard_builder.dart';
 import '../models/contact_summary.dart';
+import 'add_contact_screen.dart';
 
 class ContactCard extends StatelessWidget {
   final ContactSummary contact;
@@ -194,109 +195,199 @@ class ContactCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // Avatar with GlassPopover
-                  GlassPopover(
-                    popoverWidth: 295,
-                    popoverBorderRadius: 24.0,
-                    quality: GlassQuality.standard,
-                    triggerBuilder: (popoverCtx, togglePopover) {
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          togglePopover();
-                        },
-                        child: FavoriteAvatarRing(
-                          isFavorite: isFavorite,
-                          scheme: scheme,
-                          ringPadding: 2.0,
-                          starSize: 9.0,
-                          child: Container(
-                            width: isFavorite ? 38 : 42,
-                            height: isFavorite ? 38 : 42,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: !hasThumb
-                                  ? (cardColor != null
-                                      ? LinearGradient(
-                                          colors: [
+                  // Avatar: Navigate to create contact for unknown numbers, otherwise GlassPopover
+                  if (contact.deviceContact == null &&
+                      (contact.deviceContactId == null ||
+                          contact.deviceContactId!.isEmpty))
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        final phone = contact.displayNumber.isNotEmpty
+                            ? contact.displayNumber
+                            : contact.normalizedNumber;
+                        final initialName = (contact.displayName.isNotEmpty &&
+                                contact.displayName != phone)
+                            ? contact.displayName
+                            : null;
+                        final created = await showAddContactScreen(
+                          context,
+                          initialName: initialName,
+                          initialPhone: phone,
+                        );
+                        if (created != null) {
+                          ContactCache.updateContact(created);
+                          if (context.mounted) {
+                            ToastService.success(context, 'Contact created.');
+                          }
+                        }
+                      },
+                      child: FavoriteAvatarRing(
+                        isFavorite: isFavorite,
+                        scheme: scheme,
+                        ringPadding: 2.0,
+                        starSize: 9.0,
+                        child: Container(
+                          width: isFavorite ? 38 : 42,
+                          height: isFavorite ? 38 : 42,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: !hasThumb
+                                ? (cardColor != null
+                                    ? LinearGradient(
+                                        colors: [
+                                          cardColor,
+                                          Color.lerp(
                                             cardColor,
-                                            Color.lerp(
-                                              cardColor,
-                                              Colors.black,
-                                              0.25,
-                                            )!,
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        )
-                                      : LinearGradient(
-                                          colors: gradient,
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ))
-                                  : null,
-                              border: Border.all(
-                                color: isFavorite
-                                    ? Colors.transparent
-                                    : (cardColor != null
-                                        ? cardColor.withValues(alpha: 0.45)
-                                        : scheme.outlineVariant
-                                            .withValues(alpha: 0.25)),
-                                width: 1,
-                              ),
-                            ),
-                            child: ClipOval(
-                              child: hasThumb
-                                  ? Image.memory(
-                                      contact.deviceContact!.thumbnail!,
-                                      fit: BoxFit.cover,
-                                      width: isFavorite ? 38 : 42,
-                                      height: isFavorite ? 38 : 42,
-                                    )
-                                  : Center(
-                                      child: Text(
-                                        getInitials(titleText),
-                                        style: TextStyle(
-                                          fontSize: isFavorite ? 13 : 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ),
+                                            Colors.black,
+                                            0.25,
+                                          )!,
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      )
+                                    : LinearGradient(
+                                        colors: gradient,
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ))
+                                : null,
+                            border: Border.all(
+                              color: isFavorite
+                                  ? Colors.transparent
+                                  : (cardColor != null
+                                      ? cardColor.withValues(alpha: 0.45)
+                                      : scheme.outlineVariant
+                                          .withValues(alpha: 0.25)),
+                              width: 1,
                             ),
                           ),
+                          child: ClipOval(
+                            child: hasThumb
+                                ? Image.memory(
+                                    contact.deviceContact!.thumbnail!,
+                                    fit: BoxFit.cover,
+                                    width: isFavorite ? 38 : 42,
+                                    height: isFavorite ? 38 : 42,
+                                  )
+                                : Center(
+                                    child: Text(
+                                      getInitials(titleText),
+                                      style: TextStyle(
+                                        fontSize: isFavorite ? 13 : 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                          ),
                         ),
-                      );
-                    },
-                    contentBuilder: (popoverCtx, closePopover) {
-                      if (avatarPopoverBuilder != null) {
-                        return avatarPopoverBuilder!(popoverCtx, closePopover);
-                      }
-                      return _ContactCardPopoverContent(
-                        contact: contact,
-                        titleText: titleText,
-                        gradient: cardColor != null
-                            ? [
-                                cardColor,
-                                Color.lerp(cardColor, Colors.black, 0.25)!,
-                              ]
-                            : gradient,
-                        scheme: scheme,
-                        colorValue: colorValue,
-                        isArchived: isArchived,
-                        isFavorite: isFavorite,
-                        closePopover: closePopover,
-                        onArchive: () => _handleArchive(context, closePopover),
-                        onFavorite: () => _handleFavorite(
-                          context,
-                          closePopover,
-                          isFavorite,
-                        ),
-                      );
-                    },
-                  ),
+                      ),
+                    )
+                  else
+                    GlassPopover(
+                      popoverWidth: 295,
+                      popoverBorderRadius: 24.0,
+                      quality: GlassQuality.standard,
+                      triggerBuilder: (popoverCtx, togglePopover) {
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            togglePopover();
+                          },
+                          child: FavoriteAvatarRing(
+                            isFavorite: isFavorite,
+                            scheme: scheme,
+                            ringPadding: 2.0,
+                            starSize: 9.0,
+                            child: Container(
+                              width: isFavorite ? 38 : 42,
+                              height: isFavorite ? 38 : 42,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: !hasThumb
+                                    ? (cardColor != null
+                                        ? LinearGradient(
+                                            colors: [
+                                              cardColor,
+                                              Color.lerp(
+                                                cardColor,
+                                                Colors.black,
+                                                0.25,
+                                              )!,
+                                            ],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          )
+                                        : LinearGradient(
+                                            colors: gradient,
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ))
+                                    : null,
+                                border: Border.all(
+                                  color: isFavorite
+                                      ? Colors.transparent
+                                      : (cardColor != null
+                                          ? cardColor.withValues(alpha: 0.45)
+                                          : scheme.outlineVariant
+                                              .withValues(alpha: 0.25)),
+                                  width: 1,
+                                ),
+                              ),
+                              child: ClipOval(
+                                child: hasThumb
+                                    ? Image.memory(
+                                        contact.deviceContact!.thumbnail!,
+                                        fit: BoxFit.cover,
+                                        width: isFavorite ? 38 : 42,
+                                        height: isFavorite ? 38 : 42,
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          getInitials(titleText),
+                                          style: TextStyle(
+                                            fontSize: isFavorite ? 13 : 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      contentBuilder: (popoverCtx, closePopover) {
+                        if (avatarPopoverBuilder != null) {
+                          return avatarPopoverBuilder!(popoverCtx, closePopover);
+                        }
+                        return _ContactCardPopoverContent(
+                          contact: contact,
+                          titleText: titleText,
+                          gradient: cardColor != null
+                              ? [
+                                  cardColor,
+                                  Color.lerp(cardColor, Colors.black, 0.25)!,
+                                ]
+                              : gradient,
+                          scheme: scheme,
+                          colorValue: colorValue,
+                          isArchived: isArchived,
+                          isFavorite: isFavorite,
+                          closePopover: closePopover,
+                          onArchive: () => _handleArchive(context, closePopover),
+                          onFavorite: () => _handleFavorite(
+                            context,
+                            closePopover,
+                            isFavorite,
+                          ),
+                        );
+                      },
+                    ),
                   const SizedBox(width: 14),
 
                   // Contact Name or Number
