@@ -461,6 +461,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                     badgeColor: summary.missedCallRate > 0.25
                         ? const Color(0xFFEF4444)
                         : const Color(0xFF10B981),
+                    infoDescription:
+                        'Total number of call events recorded during this time period, including incoming, outgoing, missed, and rejected calls.',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -473,6 +475,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                     subtitle: summary.totalCalls > 0
                         ? 'Avg ${(summary.totalTalkSeconds / summary.totalCalls / 60).round()}m / call'
                         : 'No calls yet',
+                    infoDescription:
+                        'Cumulative airtime spent on connected phone calls. Excludes ring duration and unanswered calls.',
                   ),
                 ),
               ],
@@ -489,6 +493,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                     subtitle: summary.busiestDayDate != null
                         ? 'Peak: ${summary.busiestDayCount} calls'
                         : 'Active network',
+                    infoDescription:
+                        'The number of distinct contacts or phone numbers with whom you communicated during this timeframe.',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -500,6 +506,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                     gradientColors: const [Color(0xFFF59E0B), Color(0xFFF97316)],
                     badgeText: 'Best: ${summary.longestStreak}d',
                     badgeColor: const Color(0xFFF59E0B),
+                    infoDescription:
+                        'Your current consecutive days with at least one completed phone call. The badge highlights your historical record streak.',
                   ),
                 ),
               ],
@@ -515,6 +523,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               title: 'Activity Patterns',
               icon: Icons.calendar_today_rounded,
               subtitle: 'Daily communication volume over time',
+              infoDescription:
+                  'A visual heat calendar mapping your daily communication volume over time.\n\nDarker color intensity represents higher call frequency. Toggle between Heatmap and Calendar modes, or tap any day to inspect specific call counts.',
               trailing: GlassChip(
                 label: _useCalendarGrid ? 'Calendar' : 'Heatmap',
                 icon: Icon(
@@ -549,6 +559,10 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 title: 'Quick Insights',
                 icon: Icons.lightbulb_outline_rounded,
                 accentColor: const Color(0xFFF59E0B),
+                subtitle:
+                    'Key extremes, records, and weekly communication rhythms',
+                infoDescription:
+                    'Highlights key extremes and rhythms in your calling history:\n\n• Busiest Day: The date with your highest single-day call count.\n• Longest Conversation: Your maximum single-call duration.\n• Weekend vs Weekday: Communication balance between workdays and weekends.',
                 child: Column(
                   children: [
                     if (summary.busiestDayDate != null)
@@ -801,6 +815,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               icon: Icons.favorite_rounded,
               accentColor: const Color(0xFF10B981),
               subtitle: 'Overall health of your phone connection network',
+              infoDescription:
+                  'A composite connectivity score (0–100) reflecting the vitality, balance, and reach of your phone relationships.\n\nFactors evaluated:\n• Consistency (30%): Frequency and regularity of contacts.\n• Reciprocity (30%): Balance between incoming and outgoing calls.\n• Network Breadth (20%): Total active relationships maintained.\n• Interaction Depth (20%): Time invested in meaningful conversations.',
               child: Column(
                 children: [
                   SocialScoreGauge(
@@ -820,6 +836,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               accentColor: const Color(0xFF3B82F6),
               subtitle:
                   'The four pillars determining your social connectivity score',
+              infoDescription:
+                  'The four core pillars contributing to your social connectivity score:\n\n• Consistency: Keeping in touch at steady intervals without prolonged radio silence.\n• Reciprocity: Maintaining a balanced 2-way dialogue rather than one-sided calling.\n• Network Breadth: Maintaining connections across a diverse circle of contacts.\n• Interaction Depth: Engaging in quality, extended discussions beyond quick transactional calls.',
               child: ScoreBreakdownBars(breakdown: summary.scoreBreakdown),
             ),
 
@@ -830,6 +848,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               accentColor: const Color(0xFF8B5CF6),
               subtitle:
                   'Habits and rhythms detected from your calling patterns',
+              infoDescription:
+                  'Behavioral archetypes and conversational habits inferred from your call history:\n\n• Night Owl / Early Bird: Inferred from peak call hours.\n• Marathoner / Quick Touch: Inferred from average conversation length.\n• High Reciprocity: Inferred from balanced incoming vs outgoing volume.\n• Weekend Reconnector: Inferred from weekend communication spikes.',
               child: PersonalityChips(labels: summary.personalityLabels),
             ),
 
@@ -840,6 +860,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               accentColor: const Color(0xFF06B6D4),
               subtitle:
                   'Distribution of calls across regular vs primary contacts',
+              infoDescription:
+                  'Evaluates whether your calling time is distributed across multiple contacts or concentrated heavily in 1–2 individuals.\n\n• High Concentration: Most conversation time is spent with a single primary contact.\n• Balanced: Conversations are distributed harmoniously across your social circle.',
               child: NetworkConcentrationMeter(
                 concentration: summary.networkConcentration,
               ),
@@ -852,6 +874,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               accentColor: const Color(0xFFEC4899),
               subtitle:
                   'Concentric circles of connection based on call frequency',
+              infoDescription:
+                  'Visualizes your connections using Dunbar\'s Social Brain Theory:\n\n• Inner Circle (Top 5): Your closest core circle and frequent daily confidants.\n• Close Friends (Next 10): Good friends reached weekly or bi-weekly.\n• Casual Network (Next 35+): Acquaintances and periodic catch-ups.',
               child: DunbarRingsChart(
                 tiers: summary.relationshipTiers,
                 onContactTap: _openContact,
@@ -865,6 +889,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               accentColor: const Color(0xFFF59E0B),
               subtitle:
                   'Contacts you used to call regularly who haven\'t been reached in 30+ days',
+              infoDescription:
+                  'Highlights valuable relationships that may be growing distant.\n\nSurfaces contacts with at least 3 historical calls who haven\'t been reached in 30+ days, making it easy to tap Reach Out and reconnect.',
               child: summary.driftingContacts.isEmpty
                   ? Container(
                       padding: const EdgeInsets.all(14),
@@ -936,6 +962,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               title: 'Activity Trend',
               icon: Icons.show_chart_rounded,
               subtitle: 'Daily call distribution over the selected period',
+              infoDescription:
+                  'Daily distribution of your phone communications over the selected filter period.\n\nUse the toggle in the upper right to switch between total call counts and cumulative talk duration in minutes.',
               trailing: GlassChip(
                 label: _showDuration ? 'Duration' : 'Count',
                 icon: Icon(
@@ -962,6 +990,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               title: 'Talk Ratio',
               icon: Icons.sync_alt_rounded,
               subtitle: 'Balance between incoming and outgoing call time',
+              infoDescription:
+                  'Compares total incoming call duration against outgoing call duration.\n\nA 50/50 balance reflects mutual outreach. When incoming dominates (>60%), others reach out to you more. When outgoing dominates (>60%), you initiate most conversations.',
               child: TalkRatioBar(callTypeCounts: summary.callTypeCounts),
             ),
 
@@ -970,6 +1000,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               title: 'Call Outcomes',
               icon: Icons.phone_callback_rounded,
               subtitle: 'Answered, missed, and rejected calls',
+              infoDescription:
+                  'Categorizes all phone call events into:\n\n• Answered: Calls that successfully connected.\n• Missed: Incoming calls that went unanswered.\n• Declined: Inbound calls rejected or dismissed.\n\nA high answer rate (>80%) indicates strong phone availability.',
               child: AnsweredMissedDeclinedBars(
                 callTypeCounts: summary.callTypeCounts,
               ),
@@ -980,6 +1012,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               title: 'Day of Week Distribution',
               icon: Icons.calendar_view_week_rounded,
               subtitle: 'Call volume patterns by weekday',
+              infoDescription:
+                  'Aggregates your call history by day of the week (Monday through Sunday).\n\nReveals your weekly communication rhythms, your single busiest calling day, and contrasts workweek versus weekend calling volume.',
               child: WeekdayChart(weekdayCounts: summary.weekdayCounts),
             ),
 
@@ -988,6 +1022,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               title: 'Busiest Hours',
               icon: Icons.access_time_rounded,
               subtitle: 'Time of day when calls occur most often',
+              infoDescription:
+                  'Visualizes your 24-hour diurnal calling rhythm.\n\nHelps identify your peak communication window and categorizes activity into four time-of-day segments: Morning (6 AM–12 PM), Afternoon (12 PM–5 PM), Evening (5 PM–9 PM), and Night (9 PM–6 AM).',
               trailing: GlassChip(
                 label: _useClockFace ? 'Clock' : 'Bars',
                 icon: Icon(
@@ -1011,6 +1047,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               icon: Icons.timelapse_rounded,
               accentColor: const Color(0xFF8B5CF6),
               subtitle: 'Breakdown of short check-ins vs deep conversations',
+              infoDescription:
+                  'Breaks down your phone calls into four duration tiers:\n\n• Quick (<30s): Brief status updates and quick coordination.\n• Short (30s–3m): Standard everyday catch-ups.\n• Medium (3–10m): Substantial conversations.\n• Long (10m+): Deep, extended discussions.',
               child: _buildDurationDistribution(
                 summary.durationDistribution,
               ),
@@ -1024,6 +1062,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 accentColor: const Color(0xFFF59E0B),
                 subtitle:
                     'Days that stood out sharply from your normal communication volume',
+                infoDescription:
+                    'Flags specific calendar days where your call volume was abnormally high compared to your typical daily baseline.\n\nUseful for identifying event-heavy days, emergencies, celebrations, or unusually busy periods.',
                 child: Column(
                   children: summary.anomalyDays.map((e) {
                     return Container(
@@ -1105,6 +1145,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               title: 'Your Network Web',
               icon: Icons.hub_outlined,
               subtitle: 'Line thickness reflects how frequently you talk',
+              infoDescription:
+                  'An interactive topological graph of your core social network.\n\nYou are positioned at the center, surrounded by your most frequent contacts. Node proximity and connection line thickness illustrate relative call volume and relationship intimacy.',
               child: RepaintBoundary(
                 child: RelationshipWeb(
                   contacts: summary.mostContacted,
@@ -1119,6 +1161,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               icon: Icons.star_rounded,
               accentColor: const Color(0xFFF59E0B),
               subtitle: 'Your top connections ranked by activity',
+              infoDescription:
+                  'Your top contacts ranked by total interaction volume.\n\nUse the toggle to switch rankings between total call count and total talk time in minutes. The top 3 contacts feature special podium medals.',
               trailing: GlassChip(
                 label: _rankByDuration ? 'By Time' : 'By Calls',
                 icon: Icon(
@@ -1190,6 +1234,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               icon: Icons.swap_calls_rounded,
               accentColor: const Color(0xFF3B82F6),
               subtitle: 'Who starts phone calls more often across your network',
+              infoDescription:
+                  'Analyzes conversational asymmetry across your contacts.\n\nDistinguishes between contacts who call you more often (incoming dominant) versus contacts you reach out to more often (outgoing dominant), helping you see who drives your relationships.',
               child: _buildInitiationDynamicsSection(summary),
             ),
 
@@ -1200,6 +1246,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               accentColor: const Color(0xFFF59E0B),
               subtitle:
                   'Comparing calling frequency to your starred favorites',
+              infoDescription:
+                  'Compares average call volume per starred favorite contact against all other contacts in your address book.\n\nReveals how much more attention and airtime your inner favorites receive compared to general acquaintances.',
               child: _buildFavoritesComparison(summary),
             ),
 
@@ -1209,6 +1257,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 title: 'Calls by Tag',
                 icon: Icons.label_outline_rounded,
                 subtitle: 'Categorized conversation volume',
+                infoDescription:
+                    'Aggregates your call volume categorized by custom tags (e.g., Family, Work, Friends) assigned to contacts in Convolens.',
                 child: Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -1275,6 +1325,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               accentColor: const Color(0xFFF59E0B),
               subtitle:
                   'Contacts you used to call regularly who haven\'t been reached lately',
+              infoDescription:
+                  'A proactive relationship health reminder.\n\nLists saved contacts who have had no call activity in 30+ days. Tap the Call action chip to immediately dial or view their contact details.',
               child: summary.silentContacts.isEmpty
                   ? const Text(
                       "You're in touch with everyone!",
@@ -1321,6 +1373,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 icon: Icons.emoji_events_rounded,
                 accentColor: const Color(0xFFF59E0B),
                 subtitle: 'Your longest recorded telephone conversation',
+                infoDescription:
+                    'Celebrates your single longest uninterrupted telephone conversation recorded in your device history, showing duration and contact.',
                 child: _buildLongestCallCard(summary.longestCallWith!),
               ),
             ],
@@ -1331,6 +1385,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               icon: Icons.military_tech_rounded,
               accentColor: const Color(0xFFF59E0B),
               subtitle: 'All-time bests and personal communication records',
+              infoDescription:
+                  'Your all-time personal communication record book:\n\n• Peak Day: Single day with the most calls ever logged.\n• Best Streak: Longest consecutive daily calling streak.\n• Top Contact: All-time #1 contact by call count and duration.\n• Total Time: Lifetime connected call time.',
               child: _buildHallOfFameBento(summary),
             ),
 
@@ -1340,6 +1396,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               icon: Icons.workspace_premium_rounded,
               accentColor: const Color(0xFF8B5CF6),
               subtitle: 'Unlock communication achievements by hitting milestones',
+              infoDescription:
+                  'Unlockable achievements celebrating your communication milestones:\n\n• Century Club: 100+ total calls.\n• Marathon Talker: 30+ min single call.\n• Consistency Star: 7-day streak.\n• Broad Network: 20+ contacts.\n• Deep Listener: 10+ hours talk time.\n• Loyal Companion: 20+ calls with one person.',
               child: MilestoneBadgesGrid(summary: summary),
             ),
 
@@ -1349,6 +1407,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               icon: Icons.person_add_alt_1_rounded,
               accentColor: const Color(0xFF10B981),
               subtitle: 'First-time callers appearing in your call log by month',
+              infoDescription:
+                  'Tracks the monthly pace at which new, first-time phone numbers appear in your call history, illustrating how quickly your network is growing.',
               child: AnalyticsBarChart(
                 values: summary.newContactsByMonth.values.toList(),
                 labels: summary.newContactsByMonth.keys
@@ -1910,23 +1970,54 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 9,
-                  vertical: 3.5,
-                ),
-                decoration: BoxDecoration(
-                  color: pulseColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  pulseStatus,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: pulseColor,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 3.5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: pulseColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      pulseStatus,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: pulseColor,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () {
+                      showAnalyticsInfoSheet(
+                        context,
+                        title: 'Network Pulse',
+                        description:
+                            'Network Pulse evaluates real-time communication momentum by synthesizing call frequency, talk time velocity, and connection balance.\n\n'
+                            '• Vibrant Pulse: High activity (>20 calls or 3+ day streak) with healthy connection rates.\n'
+                            '• Attention Needed: High missed call rate (>40%), indicating missed connection opportunities.\n'
+                            '• Steady Rhythm: Consistent, regular calling cadence with balanced talk duration.\n'
+                            '• Dormant: No logged call activity detected in this timeframe.',
+                        icon: Icons.monitor_heart_rounded,
+                        accentColor: pulseColor,
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(3.0),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        size: 15,
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

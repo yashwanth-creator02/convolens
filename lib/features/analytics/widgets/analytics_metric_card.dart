@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'analytics_card.dart';
+
 class AnalyticsMetricCard extends StatelessWidget {
   final String label;
   final String value;
@@ -8,6 +10,7 @@ class AnalyticsMetricCard extends StatelessWidget {
   final String? subtitle;
   final String? badgeText;
   final Color? badgeColor;
+  final String? infoDescription;
   final VoidCallback? onTap;
 
   const AnalyticsMetricCard({
@@ -19,6 +22,7 @@ class AnalyticsMetricCard extends StatelessWidget {
     this.subtitle,
     this.badgeText,
     this.badgeColor,
+    this.infoDescription,
     this.onTap,
   });
 
@@ -77,23 +81,65 @@ class AnalyticsMetricCard extends StatelessWidget {
                 ),
                 child: Icon(icon, color: Colors.white, size: 18),
               ),
-              if (badgeText != null && badgeText!.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: (badgeColor ?? primaryGradient).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    badgeText!,
-                    style: TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: badgeColor ?? primaryGradient,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (badgeText != null && badgeText!.isNotEmpty)
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: (badgeColor ?? primaryGradient)
+                                .withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            badgeText!,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: badgeColor ?? primaryGradient,
+                              letterSpacing: 0.2,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    if (infoDescription != null) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: () => showAnalyticsInfoSheet(
+                          context,
+                          title: label,
+                          description: infoDescription!,
+                          icon: icon,
+                          accentColor: primaryGradient,
+                        ),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          padding: const EdgeInsets.all(3.5),
+                          decoration: BoxDecoration(
+                            color: primaryGradient.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.info_outline_rounded,
+                            size: 13,
+                            color: primaryGradient,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -146,6 +192,18 @@ class AnalyticsMetricCard extends StatelessWidget {
     if (onTap != null) {
       return GestureDetector(
         onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: content,
+      );
+    } else if (infoDescription != null) {
+      return GestureDetector(
+        onTap: () => showAnalyticsInfoSheet(
+          context,
+          title: label,
+          description: infoDescription!,
+          icon: icon,
+          accentColor: primaryGradient,
+        ),
         behavior: HitTestBehavior.opaque,
         child: content,
       );

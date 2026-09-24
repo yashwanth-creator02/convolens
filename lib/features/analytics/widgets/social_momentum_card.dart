@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'analytics_card.dart';
+
 class SocialMomentumCard extends StatelessWidget {
   final double momentum; // e.g. 0.25 is +25%, -0.15 is -15%
 
@@ -63,13 +65,44 @@ class SocialMomentumCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(
-                      'Social Momentum',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Social Momentum',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () {
+                            showAnalyticsInfoSheet(
+                              context,
+                              title: 'Social Momentum',
+                              description:
+                                  'Social Momentum measures the rate of change in your calling activity compared to the preceding 14-day rolling window.\n\n• Positive Velocity (+): Call volume and connection reach are accelerating.\n• Steady Pace (0%): Calling habits have stayed consistent and balanced.\n• Cooldown (-): Outbound or inbound communications have slowed down recently.',
+                              icon: Icons.speed_rounded,
+                              accentColor: statusColor,
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child: Icon(
+                              Icons.info_outline_rounded,
+                              size: 13,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant
+                                  .withValues(alpha: 0.6),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const Spacer(),
                     Container(

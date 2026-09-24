@@ -1,9 +1,156 @@
 import 'package:flutter/material.dart';
 
+void showAnalyticsInfoSheet(
+  BuildContext context, {
+  required String title,
+  required String description,
+  IconData icon = Icons.info_outline_rounded,
+  Color? accentColor,
+}) {
+  final scheme = Theme.of(context).colorScheme;
+  final color = accentColor ?? scheme.primary;
+
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (context) => Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: color.withValues(alpha: 0.25),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, size: 20, color: color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w800,
+                            color: scheme.onSurface,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        Text(
+                          'Understanding this metric',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 20),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Divider(
+                height: 1,
+                color: scheme.outlineVariant.withValues(alpha: 0.25),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      height: 1.5,
+                      color: scheme.onSurface.withValues(alpha: 0.85),
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: color,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text(
+                    'Got It',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class AnalyticsCard extends StatelessWidget {
   final String title;
   final IconData icon;
   final String? subtitle;
+  final String? infoDescription;
   final Widget? trailing;
   final Color? accentColor;
   final Widget child;
@@ -15,6 +162,7 @@ class AnalyticsCard extends StatelessWidget {
     required this.title,
     required this.icon,
     this.subtitle,
+    this.infoDescription,
     this.trailing,
     this.accentColor,
     required this.child,
@@ -27,6 +175,12 @@ class AnalyticsCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final color = accentColor ?? scheme.primary;
+
+    final hasDetailedDescription = infoDescription != null ||
+        (subtitle != null &&
+            (subtitle!.length > 65 || subtitle!.contains('\n')));
+
+    final effectiveDescription = infoDescription ?? subtitle;
 
     return Padding(
       padding: margin ?? const EdgeInsets.only(bottom: 16),
@@ -66,14 +220,45 @@ class AnalyticsCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.onSurface,
-                          letterSpacing: 0.15,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.onSurface,
+                                letterSpacing: 0.15,
+                              ),
+                            ),
+                          ),
+                          if (hasDetailedDescription && effectiveDescription != null) ...[
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: () => showAnalyticsInfoSheet(
+                                context,
+                                title: title,
+                                description: effectiveDescription,
+                                icon: icon,
+                                accentColor: color,
+                              ),
+                              behavior: HitTestBehavior.opaque,
+                              child: Container(
+                                padding: const EdgeInsets.all(3.5),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.info_outline_rounded,
+                                  size: 13,
+                                  color: color,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       if (subtitle != null && subtitle!.isNotEmpty) ...[
                         const SizedBox(height: 2),
@@ -81,9 +266,12 @@ class AnalyticsCard extends StatelessWidget {
                           subtitle!,
                           style: TextStyle(
                             fontSize: 11.5,
-                            color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                            color:
+                                scheme.onSurfaceVariant.withValues(alpha: 0.75),
                             height: 1.25,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ],
