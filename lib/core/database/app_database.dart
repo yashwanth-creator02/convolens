@@ -706,6 +706,15 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Stream<Map<String, int>> watchContactColors() {
+    return select(contactDetails).watch().map(
+      (rows) => {
+        for (final r in rows)
+          if (r.colorValue != null) r.normalizedNumber: r.colorValue!,
+      },
+    );
+  }
+
   // ============================================================
   // CONTACT TAGS
   // ============================================================
@@ -717,6 +726,21 @@ class AppDatabase extends _$AppDatabase {
 
     return query.watch().map(
       (rows) => rows.map((row) => row.readTable(tags)).toList(),
+    );
+  }
+
+  Stream<Set<String>> watchNumbersForTag(int tagId) {
+    final query = select(contactTags)..where((t) => t.tagId.equals(tagId));
+    return query.watch().map(
+      (rows) => rows.map((row) => row.normalizedNumber).toSet(),
+    );
+  }
+
+  Stream<Set<String>> watchNumbersForTags(Set<int> tagIds) {
+    if (tagIds.isEmpty) return Stream.value(const {});
+    final query = select(contactTags)..where((t) => t.tagId.isIn(tagIds));
+    return query.watch().map(
+      (rows) => rows.map((row) => row.normalizedNumber).toSet(),
     );
   }
 

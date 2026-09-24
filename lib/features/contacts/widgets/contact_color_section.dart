@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'contact_color_picker_sheet.dart';
+
 const List<({String name, Color color})> contactColorSwatches = [
   (name: 'Crimson', color: Color(0xFFE53935)),
   (name: 'Coral', color: Color(0xFFFB8C00)),
@@ -28,6 +30,10 @@ class ContactColorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+
+    final isCustomColor = colorValue != null &&
+        !contactColorSwatches.any((item) => item.color.toARGB32() == colorValue);
+    final customColor = isCustomColor ? Color(colorValue!) : null;
 
     return Wrap(
       spacing: 12,
@@ -82,6 +88,102 @@ class ContactColorSection extends StatelessWidget {
             ),
           );
         }),
+
+        // Custom Selected Swatch (if a custom color is currently selected)
+        if (isCustomColor && customColor != null)
+          Tooltip(
+            message: 'Custom Color',
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  showContactColorPicker(
+                    context,
+                    initialColorValue: colorValue,
+                    onColorSelected: onColorSelected,
+                  );
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: customColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: customColor.withValues(alpha: 0.5),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // Add / Custom Color Button (Opens Color Picker)
+        Tooltip(
+          message: 'Add custom color',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(24),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                showContactColorPicker(
+                  context,
+                  initialColorValue: colorValue,
+                  onColorSelected: onColorSelected,
+                );
+              },
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: SweepGradient(
+                    colors: [
+                      Color(0xFFFF0000),
+                      Color(0xFFFFFF00),
+                      Color(0xFF00FF00),
+                      Color(0xFF00FFFF),
+                      Color(0xFF0000FF),
+                      Color(0xFFFF00FF),
+                      Color(0xFFFF0000),
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(2.2),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.add_rounded,
+                      size: 20,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
 
         // Clear / Default button
         Tooltip(

@@ -40,6 +40,7 @@ class ContactsScreenState extends State<ContactsScreen>
   bool _contactsLoaded = false;
   List<ContactSummary> _cachedContacts = [];
   Set<String> _cachedFavorites = {};
+  Map<String, int> _cachedColors = {};
   int _cachedArchivedCount = 0;
 
   List<ContactSummary> _cachedFavoritesList = [];
@@ -106,6 +107,7 @@ class ContactsScreenState extends State<ContactsScreen>
 
   StreamSubscription<List<ContactSummary>>? _contactsSub;
   StreamSubscription<Set<String>>? _favoritesSub;
+  StreamSubscription<Map<String, int>>? _colorsSub;
   StreamSubscription<List<ContactSummary>>? _archivedSub;
 
   bool _permissionGranted = false;
@@ -140,9 +142,11 @@ class ContactsScreenState extends State<ContactsScreen>
   void _updateSubscriptions() {
     _contactsSub?.cancel();
     _favoritesSub?.cancel();
+    _colorsSub?.cancel();
     _archivedSub?.cancel();
     _contactsSub = null;
     _favoritesSub = null;
+    _colorsSub = null;
     _archivedSub = null;
 
     if (!_isActive || _loadingContacts) return;
@@ -162,6 +166,14 @@ class ContactsScreenState extends State<ContactsScreen>
         setState(() {
           _cachedFavorites = data;
           _recomputeListItems();
+        });
+      }
+    });
+
+    _colorsSub = widget.db.watchContactColors().listen((data) {
+      if (mounted) {
+        setState(() {
+          _cachedColors = data;
         });
       }
     });
@@ -199,6 +211,7 @@ class ContactsScreenState extends State<ContactsScreen>
     _searchFocusNode.dispose();
     _contactsSub?.cancel();
     _favoritesSub?.cancel();
+    _colorsSub?.cancel();
     _archivedSub?.cancel();
     super.dispose();
   }
@@ -492,6 +505,7 @@ class ContactsScreenState extends State<ContactsScreen>
                     return ContactCard(
                       contact: contact,
                       db: widget.db,
+                      colorValue: _cachedColors[contact.normalizedNumber],
                       isArchived: _filterMode == ContactFilterMode.archived,
                       isFavorite: _cachedFavorites.contains(contact.normalizedNumber),
                       onArchive: () => _loadDeviceContacts(),

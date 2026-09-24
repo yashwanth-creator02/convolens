@@ -46,56 +46,64 @@ class _ArchivedContactsScreenState extends State<ArchivedContactsScreen> {
         builder: (context, favSnapshot) {
           final favNumbers = favSnapshot.data ?? const {};
 
-          return StreamBuilder<List<ContactSummary>>(
-            stream: repository.watchArchivedContacts(widget.deviceContacts),
-            builder: (context, snapshot) {
-              final contacts = snapshot.data ?? [];
+          return StreamBuilder<Map<String, int>>(
+            stream: widget.db.watchContactColors(),
+            builder: (context, colorSnapshot) {
+              final contactColors = colorSnapshot.data ?? const {};
 
-              if (contacts.isEmpty) {
-                return const Center(child: Text('No archived contacts.'));
-              }
+              return StreamBuilder<List<ContactSummary>>(
+                stream: repository.watchArchivedContacts(widget.deviceContacts),
+                builder: (context, snapshot) {
+                  final contacts = snapshot.data ?? [];
 
-              return Material(
-                type: MaterialType.transparency,
-                child: CustomScrollView(
-                  controller: _titleController.scrollController,
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: MediaQuery.of(context).padding.top + kToolbarHeight,
-                      ),
+                  if (contacts.isEmpty) {
+                    return const Center(child: Text('No archived contacts.'));
+                  }
+
+                  return Material(
+                    type: MaterialType.transparency,
+                    child: CustomScrollView(
+                      controller: _titleController.scrollController,
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: MediaQuery.of(context).padding.top + kToolbarHeight,
+                          ),
+                        ),
+                        GlassLargeTitle(
+                          text: 'Archived Contacts',
+                          controller: _titleController,
+                        ),
+                        SliverList(
+                          delegate: SliverChildBuilderDelegate((context, index) {
+                            final contact = contacts[index];
+                            return ContactCard(
+                              contact: contact,
+                              db: widget.db,
+                              colorValue: contactColors[contact.normalizedNumber],
+                              isArchived: true,
+                              isFavorite: favNumbers.contains(contact.normalizedNumber),
+                              onTap: contact.displayNumber.isEmpty
+                                  ? null
+                                  : () => Navigator.of(context).push(
+                                      CupertinoPageRoute(
+                                        builder: (context) => ContactDetailScreen(
+                                          normalizedNumber: contact.normalizedNumber,
+                                          displayName: contact.displayName,
+                                          displayNumber: contact.displayNumber,
+                                          deviceContact: contact.deviceContact,
+                                          db: widget.db,
+                                        ),
+                                      ),
+                                    ),
+                            );
+                          }, childCount: contacts.length),
+                        ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                      ],
                     ),
-                    GlassLargeTitle(
-                      text: 'Archived Contacts',
-                      controller: _titleController,
-                    ),
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final contact = contacts[index];
-                        return ContactCard(
-                          contact: contact,
-                          db: widget.db,
-                          isArchived: true,
-                          isFavorite: favNumbers.contains(contact.normalizedNumber),
-                      onTap: contact.displayNumber.isEmpty
-                          ? null
-                          : () => Navigator.of(context).push(
-                              CupertinoPageRoute(
-                                builder: (context) => ContactDetailScreen(
-                                  normalizedNumber: contact.normalizedNumber,
-                                  displayName: contact.displayName,
-                                  displayNumber: contact.displayNumber,
-                                  deviceContact: contact.deviceContact,
-                                  db: widget.db,
-                                ),
-                              ),
-                            ),
-                    );
-                  }, childCount: contacts.length),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 40)),
-              ],
-            ),
+                  );
+                },
               );
             },
           );

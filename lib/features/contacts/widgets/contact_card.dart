@@ -19,6 +19,7 @@ class ContactCard extends StatelessWidget {
   final AppDatabase? db;
   final bool isArchived;
   final bool isFavorite;
+  final int? colorValue;
   final VoidCallback? onArchive;
   final VoidCallback? onFavorite;
   final Widget Function(BuildContext context, VoidCallback closePopover)?
@@ -31,6 +32,7 @@ class ContactCard extends StatelessWidget {
     this.db,
     this.isArchived = false,
     this.isFavorite = false,
+    this.colorValue,
     this.onArchive,
     this.onFavorite,
     this.avatarPopoverBuilder,
@@ -94,10 +96,12 @@ class ContactCard extends StatelessWidget {
 
   Future<void> _handleFavorite(
     BuildContext context,
-    VoidCallback closePopover,
-  ) async {
+    VoidCallback closePopover, [
+    bool? currentFavorite,
+  ]) async {
     closePopover();
-    final newFavorite = !isFavorite;
+    final effectiveFav = currentFavorite ?? isFavorite;
+    final newFavorite = !effectiveFav;
 
     if (db != null) {
       await db!.toggleContactFavorite(contact.normalizedNumber, newFavorite);
@@ -115,6 +119,35 @@ class ContactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (db == null || contact.normalizedNumber.isEmpty) {
+      return _buildCard(
+        context,
+        colorValue: colorValue,
+        isFavorite: isFavorite,
+      );
+    }
+
+    return StreamBuilder<ContactDetail?>(
+      stream: db!.watchContactDetails(contact.normalizedNumber),
+      builder: (context, snapshot) {
+        final hasEmitted = snapshot.connectionState != ConnectionState.waiting;
+        final detail = snapshot.data;
+        return _buildCard(
+          context,
+          colorValue: hasEmitted ? detail?.colorValue : colorValue,
+          isFavorite: hasEmitted
+              ? (detail?.isFavorite ?? isFavorite)
+              : isFavorite,
+        );
+      },
+    );
+  }
+
+  Widget _buildCard(
+    BuildContext context, {
+    int? colorValue,
+    required bool isFavorite,
+  }) {
     final scheme = Theme.of(context).colorScheme;
     final hasThumb = contact.deviceContact?.thumbnail != null;
 
@@ -125,6 +158,7 @@ class ContactCard extends StatelessWidget {
             : 'Unknown');
 
     final gradient = _getGradientForName(titleText);
+    final cardColor = colorValue != null ? Color(colorValue) : null;
 
     return RepaintBoundary(
       child: Padding(
@@ -134,11 +168,29 @@ class ContactCard extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(16),
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
               height: 58,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
+                color: cardColor?.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
+                border: cardColor != null
+                    ? Border.all(
+                        color: cardColor.withValues(alpha: 0.32),
+                        width: 1.2,
+                      )
+                    : null,
+                boxShadow: cardColor != null
+                    ? [
+                        BoxShadow(
+                          color: cardColor.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
               ),
               child: Row(
                 children: [
@@ -165,17 +217,32 @@ class ContactCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: !hasThumb
-                                  ? LinearGradient(
-                                      colors: gradient,
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    )
+                                  ? (cardColor != null
+                                      ? LinearGradient(
+                                          colors: [
+                                            cardColor,
+                                            Color.lerp(
+                                              cardColor,
+                                              Colors.black,
+                                              0.25,
+                                            )!,
+                                          ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        )
+                                      : LinearGradient(
+                                          colors: gradient,
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ))
                                   : null,
                               border: Border.all(
                                 color: isFavorite
                                     ? Colors.transparent
-                                    : scheme.outlineVariant
-                                        .withValues(alpha: 0.25),
+                                    : (cardColor != null
+                                        ? cardColor.withValues(alpha: 0.45)
+                                        : scheme.outlineVariant
+                                            .withValues(alpha: 0.25)),
                                 width: 1,
                               ),
                             ),
@@ -210,13 +277,23 @@ class ContactCard extends StatelessWidget {
                       return _ContactCardPopoverContent(
                         contact: contact,
                         titleText: titleText,
-                        gradient: gradient,
+                        gradient: cardColor != null
+                            ? [
+                                cardColor,
+                                Color.lerp(cardColor, Colors.black, 0.25)!,
+                              ]
+                            : gradient,
                         scheme: scheme,
+                        colorValue: colorValue,
                         isArchived: isArchived,
                         isFavorite: isFavorite,
                         closePopover: closePopover,
                         onArchive: () => _handleArchive(context, closePopover),
-                        onFavorite: () => _handleFavorite(context, closePopover),
+                        onFavorite: () => _handleFavorite(
+                          context,
+                          closePopover,
+                          isFavorite,
+                        ),
                       );
                     },
                   ),
@@ -241,7 +318,9 @@ class ContactCard extends StatelessWidget {
                   Icon(
                     Icons.chevron_right_rounded,
                     size: 18,
-                    color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                    color: cardColor != null
+                        ? cardColor.withValues(alpha: 0.75)
+                        : scheme.onSurfaceVariant.withValues(alpha: 0.4),
                   ),
                 ],
               ),
@@ -259,6 +338,7 @@ class _ContactCardPopoverContent extends StatefulWidget {
   final String titleText;
   final List<Color> gradient;
   final ColorScheme scheme;
+  final int? colorValue;
   final bool isArchived;
   final bool isFavorite;
   final VoidCallback closePopover;
@@ -270,6 +350,7 @@ class _ContactCardPopoverContent extends StatefulWidget {
     required this.titleText,
     required this.gradient,
     required this.scheme,
+    this.colorValue,
     required this.isArchived,
     required this.isFavorite,
     required this.closePopover,
@@ -422,10 +503,15 @@ class _ContactCardPopoverContentState
   Widget _buildInfoAndActionsRow() {
     final hasNumber = widget.contact.displayNumber.trim().isNotEmpty;
     final hasName = widget.contact.displayName.trim().isNotEmpty;
+    final cardColor = widget.colorValue != null ? Color(widget.colorValue!) : null;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-      child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor?.withValues(alpha: 0.08),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Left side: Name and Phone Number
@@ -529,8 +615,9 @@ class _ContactCardPopoverContentState
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildQrPopoverContent(
     BuildContext context,
