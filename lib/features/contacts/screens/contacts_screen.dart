@@ -11,8 +11,9 @@ import '../models/contact_summary.dart';
 import '../repository/contacts_repository.dart';
 import '../utils/group_contacts_by_letter.dart';
 import '../widgets/contact_card.dart';
-import '../widgets/side_bar_alphabet_index.dart';
-import 'archived_contacts_screen.dart';
+import '../widgets/contacts_filter_chips.dart';
+import '../widgets/favorites_carousel.dart';
+import '../widgets/glass_alphabet_scrubber.dart';
 import 'contact_detail_screen.dart';
 import 'contact_search_screen.dart';
 import '../../../shared/utils/stretch_reveal_route.dart';
@@ -41,62 +42,66 @@ class ContactsScreenState extends State<ContactsScreen>
   Set<String> _cachedFavorites = {};
   int _cachedArchivedCount = 0;
 
+  List<ContactSummary> _cachedFavoritesList = [];
+  List<ContactSummary> _cachedArchivedContacts = [];
+
+  ContactFilterMode _filterMode = ContactFilterMode.all;
   List<Object> _computedItems = [];
   List<String> _computedOrderedLetters = [];
 
   void _recomputeListItems() {
-    if (_cachedContacts.isEmpty) {
+    if (_cachedContacts.isEmpty && _cachedArchivedContacts.isEmpty) {
       _computedItems = [];
       _computedOrderedLetters = [];
+      _cachedFavoritesList = [];
       return;
     }
 
-    final favorites =
-        _cachedContacts
-            .where(
-              (contact) => _cachedFavorites.contains(contact.normalizedNumber),
-            )
-            .toList()
+    final favorites = _cachedContacts
+        .where(
+          (contact) => _cachedFavorites.contains(contact.normalizedNumber),
+        )
+        .toList()
+      ..sort(
+        (a, b) => a.displayName.toLowerCase().compareTo(
+          b.displayName.toLowerCase(),
+        ),
+      );
+
+    _cachedFavoritesList = favorites;
+
+    switch (_filterMode) {
+      case ContactFilterMode.all:
+        final grouped = groupContactsByLetter(_cachedContacts);
+        final orderedLetters = grouped.keys.toList()
+          ..sort((a, b) {
+            if (a == '#') return 1;
+            if (b == '#') return -1;
+            return a.compareTo(b);
+          });
+
+        final items = <Object>[];
+        for (final letter in orderedLetters) {
+          _letterKeys.putIfAbsent(letter, () => GlobalKey());
+          items.add(letter);
+          items.addAll(grouped[letter]!);
+        }
+
+        _computedItems = items;
+        _computedOrderedLetters = orderedLetters;
+        break;
+
+      case ContactFilterMode.archived:
+        final sortedArchived = [..._cachedArchivedContacts]
           ..sort(
             (a, b) => a.displayName.toLowerCase().compareTo(
               b.displayName.toLowerCase(),
             ),
           );
-
-    final remaining = _cachedContacts
-        .where(
-          (contact) => !_cachedFavorites.contains(contact.normalizedNumber),
-        )
-        .toList();
-
-    final grouped = groupContactsByLetter(remaining);
-
-    final orderedLetters = grouped.keys.toList()
-      ..sort((a, b) {
-        if (a == '#') return 1;
-        if (b == '#') return -1;
-        return a.compareTo(b);
-      });
-
-    final items = <Object>[];
-
-    if (favorites.isNotEmpty) {
-      items.add(const _FavoritesSectionMarker());
-      items.addAll(favorites);
+        _computedItems = sortedArchived;
+        _computedOrderedLetters = [];
+        break;
     }
-
-    for (final letter in orderedLetters) {
-      _letterKeys.putIfAbsent(letter, () => GlobalKey());
-      items.add(letter);
-      items.addAll(grouped[letter]!);
-    }
-
-    if (_cachedArchivedCount > 0) {
-      items.add(_ArchivedSectionMarker(_cachedArchivedCount));
-    }
-
-    _computedItems = items;
-    _computedOrderedLetters = orderedLetters;
   }
 
   StreamSubscription<List<ContactSummary>>? _contactsSub;
@@ -109,6 +114,20 @@ class ContactsScreenState extends State<ContactsScreen>
 
   List<Contact> _deviceContacts = [];
   final Map<String, GlobalKey> _letterKeys = {};
+  final GlobalKey _dashboardKey = GlobalKey();
+  double _measuredDashboardHeight = 0.0;
+
+  double get _dashboardHeight {
+    final box = _dashboardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize && box.size.height > 0) {
+      _measuredDashboardHeight = box.size.height;
+      return box.size.height;
+    }
+    if (_measuredDashboardHeight > 0) {
+      return _measuredDashboardHeight;
+    }
+    return _cachedFavoritesList.isNotEmpty ? 196.0 : 56.0;
+  }
 
   final _searchFocusNode = FocusNode();
 
@@ -152,6 +171,7 @@ class ContactsScreenState extends State<ContactsScreen>
     ) {
       if (mounted) {
         setState(() {
+          _cachedArchivedContacts = data;
           _cachedArchivedCount = data.length;
           _recomputeListItems();
         });
@@ -292,15 +312,47 @@ class ContactsScreenState extends State<ContactsScreen>
   }
 
   void _scrollToLetter(String letter) {
-    final key = _letterKeys[letter];
+    final index = _computedItems.indexOf(letter);
+    if (index == -1) return;
 
-    if (key != null && key.currentContext != null) {
-      Scrollable.ensureVisible(
-        key.currentContext!,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+    final scrollController = widget.titleController.scrollController;
+    if (!scrollController.hasClients) return;
+
+    if (_computedOrderedLetters.isNotEmpty &&
+        letter == _computedOrderedLetters.first) {
+      scrollController.jumpTo(0.0);
+      return;
     }
+
+    double listOffsetBeforeTarget = 0.0;
+    for (int i = 0; i < index; i++) {
+      final item = _computedItems[i];
+      if (item is String) {
+        listOffsetBeforeTarget += 38.0;
+      } else if (item is ContactSummary) {
+        listOffsetBeforeTarget += 62.0;
+      }
+    }
+
+    // 96.0px is the GlassLargeTitle collapse travel.
+    // _dashboardHeight is the FavoritesCarousel + FilterChips header.
+    final baseOffset = 96.0 + _dashboardHeight;
+    final maxScroll = scrollController.position.maxScrollExtent;
+    final target = (baseOffset + listOffsetBeforeTarget).clamp(0.0, maxScroll);
+    scrollController.jumpTo(target);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final key = _letterKeys[letter];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          alignment: 0.0,
+          duration: const Duration(milliseconds: 60),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -330,6 +382,7 @@ class ContactsScreenState extends State<ContactsScreen>
 
     final items = _computedItems;
     final orderedLetters = _computedOrderedLetters;
+    final scheme = Theme.of(context).colorScheme;
 
     return Stack(
       children: [
@@ -357,90 +410,178 @@ class ContactsScreenState extends State<ContactsScreen>
                 ),
               ),
 
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final item = items[index];
-
-                  if (item is _ArchivedSectionMarker) {
-                    return _buildArchivedTile(context, item.count);
-                  }
-
-                  if (item is _FavoritesSectionMarker) {
-                    return _buildFavoritesHeader(context);
-                  }
-
-                  if (item is String) {
-                    return _buildLetterHeader(context, item);
-                  }
-
-                  final contact = item as ContactSummary;
-
-                  return ContactCard(
-                    contact: contact,
-                    onTap: contact.displayNumber.isEmpty
-                        ? null
-                        : () => _openContact(contact),
-                  );
-                }, childCount: items.length),
+              // Header Dashboard: Filter Chips, Favorites Carousel
+              SliverToBoxAdapter(
+                child: Column(
+                  key: _dashboardKey,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 4),
+                      child: ContactsFilterChips(
+                        currentMode: _filterMode,
+                        onModeChanged: (mode) {
+                          setState(() {
+                            _filterMode = mode;
+                            _recomputeListItems();
+                          });
+                        },
+                        allCount: _cachedContacts.length,
+                        archivedCount: _cachedArchivedCount,
+                      ),
+                    ),
+                    if (_filterMode == ContactFilterMode.all &&
+                        _cachedFavoritesList.isNotEmpty)
+                      FavoritesCarousel(
+                        favorites: _cachedFavoritesList,
+                        onContactTap: _openContact,
+                      ),
+                    const SizedBox(height: 6),
+                  ],
+                ),
               ),
+
+              // Contact Items or Filter Empty State
+              if (items.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _filterEmptyIcon(),
+                            size: 48,
+                            color: scheme.outlineVariant,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _filterEmptyTitle(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _filterEmptySubtitle(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final item = items[index];
+
+                    if (item is String) {
+                      return _buildLetterHeader(context, item);
+                    }
+
+                    final contact = item as ContactSummary;
+
+                    return ContactCard(
+                      contact: contact,
+                      onTap: contact.displayNumber.isEmpty
+                          ? null
+                          : () => _openContact(contact),
+                    );
+                  }, childCount: items.length),
+                ),
 
               const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
         ),
 
-        Positioned(
-          right: 0,
-          top: 0,
-          bottom: 0,
-          child: SideBarAlphabetIndex(
-            letters: orderedLetters,
-            onLetterSelected: _scrollToLetter,
+        // Floating Glass Alphabet Scrubber
+        if (_filterMode == ContactFilterMode.all && orderedLetters.isNotEmpty)
+          Positioned(
+            right: 0,
+            top: 0,
+            bottom: 0,
+            child: SafeArea(
+              left: false,
+              right: false,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: GlassAlphabetScrubber(
+                  letters: orderedLetters,
+                  onLetterSelected: _scrollToLetter,
+                ),
+              ),
+            ),
           ),
-        ),
       ],
     );
   }
 
-  Widget _buildArchivedTile(BuildContext context, int count) {
-    return ListTile(
-      leading: const Icon(Icons.archive_outlined),
-      title: const Text('Archived'),
-      trailing: Text('$count', style: const TextStyle(color: Colors.grey)),
-      onTap: () {
-        Navigator.of(context).push(
-          CupertinoPageRoute(
-            builder: (context) => ArchivedContactsScreen(
-              db: widget.db,
-              deviceContacts: _deviceContacts,
-            ),
-          ),
-        );
-      },
-    );
+  IconData _filterEmptyIcon() {
+    switch (_filterMode) {
+      case ContactFilterMode.archived:
+        return Icons.archive_outlined;
+      case ContactFilterMode.all:
+        return Icons.people_outline_rounded;
+    }
   }
 
-  Widget _buildFavoritesHeader(BuildContext context) {
+  String _filterEmptyTitle() {
+    switch (_filterMode) {
+      case ContactFilterMode.archived:
+        return 'No Archived Contacts';
+      case ContactFilterMode.all:
+        return 'No Contacts Found';
+    }
+  }
+
+  String _filterEmptySubtitle() {
+    switch (_filterMode) {
+      case ContactFilterMode.archived:
+        return 'Contacts you archive will be moved here away from your main list.';
+      case ContactFilterMode.all:
+        return 'Grant permission or add contacts to get started.';
+    }
+  }
+
+  Widget _buildLetterHeader(BuildContext context, String letter) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Container(
+      key: _letterKeys[letter],
       width: double.infinity,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      height: 38.0,
+      padding: const EdgeInsets.only(left: 20, right: 28, top: 8, bottom: 4),
+      alignment: Alignment.centerLeft,
       child: Row(
         children: [
-          Icon(Icons.star, size: 16, color: Colors.amber.shade700),
-          const SizedBox(width: 6),
           Text(
-            'Favorites',
+            letter,
             style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+              color: scheme.primary,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Container(
+              height: 1,
+              color: scheme.outlineVariant.withValues(alpha: 0.2),
             ),
           ),
         ],
       ),
     );
   }
-
 
   Widget _buildPermissionView() {
     return Center(
@@ -465,30 +606,4 @@ class ContactsScreenState extends State<ContactsScreen>
       ),
     );
   }
-
-  Widget _buildLetterHeader(BuildContext context, String letter) {
-    return Container(
-      key: _letterKeys[letter],
-      width: double.infinity,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Text(
-        letter,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
-    );
-  }
-}
-
-class _FavoritesSectionMarker {
-  const _FavoritesSectionMarker();
-}
-
-class _ArchivedSectionMarker {
-  final int count;
-
-  const _ArchivedSectionMarker(this.count);
 }
