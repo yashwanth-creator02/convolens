@@ -34,6 +34,20 @@ class AnalyticsSummary {
   final List<ContactSummary> theyInitiateMore;
   final List<ContactSummary> youInitiateMore;
 
+  // ============================================================
+  // SOCIAL METER
+  // ============================================================
+  final int socialHealthScore;
+  final String socialHealthLabel;
+  final Map<String, double> scoreBreakdown;
+  final double socialMomentum;
+  final List<String> personalityLabels;
+  final Map<String, List<ContactSummary>> relationshipTiers;
+  final List<ContactSummary> driftingContacts;
+  final double networkConcentration;
+  final int weekendCalls;
+  final int weekdayCalls;
+
   const AnalyticsSummary({
     required this.totalCalls,
     required this.totalContacts,
@@ -64,5 +78,15 @@ class AnalyticsSummary {
     required this.anomalyDays,
     required this.theyInitiateMore,
     required this.youInitiateMore,
+    required this.socialHealthScore,
+    required this.socialHealthLabel,
+    required this.scoreBreakdown,
+    required this.socialMomentum,
+    required this.personalityLabels,
+    required this.relationshipTiers,
+    required this.driftingContacts,
+    required this.networkConcentration,
+    required this.weekendCalls,
+    required this.weekdayCalls,
   });
 }

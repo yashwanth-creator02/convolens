@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../contacts/models/contact_summary.dart';
 import '../../contacts/repository/contacts_repository.dart';
 import '../models/analytics_filters.dart';
 import '../models/analytics_summary.dart';
@@ -327,6 +328,48 @@ class AnalyticsRepository {
       final anomalyDays = _findAnomalyDays(heatmapCounts);
 
       // ============================================================
+      // SOCIAL METER COMPUTATIONS
+      // ============================================================
+
+      final socialScoreData = _computeSocialScore(
+        heatmapCounts: heatmapCounts,
+        includedSummaries: includedSummaries,
+        callTypeCounts: callTypeCounts,
+        missedRate: missedRate,
+        now: DateTime.now(),
+      );
+
+      final socialMomentum = _computeMomentum(heatmapCounts, DateTime.now());
+
+      final weekendCalls = (weekdayCounts[0] ?? 0) + (weekdayCounts[6] ?? 0);
+      int weekdayCalls = 0;
+      for (int i = 1; i <= 5; i++) {
+        weekdayCalls += weekdayCounts[i] ?? 0;
+      }
+
+      final personalityLabels = _inferPersonality(
+        hourCounts: hourCounts,
+        weekendCalls: weekendCalls,
+        weekdayCalls: weekdayCalls,
+        totalCalls: totalCalls,
+        totalTalkSeconds: totalTalkSeconds,
+        currentStreak: streaks['current']!,
+        longestStreak: streaks['longest']!,
+      );
+
+      final relationshipTiers = _buildRelationshipTiers(includedSummaries);
+
+      final driftingContacts = silentContacts
+          .where((c) => c.callCount >= 3)
+          .toList()
+        ..sort((a, b) => b.callCount.compareTo(a.callCount));
+
+      final networkConcentration = _computeNetworkConcentration(
+        includedSummaries,
+        totalCalls,
+      );
+
+      // ============================================================
       // RESULT
       // ============================================================
 
@@ -370,8 +413,231 @@ class AnalyticsRepository {
         anomalyDays: anomalyDays,
         theyInitiateMore: theyInitiateMore.take(10).toList(),
         youInitiateMore: youInitiateMore.take(10).toList(),
+
+        socialHealthScore: socialScoreData.score,
+        socialHealthLabel: socialScoreData.label,
+        scoreBreakdown: socialScoreData.breakdown,
+        socialMomentum: socialMomentum,
+        personalityLabels: personalityLabels,
+        relationshipTiers: relationshipTiers,
+        driftingContacts: driftingContacts,
+        networkConcentration: networkConcentration,
+        weekendCalls: weekendCalls,
+        weekdayCalls: weekdayCalls,
       );
     });
+  }
+
+  // ============================================================
+  // SOCIAL METER HELPERS
+  // ============================================================
+
+  _SocialScoreResult _computeSocialScore({
+    required Map<String, int> heatmapCounts,
+    required List<ContactSummary> includedSummaries,
+    required Map<int, int> callTypeCounts,
+    required double missedRate,
+    required DateTime now,
+  }) {
+    // 1. Frequency (0-25 pts): Calls in the last 30 days
+    int callsLast30 = 0;
+    var cursor = DateTime(now.year, now.month, now.day);
+    for (int i = 0; i < 30; i++) {
+      final key =
+          '${cursor.year.toString().padLeft(4, '0')}-'
+          '${cursor.month.toString().padLeft(2, '0')}-'
+          '${cursor.day.toString().padLeft(2, '0')}';
+      callsLast30 += heatmapCounts[key] ?? 0;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    final callsPerWeek = callsLast30 / 4.28;
+    final freqScore = (callsPerWeek / 7.0).clamp(0.0, 1.0) * 25.0;
+
+    // 2. Diversity (0-25 pts): Unique contacts contacted in summaries
+    final activeContacts = includedSummaries.where((c) => c.callCount > 0).length;
+    final divScore = (activeContacts / 10.0).clamp(0.0, 1.0) * 25.0;
+
+    // 3. Reciprocity (0-25 pts): Incoming vs Outgoing balance
+    final incoming = callTypeCounts[1] ?? 0;
+    final outgoing = callTypeCounts[2] ?? 0;
+    final inOutTotal = incoming + outgoing;
+    double recipScore = 12.5; // neutral baseline
+    if (inOutTotal > 0) {
+      final ratio = incoming / inOutTotal;
+      final dev = (ratio - 0.5).abs(); // 0.0 to 0.5
+      recipScore = ((0.5 - dev) / 0.5).clamp(0.0, 1.0) * 25.0;
+    }
+
+    // 4. Responsiveness (0-25 pts): Missed call rate
+    final respScore = (1.0 - missedRate).clamp(0.0, 1.0) * 25.0;
+
+    final totalScore = (freqScore + divScore + recipScore + respScore).round().clamp(0, 100);
+
+    String label;
+    if (totalScore >= 80) {
+      label = 'Thriving';
+    } else if (totalScore >= 60) {
+      label = 'Active';
+    } else if (totalScore >= 40) {
+      label = 'Connected';
+    } else if (totalScore >= 20) {
+      label = 'Quiet';
+    } else {
+      label = 'Isolated';
+    }
+
+    return _SocialScoreResult(
+      score: totalScore,
+      label: label,
+      breakdown: {
+        'Frequency': freqScore,
+        'Diversity': divScore,
+        'Reciprocity': recipScore,
+        'Responsiveness': respScore,
+      },
+    );
+  }
+
+  double _computeMomentum(Map<String, int> heatmapCounts, DateTime now) {
+    int recent14 = 0;
+    int previous14 = 0;
+
+    var cursor = DateTime(now.year, now.month, now.day);
+    for (int i = 0; i < 14; i++) {
+      final key =
+          '${cursor.year.toString().padLeft(4, '0')}-'
+          '${cursor.month.toString().padLeft(2, '0')}-'
+          '${cursor.day.toString().padLeft(2, '0')}';
+      recent14 += heatmapCounts[key] ?? 0;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+
+    for (int i = 0; i < 14; i++) {
+      final key =
+          '${cursor.year.toString().padLeft(4, '0')}-'
+          '${cursor.month.toString().padLeft(2, '0')}-'
+          '${cursor.day.toString().padLeft(2, '0')}';
+      previous14 += heatmapCounts[key] ?? 0;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+
+    if (previous14 == 0) {
+      return recent14 > 0 ? 1.0 : 0.0;
+    }
+
+    return (recent14 - previous14) / previous14;
+  }
+
+  List<String> _inferPersonality({
+    required Map<int, int> hourCounts,
+    required int weekendCalls,
+    required int weekdayCalls,
+    required int totalCalls,
+    required int totalTalkSeconds,
+    required int currentStreak,
+    required int longestStreak,
+  }) {
+    if (totalCalls == 0) {
+      return ['Fresh Start'];
+    }
+
+    final labels = <String>[];
+
+    // Peak hour
+    if (hourCounts.isNotEmpty) {
+      final peakHour = hourCounts.entries
+          .reduce((a, b) => a.value >= b.value ? a : b)
+          .key;
+      if (peakHour >= 6 && peakHour <= 11) {
+        labels.add('Morning Caller');
+      } else if (peakHour >= 12 && peakHour <= 16) {
+        labels.add('Afternoon Caller');
+      } else if (peakHour >= 17 && peakHour <= 20) {
+        labels.add('Evening Caller');
+      } else {
+        labels.add('Night Owl');
+      }
+    }
+
+    // Weekend vs Weekday
+    final totalWeek = weekendCalls + weekdayCalls;
+    if (totalWeek >= 4) {
+      final weekendRatio = weekendCalls / totalWeek;
+      if (weekendRatio >= 0.35) {
+        labels.add('Weekend Warrior');
+      } else if (weekdayCalls / totalWeek >= 0.85) {
+        labels.add('Weekday Pro');
+      }
+    }
+
+    // Call length style
+    final avgDuration = totalTalkSeconds / max(totalCalls, 1);
+    if (avgDuration >= 480) {
+      labels.add('Deep Talker');
+    } else if (avgDuration <= 90 && totalCalls >= 3) {
+      labels.add('Quick Check-in');
+    }
+
+    // Consistency
+    if (currentStreak >= 5) {
+      labels.add('Consistent');
+    } else if (longestStreak >= 10) {
+      labels.add('Streak Builder');
+    }
+
+    if (labels.isEmpty) {
+      labels.add('Balanced Caller');
+    }
+
+    return labels;
+  }
+
+  Map<String, List<ContactSummary>> _buildRelationshipTiers(
+    List<ContactSummary> summaries,
+  ) {
+    final inner = <ContactSummary>[];
+    final close = <ContactSummary>[];
+    final regular = <ContactSummary>[];
+    final dormant = <ContactSummary>[];
+
+    for (final c in summaries) {
+      if (c.callCount >= 10) {
+        inner.add(c);
+      } else if (c.callCount >= 4) {
+        close.add(c);
+      } else if (c.callCount >= 1) {
+        regular.add(c);
+      } else {
+        dormant.add(c);
+      }
+    }
+
+    // Sort tiers by call count descending
+    inner.sort((a, b) => b.callCount.compareTo(a.callCount));
+    close.sort((a, b) => b.callCount.compareTo(a.callCount));
+    regular.sort((a, b) => b.callCount.compareTo(a.callCount));
+
+    return {
+      'inner': inner,
+      'close': close,
+      'regular': regular,
+      'dormant': dormant,
+    };
+  }
+
+  double _computeNetworkConcentration(
+    List<ContactSummary> summaries,
+    int totalCalls,
+  ) {
+    if (totalCalls == 0) return 0.0;
+    double sumSq = 0.0;
+    for (final c in summaries) {
+      if (c.callCount > 0) {
+        final share = c.callCount / totalCalls;
+        sumSq += share * share;
+      }
+    }
+    return sumSq.clamp(0.0, 1.0);
   }
 
   List<MapEntry<String, int>> _findAnomalyDays(Map<String, int> heatmapCounts) {
@@ -435,3 +701,16 @@ class AnalyticsRepository {
     return {'current': currentStreak, 'longest': longestStreak};
   }
 }
+
+class _SocialScoreResult {
+  final int score;
+  final String label;
+  final Map<String, double> breakdown;
+
+  const _SocialScoreResult({
+    required this.score,
+    required this.label,
+    required this.breakdown,
+  });
+}
+

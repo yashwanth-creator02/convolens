@@ -16,9 +16,15 @@ import '../repository/analytics_repository.dart';
 import '../widgets/answered_missed_declined_bars.dart';
 import '../widgets/calendar_grid_heatmap.dart';
 import '../widgets/contribution_heatmap.dart';
+import '../widgets/dunbar_rings_chart.dart';
 import '../widgets/hour_clock_face.dart';
 import '../widgets/hour_histogram.dart';
+import '../widgets/network_concentration_meter.dart';
+import '../widgets/personality_chips.dart';
 import '../widgets/relationship_web.dart';
+import '../widgets/score_breakdown_bars.dart';
+import '../widgets/social_momentum_card.dart';
+import '../widgets/social_score_gauge.dart';
 import '../widgets/talk_ratio_bar.dart';
 import '../widgets/weekday_chart.dart';
 import '../widgets/analytics_filter_sheet.dart';
@@ -337,6 +343,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                 },
                 segments: const [
                   GlassSegment(label: 'Overview'),
+                  GlassSegment(label: 'Social'),
                   GlassSegment(label: 'Activity'),
                   GlassSegment(label: 'People'),
                   GlassSegment(label: 'Records'),
@@ -356,14 +363,166 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       case 0:
         return _buildOverviewSlivers(summary);
       case 1:
-        return _buildActivitySlivers(summary);
+        return _buildSocialSlivers(summary);
       case 2:
-        return _buildPeopleSlivers(summary);
+        return _buildActivitySlivers(summary);
       case 3:
+        return _buildPeopleSlivers(summary);
+      case 4:
         return _buildRecordsSlivers(summary);
       default:
         return [];
     }
+  }
+
+  List<Widget> _buildSocialSlivers(AnalyticsSummary summary) {
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.all(16),
+        sliver: SliverList(
+          delegate: SliverChildListDelegate([
+            // 1. Social Score Gauge
+            SocialScoreGauge(
+              score: summary.socialHealthScore,
+              label: summary.socialHealthLabel,
+            ),
+            const SizedBox(height: 20),
+
+            // 2. Social Momentum
+            SocialMomentumCard(momentum: summary.socialMomentum),
+            const SizedBox(height: 24),
+
+            // 3. Score Breakdown
+            const Text(
+              'Score Breakdown',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'The four pillars determining your social connectivity score',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ScoreBreakdownBars(breakdown: summary.scoreBreakdown),
+            const SizedBox(height: 28),
+
+            // 4. Inferred Communication Personality
+            const Text(
+              'Communication Style',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Habits and rhythms detected from your calling patterns',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            PersonalityChips(labels: summary.personalityLabels),
+            const SizedBox(height: 28),
+
+            // 5. Network Concentration
+            NetworkConcentrationMeter(
+              concentration: summary.networkConcentration,
+            ),
+            const SizedBox(height: 28),
+
+            // 6. Relationship Tiers (Dunbar's Layers)
+            const Text(
+              'Relationship Layers',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Concentric circles of connection based on call frequency',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 16),
+            DunbarRingsChart(
+              tiers: summary.relationshipTiers,
+              onContactTap: _openContact,
+            ),
+            const SizedBox(height: 28),
+
+            // 7. Drifting Relationships (Contacts slipping away)
+            const Text(
+              'Drifting Connections',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Contacts you used to call regularly who haven\'t been reached in 30+ days',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (summary.driftingContacts.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                  ),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 20),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'None! You have kept your close relationships well attended.',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF10B981)),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ...summary.driftingContacts.take(5).map(
+                (c) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundImage: c.deviceContact?.thumbnail != null
+                        ? MemoryImage(c.deviceContact!.thumbnail!)
+                        : null,
+                    child: c.deviceContact?.thumbnail == null
+                        ? Text(
+                            c.displayName.isNotEmpty
+                                ? c.displayName[0].toUpperCase()
+                                : '?',
+                          )
+                        : null,
+                  ),
+                  title: Text(c.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                    c.lastCallAt == null
+                        ? '${c.callCount} calls total'
+                        : '${c.callCount} calls total • Last active ${_daysAgo(c.lastCallAt!)} days ago',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  trailing: TextButton.icon(
+                    onPressed: () => _openContact(c),
+                    icon: const Icon(Icons.call_outlined, size: 14),
+                    label: const Text('Reach Out', style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+              ),
+          ]),
+        ),
+      ),
+    ];
   }
 
   List<Widget> _buildOverviewSlivers(AnalyticsSummary summary) {
