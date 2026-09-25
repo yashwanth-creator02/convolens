@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class CalendarGridHeatmap extends StatelessWidget {
+class CalendarGridHeatmap extends StatefulWidget {
   final Map<String, int> countsByDate;
   final int month;
   final int year;
@@ -14,18 +14,37 @@ class CalendarGridHeatmap extends StatelessWidget {
     this.onDayTap,
   });
 
+  @override
+  State<CalendarGridHeatmap> createState() => _CalendarGridHeatmapState();
+}
+
+class _CalendarGridHeatmapState extends State<CalendarGridHeatmap> {
+  DateTime? _lastTapTime;
+
+  void _handleTap(DateTime day, int count) {
+    final now = DateTime.now();
+    if (_lastTapTime != null &&
+        now.difference(_lastTapTime!).inMilliseconds < 700) {
+      return;
+    }
+    _lastTapTime = now;
+    widget.onDayTap?.call(day, count);
+  }
+
   String _keyFor(int day) =>
-      '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+      '${widget.year.toString().padLeft(4, '0')}-${widget.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
-    final firstDay = DateTime(year, month, 1);
-    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final firstDay = DateTime(widget.year, widget.month, 1);
+    final daysInMonth = DateTime(widget.year, widget.month + 1, 0).day;
     final leadingBlanks = (firstDay.weekday - 1) % 7; // Monday = 0
 
-    final maxCount = countsByDate.values.isEmpty
+    final maxCount = widget.countsByDate.values.isEmpty
         ? 1
-        : countsByDate.values.reduce((a, b) => a > b ? a : b).clamp(1, 999999);
+        : widget.countsByDate.values
+            .reduce((a, b) => a > b ? a : b)
+            .clamp(1, 999999);
 
     const weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -56,17 +75,18 @@ class CalendarGridHeatmap extends StatelessWidget {
               if (index < leadingBlanks) return const SizedBox();
 
               final day = index - leadingBlanks + 1;
-              final count = countsByDate[_keyFor(day)] ?? 0;
+              final count = widget.countsByDate[_keyFor(day)] ?? 0;
               final intensity = count == 0
                   ? 0.0
                   : (count / maxCount).clamp(0.15, 1.0);
-              final date = DateTime(year, month, day);
+              final date = DateTime(widget.year, widget.month, day);
               final isFuture = date.isAfter(DateTime.now());
 
               return Padding(
                 padding: const EdgeInsets.all(2),
                 child: GestureDetector(
-                  onTap: isFuture ? null : () => onDayTap?.call(date, count),
+                  onTap: isFuture ? null : () => _handleTap(date, count),
+                  behavior: HitTestBehavior.opaque,
                   child: Container(
                     decoration: BoxDecoration(
                       color: count == 0

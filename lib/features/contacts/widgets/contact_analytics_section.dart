@@ -236,8 +236,8 @@ class ContactAnalyticsSection extends StatelessWidget {
             const SizedBox(height: 8),
             ContributionHeatmap(
               countsByDate: stats['heatmap'] as Map<String, int>,
-              onDayTap: (day, count) {
-                GlassModalSheet.show(
+              onDayTap: (day, count) async {
+                await GlassModalSheet.show(
                   context: context,
                   quality: GlassQuality.standard,
                   detents: const {

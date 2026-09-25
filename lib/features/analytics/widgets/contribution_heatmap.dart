@@ -1,15 +1,34 @@
 import 'package:flutter/material.dart';
 
-class ContributionHeatmap extends StatelessWidget {
+class ContributionHeatmap extends StatefulWidget {
   final Map<String, int> countsByDate;
   final void Function(DateTime day, int count)? onDayTap;
 
-  const ContributionHeatmap(
-      {super.key, required this.countsByDate, this.onDayTap});
+  const ContributionHeatmap({
+    super.key,
+    required this.countsByDate,
+    this.onDayTap,
+  });
+
+  @override
+  State<ContributionHeatmap> createState() => _ContributionHeatmapState();
+}
+
+class _ContributionHeatmapState extends State<ContributionHeatmap> {
+  DateTime? _lastTapTime;
+
+  void _handleTap(DateTime day, int count) {
+    final now = DateTime.now();
+    if (_lastTapTime != null &&
+        now.difference(_lastTapTime!).inMilliseconds < 700) {
+      return;
+    }
+    _lastTapTime = now;
+    widget.onDayTap?.call(day, count);
+  }
 
   String _keyFor(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(
-          2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   Color _colorFor(BuildContext context, int count, int maxCount) {
     if (count == 0) {
@@ -23,12 +42,14 @@ class ContributionHeatmap extends StatelessWidget {
   Widget build(BuildContext context) {
     final today = DateTime.now();
     final startDate = today.subtract(const Duration(days: 364));
-    final firstSunday = startDate.subtract(
-        Duration(days: startDate.weekday % 7));
+    final firstSunday =
+        startDate.subtract(Duration(days: startDate.weekday % 7));
 
-    final maxCount = countsByDate.values.isEmpty
+    final maxCount = widget.countsByDate.values.isEmpty
         ? 1
-        : countsByDate.values.reduce((a, b) => a > b ? a : b).clamp(1, 999999);
+        : widget.countsByDate.values
+            .reduce((a, b) => a > b ? a : b)
+            .clamp(1, 999999);
 
     final weeks = <List<DateTime>>[];
     var cursor = firstSunday;
@@ -43,35 +64,36 @@ class ContributionHeatmap extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         reverse: true,
         child: Row(
-        children: weeks.map((week) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 1.5),
-            child: Column(
-              children: week.map((day) {
-                final isFuture = day.isAfter(today);
-                final count = countsByDate[_keyFor(day)] ?? 0;
+          children: weeks.map((week) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+              child: Column(
+                children: week.map((day) {
+                  final isFuture = day.isAfter(today);
+                  final count = widget.countsByDate[_keyFor(day)] ?? 0;
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 1.5),
-                  child: GestureDetector(
-                    onTap: isFuture ? null : () => onDayTap?.call(day, count),
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: isFuture
-                            ? Colors.transparent
-                            : _colorFor(context, count, maxCount),
-                        borderRadius: BorderRadius.circular(3),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1.5),
+                    child: GestureDetector(
+                      onTap: isFuture ? null : () => _handleTap(day, count),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: isFuture
+                              ? Colors.transparent
+                              : _colorFor(context, count, maxCount),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
-            ),
-          );
-        }).toList(),
-      ),
+                  );
+                }).toList(),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

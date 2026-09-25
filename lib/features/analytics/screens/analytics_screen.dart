@@ -69,6 +69,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   bool _rankByDuration = false;
   bool _useClockFace = false;
   bool _useCalendarGrid = false;
+  bool _isSheetOpening = false;
 
   String? selectedContactName;
   String? selectedTagName;
@@ -114,24 +115,32 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Future<void> _showFilters({GlassMorphAnchor? anchor}) async {
-    final result = await GlassModalSheet.show<AnalyticsFilters>(
-      context: context,
-      quality: GlassQuality.standard,
-      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
-      initialState: GlassSheetState.half,
-      morphFrom: anchor,
-      builder: (context) => AnalyticsFilterSheet(
-        db: widget.db,
-        repository: repository,
-        deviceContacts: deviceContacts,
-        initialFilters: filters,
-        initialContactName: selectedContactName,
-        initialTagName: selectedTagName,
-      ),
-    );
+    if (_isSheetOpening) return;
+    _isSheetOpening = true;
+    try {
+      final result = await GlassModalSheet.show<AnalyticsFilters>(
+        context: context,
+        quality: GlassQuality.standard,
+        detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
+        initialState: GlassSheetState.half,
+        morphFrom: anchor,
+        builder: (context) => AnalyticsFilterSheet(
+          db: widget.db,
+          repository: repository,
+          deviceContacts: deviceContacts,
+          initialFilters: filters,
+          initialContactName: selectedContactName,
+          initialTagName: selectedTagName,
+        ),
+      );
 
-    if (result != null) {
-      applyFilters(result);
+      if (result != null) {
+        applyFilters(result);
+      }
+    } finally {
+      if (mounted) {
+        _isSheetOpening = false;
+      }
     }
   }
 
@@ -207,100 +216,108 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Future<void> _showComparisonOptions(BuildContext context) async {
-    final scheme = Theme.of(context).colorScheme;
-    final choice = await GlassModalSheet.show<String>(
-      context: context,
-      quality: GlassQuality.standard,
-      detents: const {GlassSheetDetent.medium},
-      initialState: GlassSheetState.half,
-      builder: (context) => Material(
-        type: MaterialType.transparency,
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: scheme.primary.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.compare_arrows_rounded,
-                        size: 20,
-                        color: scheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Compare Analytics',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: scheme.onSurface,
-                          ),
+    if (_isSheetOpening) return;
+    _isSheetOpening = true;
+    try {
+      final scheme = Theme.of(context).colorScheme;
+      final choice = await GlassModalSheet.show<String>(
+        context: context,
+        quality: GlassQuality.standard,
+        detents: const {GlassSheetDetent.medium},
+        initialState: GlassSheetState.half,
+        builder: (context) => Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
                         ),
-                        Text(
-                          'Select comparison benchmark',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: scheme.onSurfaceVariant
-                                .withValues(alpha: 0.8),
-                          ),
+                        child: Icon(
+                          Icons.compare_arrows_rounded,
+                          size: 20,
+                          color: scheme.primary,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildComparisonOptionTile(
-                  context: context,
-                  icon: Icons.calendar_month_rounded,
-                  title: 'This Month vs Last Month',
-                  subtitle: 'Month-over-month volume and talk time shift',
-                  value: 'month',
-                ),
-                const SizedBox(height: 8),
-                _buildComparisonOptionTile(
-                  context: context,
-                  icon: Icons.calendar_today_rounded,
-                  title: 'This Year vs Last Year',
-                  subtitle: 'Year-over-year annual communication pace',
-                  value: 'year',
-                ),
-                const SizedBox(height: 8),
-                _buildComparisonOptionTile(
-                  context: context,
-                  icon: Icons.people_outline_rounded,
-                  title: 'Contact vs Contact',
-                  subtitle: 'Head-to-head comparison between two contacts',
-                  value: 'contact',
-                ),
-              ],
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Compare Analytics',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            'Select comparison benchmark',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildComparisonOptionTile(
+                    context: context,
+                    icon: Icons.calendar_month_rounded,
+                    title: 'This Month vs Last Month',
+                    subtitle: 'Month-over-month volume and talk time shift',
+                    value: 'month',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildComparisonOptionTile(
+                    context: context,
+                    icon: Icons.calendar_today_rounded,
+                    title: 'This Year vs Last Year',
+                    subtitle: 'Year-over-year annual communication pace',
+                    value: 'year',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildComparisonOptionTile(
+                    context: context,
+                    icon: Icons.people_outline_rounded,
+                    title: 'Contact vs Contact',
+                    subtitle: 'Head-to-head comparison between two contacts',
+                    value: 'contact',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    if (choice == null || !mounted) return;
+      if (choice == null || !mounted) return;
 
-    if (choice == 'month') {
-      _openComparison(ComparisonConfig.thisMonthVsLast());
-    } else if (choice == 'year') {
-      _openComparison(ComparisonConfig.thisYearVsLast());
-    } else if (choice == 'contact') {
-      _pickTwoContactsForComparison();
+      if (choice == 'month') {
+        _openComparison(ComparisonConfig.thisMonthVsLast());
+      } else if (choice == 'year') {
+        _openComparison(ComparisonConfig.thisYearVsLast());
+      } else if (choice == 'contact') {
+        _pickTwoContactsForComparison();
+      }
+    } finally {
+      if (mounted) {
+        _isSheetOpening = false;
+      }
     }
   }
 
@@ -2029,20 +2046,32 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  void _showDayDetail(BuildContext context, DateTime day, int count) {
-    GlassModalSheet.show(
-      context: context,
-      quality: GlassQuality.standard,
-      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
-      initialState: GlassSheetState.half,
-      builder: (context) => HeatmapDayDetailSheet(
-        day: day,
-        count: count,
-        db: widget.db,
-        deviceContacts: deviceContacts,
-        filters: filters,
-      ),
-    );
+  Future<void> _showDayDetail(
+    BuildContext context,
+    DateTime day,
+    int count,
+  ) async {
+    if (_isSheetOpening) return;
+    _isSheetOpening = true;
+    try {
+      await GlassModalSheet.show(
+        context: context,
+        quality: GlassQuality.standard,
+        detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
+        initialState: GlassSheetState.half,
+        builder: (context) => HeatmapDayDetailSheet(
+          day: day,
+          count: count,
+          db: widget.db,
+          deviceContacts: deviceContacts,
+          filters: filters,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        _isSheetOpening = false;
+      }
+    }
   }
 
   int _daysAgo(int timestamp) {
