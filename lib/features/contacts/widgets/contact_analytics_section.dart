@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../analytics/models/analytics_filters.dart';
 import '../../analytics/widgets/contribution_heatmap.dart';
+import '../../analytics/widgets/heatmap_day_detail_sheet.dart';
 import '../../analytics/widgets/hour_histogram.dart';
 import '../../analytics/widgets/talk_ratio_bar.dart';
 import '../../analytics/widgets/weekday_chart.dart';
@@ -231,7 +234,28 @@ class ContactAnalyticsSection extends StatelessWidget {
             const SizedBox(height: 24),
             _sectionTitle(context, 'ACTIVITY HEATMAP'),
             const SizedBox(height: 8),
-            ContributionHeatmap(countsByDate: stats['heatmap'] as Map<String, int>),
+            ContributionHeatmap(
+              countsByDate: stats['heatmap'] as Map<String, int>,
+              onDayTap: (day, count) {
+                GlassModalSheet.show(
+                  context: context,
+                  quality: GlassQuality.standard,
+                  detents: const {
+                    GlassSheetDetent.medium,
+                    GlassSheetDetent.large,
+                  },
+                  initialState: GlassSheetState.half,
+                  builder: (context) => HeatmapDayDetailSheet(
+                    day: day,
+                    count: count,
+                    db: db,
+                    filters: AnalyticsFilters(
+                      contactNormalizedNumber: normalizedNumber,
+                    ),
+                  ),
+                );
+              },
+            ),
 
             const SizedBox(height: 20),
             _sectionTitle(context, 'TALK RATIO'),
@@ -254,28 +278,133 @@ class ContactAnalyticsSection extends StatelessWidget {
   }
 
   void _showWhy(BuildContext context, CommunicationStrength strength) {
-    showModalBottomSheet(
+    final scheme = Theme.of(context).colorScheme;
+    GlassModalSheet.show(
       context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Why "${strength.label}"?',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-
-            const SizedBox(height: 12),
-
-            ...strength.reasons.map(
-              (reason) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text('• $reason'),
+      quality: GlassQuality.standard,
+      detents: const {GlassSheetDetent.medium},
+      initialState: GlassSheetState.half,
+      builder: (context) => GlassPage(
+        child: Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 8, bottom: 16),
+                      decoration: BoxDecoration(
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.insights_rounded,
+                          size: 20,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Why "${strength.label}"?',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              'Connection strength breakdown',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: scheme.onSurfaceVariant
+                                    .withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.of(context).pop(),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: scheme.onSurface.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 18,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ...strength.reasons.map(
+                    (reason) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHighest
+                            .withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: scheme.outlineVariant.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 16,
+                            color: scheme.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              reason,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: scheme.onSurface,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

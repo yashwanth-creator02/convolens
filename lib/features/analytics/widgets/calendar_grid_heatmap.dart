@@ -4,12 +4,14 @@ class CalendarGridHeatmap extends StatelessWidget {
   final Map<String, int> countsByDate;
   final int month;
   final int year;
+  final void Function(DateTime day, int count)? onDayTap;
 
   const CalendarGridHeatmap({
     super.key,
     required this.countsByDate,
     required this.month,
     required this.year,
+    this.onDayTap,
   });
 
   String _keyFor(int day) =>
@@ -58,20 +60,25 @@ class CalendarGridHeatmap extends StatelessWidget {
               final intensity = count == 0
                   ? 0.0
                   : (count / maxCount).clamp(0.15, 1.0);
+              final date = DateTime(year, month, day);
+              final isFuture = date.isAfter(DateTime.now());
 
               return Padding(
                 padding: const EdgeInsets.all(2),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: count == 0
-                        ? Theme.of(context).colorScheme.surfaceContainerHighest
-                        : Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: intensity),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Center(
-                    child: Text('$day', style: const TextStyle(fontSize: 9)),
+                child: GestureDetector(
+                  onTap: isFuture ? null : () => onDayTap?.call(date, count),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: count == 0
+                          ? Theme.of(context).colorScheme.surfaceContainerHighest
+                          : Theme.of(
+                              context,
+                            ).colorScheme.primary.withValues(alpha: intensity),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Center(
+                      child: Text('$day', style: const TextStyle(fontSize: 9)),
+                    ),
                   ),
                 ),
               );

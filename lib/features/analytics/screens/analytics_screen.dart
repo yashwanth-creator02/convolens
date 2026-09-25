@@ -22,6 +22,7 @@ import '../widgets/answered_missed_declined_bars.dart';
 import '../widgets/calendar_grid_heatmap.dart';
 import '../widgets/contribution_heatmap.dart';
 import '../widgets/dunbar_rings_chart.dart';
+import '../widgets/heatmap_day_detail_sheet.dart';
 import '../widgets/hour_clock_face.dart';
 import '../widgets/hour_histogram.dart';
 import '../widgets/milestone_badges_grid.dart';
@@ -206,28 +207,101 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Future<void> _showComparisonOptions(BuildContext context) async {
-    final choice = await showModalBottomSheet<String>(
+    final scheme = Theme.of(context).colorScheme;
+    final choice = await GlassModalSheet.show<String>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.calendar_month_rounded),
-              title: const Text('This Month vs Last Month'),
-              onTap: () => Navigator.pop(context, 'month'),
+      quality: GlassQuality.standard,
+      detents: const {GlassSheetDetent.medium},
+      initialState: GlassSheetState.half,
+      builder: (context) => GlassPage(
+        child: Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 8, bottom: 16),
+                      decoration: BoxDecoration(
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.compare_arrows_rounded,
+                          size: 20,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Compare Analytics',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            'Select comparison benchmark',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildComparisonOptionTile(
+                    context: context,
+                    icon: Icons.calendar_month_rounded,
+                    title: 'This Month vs Last Month',
+                    subtitle: 'Month-over-month volume and talk time shift',
+                    value: 'month',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildComparisonOptionTile(
+                    context: context,
+                    icon: Icons.calendar_today_rounded,
+                    title: 'This Year vs Last Year',
+                    subtitle: 'Year-over-year annual communication pace',
+                    value: 'year',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildComparisonOptionTile(
+                    context: context,
+                    icon: Icons.people_outline_rounded,
+                    title: 'Contact vs Contact',
+                    subtitle: 'Head-to-head comparison between two contacts',
+                    value: 'contact',
+                  ),
+                ],
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.calendar_today_rounded),
-              title: const Text('This Year vs Last Year'),
-              onTap: () => Navigator.pop(context, 'year'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.people_outline_rounded),
-              title: const Text('Contact vs Contact'),
-              onTap: () => Navigator.pop(context, 'contact'),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -241,6 +315,76 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     } else if (choice == 'contact') {
       _pickTwoContactsForComparison();
     }
+  }
+
+  Widget _buildComparisonOptionTile({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String value,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => Navigator.pop(context, value),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 20, color: scheme.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _openComparison(ComparisonConfig config) {
@@ -576,6 +720,8 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         countsByDate: summary.heatmapData,
                         month: DateTime.now().month,
                         year: DateTime.now().year,
+                        onDayTap: (day, count) =>
+                            _showDayDetail(context, day, count),
                       )
                     : ContributionHeatmap(
                         countsByDate: summary.heatmapData,
@@ -1114,24 +1260,31 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.warning_amber_rounded,
-                                size: 16,
-                                color: Color(0xFFF59E0B),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                e.key,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).colorScheme.onSurface,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 16,
+                                  color: Color(0xFFF59E0B),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    e.key,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 9,
@@ -1767,7 +1920,6 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   ratio >= 1
@@ -1779,16 +1931,18 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                       : const Color(0xFF3B82F6),
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  ratio >= 1
-                      ? 'You call your Favorites ${ratio.toStringAsFixed(1)}x more than others'
-                      : 'You call your Favorites less often than other contacts',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: ratio >= 1
-                        ? const Color(0xFFF59E0B)
-                        : const Color(0xFF3B82F6),
+                Expanded(
+                  child: Text(
+                    ratio >= 1
+                        ? 'You call your Favorites ${ratio.toStringAsFixed(1)}x more than others'
+                        : 'You call your Favorites less often than other contacts',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: ratio >= 1
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFF3B82F6),
+                    ),
                   ),
                 ),
               ],
@@ -1889,25 +2043,17 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   void _showDayDetail(BuildContext context, DateTime day, int count) {
-    showModalBottomSheet(
+    GlassModalSheet.show(
       context: context,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${day.day}/${day.month}/${day.year}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              count == 0
-                  ? 'No calls this day.'
-                  : '$count call${count == 1 ? '' : 's'}',
-            ),
-          ],
-        ),
+      quality: GlassQuality.standard,
+      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
+      initialState: GlassSheetState.half,
+      builder: (context) => HeatmapDayDetailSheet(
+        day: day,
+        count: count,
+        db: widget.db,
+        deviceContacts: deviceContacts,
+        filters: filters,
       ),
     );
   }

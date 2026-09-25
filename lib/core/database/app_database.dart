@@ -329,6 +329,36 @@ class AppDatabase extends _$AppDatabase {
     return query.watch();
   }
 
+  Future<List<Call>> getCallsForDay(
+    DateTime day, {
+    String? contactNumberSuffix,
+    int? callType,
+  }) async {
+    final start = DateTime(day.year, day.month, day.day);
+    final end = DateTime(day.year, day.month, day.day, 23, 59, 59, 999);
+    final startMs = start.millisecondsSinceEpoch;
+    final endMs = end.millisecondsSinceEpoch;
+
+    final query = select(calls)
+      ..where((c) =>
+          c.timestamp.isBiggerOrEqualValue(startMs) &
+          c.timestamp.isSmallerOrEqualValue(endMs));
+
+    if (contactNumberSuffix != null && contactNumberSuffix.isNotEmpty) {
+      query.where((c) => c.number.like('%$contactNumberSuffix'));
+    }
+
+    if (callType != null) {
+      query.where((c) => c.type.equals(callType));
+    }
+
+    query.orderBy([
+      (c) => OrderingTerm(expression: c.timestamp, mode: OrderingMode.desc),
+    ]);
+
+    return query.get();
+  }
+
   Future<String?> getMostCalledNumber(List<String> numbers) async {
     if (numbers.isEmpty) return null;
     if (numbers.length == 1) return numbers.first;

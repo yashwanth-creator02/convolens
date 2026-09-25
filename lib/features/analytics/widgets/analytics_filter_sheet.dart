@@ -50,59 +50,59 @@ class _AnalyticsFilterSheetState extends State<AnalyticsFilterSheet> {
 
     final searchController = TextEditingController();
 
-    final selected = await showModalBottomSheet<ContactSummary?>(
+    final selected = await GlassDialog.show<ContactSummary?>(
       context: context,
-      isScrollControlled: true,
-      builder: (context) =>
-          StatefulBuilder(
-            builder: (context, setSheetState) {
-              final query = searchController.text.toLowerCase();
-              final filtered = allSummaries.mostContacted
-                  .where((c) => c.displayName.toLowerCase().contains(query))
-                  .toList();
+      title: 'Filter by Contact',
+      maxWidth: 340,
+      content: StatefulBuilder(
+        builder: (context, setSheetState) {
+          final query = searchController.text.toLowerCase();
+          final filtered = allSummaries.mostContacted
+              .where((c) => c.displayName.toLowerCase().contains(query))
+              .toList();
 
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery
-                      .of(context)
-                      .viewInsets
-                      .bottom,
-                  left: 16,
-                  right: 16,
-                  top: 16,
+          return SizedBox(
+            height: 320,
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: searchController,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Search contact',
+                    prefixIcon: Icon(Icons.search_rounded),
+                    isDense: true,
+                  ),
+                  onChanged: (_) => setSheetState(() {}),
                 ),
-                child: SizedBox(
-                  height: 400,
-                  child: Column(
-                    children: [
-                      TextField(
-                        controller: searchController,
-                        autofocus: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Search contact',
-                        ),
-                        onChanged: (_) => setSheetState(() {}),
-                      ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: filtered.length,
-                          itemBuilder: (context, index) {
-                            final c = filtered[index];
-                            return ListTile(
-                              title: Text(c.displayName),
-                              subtitle: Text('${c.callCount} calls'),
-                              onTap: () => Navigator.pop(context, c),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final c = filtered[index];
+                      return ListTile(
+                        dense: true,
+                        title: Text(c.displayName),
+                        subtitle: Text('${c.callCount} calls'),
+                        onTap: () => Navigator.pop(context, c),
+                      );
+                    },
                   ),
                 ),
-              );
-            },
-          ),
+              ],
+            ),
+          );
+        },
+      ),
+      actions: [
+        GlassDialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.pop(context, null),
+        ),
+      ],
     );
 
     searchController.dispose();

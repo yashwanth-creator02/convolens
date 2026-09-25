@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 Future<void> showVoiceNotePlayerSheet(BuildContext context, String filePath) {
-  return showModalBottomSheet(
+  return GlassModalSheet.show(
     context: context,
+    quality: GlassQuality.standard,
+    detents: const {GlassSheetDetent.medium},
+    initialState: GlassSheetState.half,
     builder: (context) => VoiceNotePlayerSheet(filePath: filePath),
   );
 }
@@ -47,16 +51,59 @@ class _VoiceNotePlayerSheetState extends State<VoiceNotePlayerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.graphic_eq, size: 48),
+    final scheme = Theme.of(context).colorScheme;
+
+    return GlassPage(
+      child: Material(
+        type: MaterialType.transparency,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 8, bottom: 20),
+                    decoration: BoxDecoration(
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                if (_loading)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 36),
+                      child: CircularProgressIndicator.adaptive(),
+                    ),
+                  )
+                else ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.graphic_eq_rounded,
+                      size: 40,
+                      color: scheme.primary,
+                    ),
+                  ),
                   const SizedBox(height: 12),
+                  Text(
+                    'Voice Note',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   StreamBuilder<Duration>(
                     stream: _player.positionStream,
                     builder: (context, snapshot) {
@@ -65,26 +112,55 @@ class _VoiceNotePlayerSheetState extends State<VoiceNotePlayerSheet> {
 
                       return Column(
                         children: [
-                          Slider(
-                            value: position.inMilliseconds.toDouble().clamp(
-                              0,
-                              total.inMilliseconds.toDouble().clamp(
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: scheme.primary,
+                              thumbColor: scheme.primary,
+                              inactiveTrackColor: scheme.surfaceContainerHighest,
+                              trackHeight: 4,
+                            ),
+                            child: Slider(
+                              value: position.inMilliseconds.toDouble().clamp(
+                                0,
+                                total.inMilliseconds.toDouble().clamp(
+                                  1,
+                                  double.infinity,
+                                ),
+                              ),
+                              max: total.inMilliseconds.toDouble().clamp(
                                 1,
                                 double.infinity,
                               ),
+                              onChanged: (value) {
+                                _player.seek(
+                                  Duration(milliseconds: value.toInt()),
+                                );
+                              },
                             ),
-                            max: total.inMilliseconds.toDouble().clamp(
-                              1,
-                              double.infinity,
-                            ),
-                            onChanged: (value) {
-                              _player.seek(
-                                Duration(milliseconds: value.toInt()),
-                              );
-                            },
                           ),
-                          Text(
-                            '${_formatDuration(position)} / ${_formatDuration(total)}',
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _formatDuration(position),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  _formatDuration(total),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       );
@@ -97,11 +173,12 @@ class _VoiceNotePlayerSheetState extends State<VoiceNotePlayerSheet> {
                       final playing = snapshot.data?.playing ?? false;
 
                       return IconButton(
-                        iconSize: 48,
+                        iconSize: 52,
                         icon: Icon(
                           playing
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_filled,
+                              ? Icons.pause_circle_filled_rounded
+                              : Icons.play_circle_fill_rounded,
+                          color: scheme.primary,
                         ),
                         onPressed: () {
                           if (playing) {
@@ -114,7 +191,10 @@ class _VoiceNotePlayerSheetState extends State<VoiceNotePlayerSheet> {
                     },
                   ),
                 ],
-              ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

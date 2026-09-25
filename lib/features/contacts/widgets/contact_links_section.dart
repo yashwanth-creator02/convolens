@@ -123,130 +123,125 @@ class ContactLinksSection extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final platformColor = _getPlatformColor(link.platform, scheme);
 
-    final action = await showModalBottomSheet<String>(
+    final action = await GlassModalSheet.show<String>(
       context: context,
-      backgroundColor: scheme.surface,
-      sheetAnimationStyle: AnimationStyle(
-        duration: const Duration(milliseconds: 320),
-        reverseDuration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
-      ),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: platformColor.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
+      quality: GlassQuality.standard,
+      detents: const {GlassSheetDetent.medium},
+      initialState: GlassSheetState.half,
+      builder: (context) => GlassPage(
+        child: Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 8, bottom: 16),
+                      decoration: BoxDecoration(
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    linkPlatformIcons[link.platform] ?? Icons.link,
-                    size: 18,
-                    color: platformColor,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest
+                          .withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: scheme.outlineVariant.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: platformColor.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            linkPlatformIcons[link.platform] ?? Icons.link,
+                            size: 20,
+                            color: platformColor,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _getPlatformLabel(link.platform),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                  letterSpacing: -0.2,
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                link.url,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: scheme.onSurfaceVariant
+                                      .withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                title: Text(
-                  _getPlatformLabel(link.platform),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    letterSpacing: -0.2,
-                    color: scheme.onSurface,
+                  const SizedBox(height: 12),
+                  _buildGlassOptionTile(
+                    context,
+                    icon: Icons.open_in_new_rounded,
+                    iconColor: scheme.primary,
+                    title: 'Open link',
+                    onTap: () => Navigator.pop(context, 'open'),
                   ),
-                ),
-                subtitle: Text(
-                  link.url,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  const SizedBox(height: 6),
+                  _buildGlassOptionTile(
+                    context,
+                    icon: Icons.copy_rounded,
+                    iconColor: scheme.onSurfaceVariant,
+                    title: 'Copy URL',
+                    onTap: () => Navigator.pop(context, 'copy'),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  _buildGlassOptionTile(
+                    context,
+                    icon: Icons.edit_outlined,
+                    iconColor: scheme.onSurfaceVariant,
+                    title: 'Edit link',
+                    onTap: () => Navigator.pop(context, 'edit'),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildGlassOptionTile(
+                    context,
+                    icon: Icons.delete_outline_rounded,
+                    iconColor: scheme.error,
+                    title: 'Delete link',
+                    textColor: scheme.error,
+                    onTap: () => Navigator.pop(context, 'delete'),
+                  ),
+                ],
               ),
-              Divider(
-                height: 1,
-                color: scheme.outlineVariant.withValues(alpha: 0.25),
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.open_in_new_rounded,
-                  size: 19,
-                  color: scheme.primary,
-                ),
-                title: Text(
-                  'Open link',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2,
-                    color: scheme.onSurface,
-                  ),
-                ),
-                onTap: () => Navigator.pop(context, 'open'),
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.copy_rounded,
-                  size: 19,
-                  color: scheme.onSurfaceVariant,
-                ),
-                title: Text(
-                  'Copy URL',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2,
-                    color: scheme.onSurface,
-                  ),
-                ),
-                onTap: () => Navigator.pop(context, 'copy'),
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.edit_outlined,
-                  size: 19,
-                  color: scheme.onSurfaceVariant,
-                ),
-                title: Text(
-                  'Edit link',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2,
-                    color: scheme.onSurface,
-                  ),
-                ),
-                onTap: () => Navigator.pop(context, 'edit'),
-              ),
-              ListTile(
-                leading: Icon(
-                  Icons.delete_outline_rounded,
-                  size: 19,
-                  color: scheme.error,
-                ),
-                title: Text(
-                  'Delete link',
-                  style: TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -0.2,
-                    color: scheme.error,
-                  ),
-                ),
-                onTap: () => Navigator.pop(context, 'delete'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -289,6 +284,57 @@ class ContactLinksSection extends StatelessWidget {
         }
         break;
     }
+  }
+
+  Widget _buildGlassOptionTile(
+    BuildContext context, {
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    Color? textColor,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.25),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: iconColor),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w600,
+                      color: textColor ?? scheme.onSurface,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
