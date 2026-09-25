@@ -6,6 +6,8 @@ import 'app/app.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LiquidGlassWidgets.initialize(enablePerformanceMonitor: false);
+  // ignore: invalid_use_of_visible_for_testing_member
+  GlassModalSheet.debugMorphSupportsBlending = true;
   runApp(
     LiquidGlassWidgets.wrap(
       adaptiveQuality: true,

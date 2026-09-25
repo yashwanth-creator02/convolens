@@ -8,8 +8,6 @@ import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
 import '../features/analytics/repository/insight_checker.dart';
 import '../features/analytics/screens/analytics_screen.dart';
-import '../features/analytics/models/analytics_filters.dart';
-import '../features/analytics/widgets/analytics_filter_sheet.dart';
 import '../features/contacts/screens/contact_search_screen.dart';
 import '../features/contacts/screens/contacts_screen.dart';
 import '../features/contacts/widgets/add_contact_screen.dart';
@@ -252,29 +250,8 @@ class _MainShellState extends State<MainShell> {
   void _openAnalyticsFiltersMorph(
     BuildContext context,
     GlassMorphAnchor anchor,
-  ) async {
-    final state = _analyticsScreenKey.currentState;
-    if (state == null) return;
-
-    final result = await GlassModalSheet.show<AnalyticsFilters>(
-      context: context,
-      quality: GlassQuality.standard,
-      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
-      initialState: GlassSheetState.half,
-      morphFrom: anchor,
-      builder: (context) => AnalyticsFilterSheet(
-        db: widget.db,
-        repository: state.repository,
-        deviceContacts: state.deviceContacts,
-        initialFilters: state.filters,
-        initialContactName: state.selectedContactName,
-        initialTagName: state.selectedTagName,
-      ),
-    );
-
-    if (result != null) {
-      state.applyFilters(result);
-    }
+  ) {
+    _analyticsScreenKey.currentState?.openFilters(anchor: anchor);
   }
 
   // ---------------------------------------------------------------------------
