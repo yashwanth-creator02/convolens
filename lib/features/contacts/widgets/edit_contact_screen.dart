@@ -43,11 +43,20 @@ class _EditContactScreenState extends State<EditContactScreen> {
   @override
   void initState() {
     super.initState();
+    final displayName = widget.contact.displayName.trim();
+    final spaceIdx = displayName.indexOf(' ');
+    final initialFirst = widget.contact.name.first.isNotEmpty
+        ? widget.contact.name.first
+        : (spaceIdx == -1 ? displayName : displayName.substring(0, spaceIdx));
+    final initialLast = widget.contact.name.last.isNotEmpty
+        ? widget.contact.name.last
+        : (spaceIdx == -1 ? '' : displayName.substring(spaceIdx + 1));
+
     _firstNameController = TextEditingController(
-      text: widget.contact.name.first,
+      text: initialFirst,
     )..addListener(_onNameChanged);
     _lastNameController = TextEditingController(
-      text: widget.contact.name.last,
+      text: initialLast,
     )..addListener(_onNameChanged);
     _companyController = TextEditingController(
       text: widget.contact.organizations.isNotEmpty
@@ -87,6 +96,32 @@ class _EditContactScreenState extends State<EditContactScreen> {
       if (full != null && mounted) {
         setState(() {
           _fullContact = full;
+          if (_firstNameController.text.isEmpty && full.name.first.isNotEmpty) {
+            _firstNameController.text = full.name.first;
+          }
+          if (_lastNameController.text.isEmpty && full.name.last.isNotEmpty) {
+            _lastNameController.text = full.name.last;
+          }
+          if (_companyController.text.isEmpty && full.organizations.isNotEmpty) {
+            _companyController.text = full.organizations.first.company;
+          }
+          if (_jobTitleController.text.isEmpty && full.organizations.isNotEmpty) {
+            _jobTitleController.text = full.organizations.first.title;
+          }
+          if (_emailController.text.isEmpty && full.emails.isNotEmpty) {
+            _emailController.text = full.emails.first.address;
+          }
+          if (_phoneControllers.isEmpty ||
+              (_phoneControllers.length == 1 && _phoneControllers.first.text.isEmpty)) {
+            if (full.phones.isNotEmpty) {
+              for (final c in _phoneControllers) {
+                c.dispose();
+              }
+              _phoneControllers = full.phones
+                  .map((p) => TextEditingController(text: p.number))
+                  .toList();
+            }
+          }
         });
         ContactCache.updateContact(full);
       }

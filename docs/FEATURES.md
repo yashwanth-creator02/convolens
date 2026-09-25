@@ -46,6 +46,11 @@ The Analytics dashboard transforms call history into interactive visual data.
 Manage contacts beyond phonebook defaults with custom relationship metadata.
 
 ### Capabilities
+- **Real-Time Duplicate Detection & Autocomplete Dropdown**:
+  - Live query evaluation across First Name, Last Name, Phone Number, Email, Company, and Job Title fields as you type.
+  - Floating liquid glass dropdown showing matching contacts with high-res avatars/colored initials, matched attributes, and quick action chips.
+  - Tap-to-edit workflow: Tapping any suggestion redirects directly to `EditContactScreen` pre-populated with that contact's existing details.
+  - One-tap dismissible header to let users continue creating a separate contact if desired.
 - **Device Contact Synchronization**: Automatically merges local phone contacts with SQLite interaction history via `flutter_contacts`.
 - **Contact Details & Notes**: Add rich notes, meeting context, and internal background information to any contact.
 - **Custom Color Tags**: Assign custom color-coded labels (e.g. `Client`, `VIP`, `Family`, `Work`).

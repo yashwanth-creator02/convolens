@@ -9,6 +9,7 @@ import '../../../core/services/contact_cache.dart';
 import '../../../core/toast/toast_service.dart';
 import '../../../shared/glass_action_ids.dart';
 import 'contact_photo_picker_sheet.dart';
+import 'edit_contact_screen.dart';
 
 Future<Contact?> showAddContactScreen(
   BuildContext context, {
@@ -52,6 +53,16 @@ class _AddContactScreenState extends State<AddContactScreen> {
   final _emailController = TextEditingController();
   late final List<TextEditingController> _phoneControllers;
 
+  final _firstNameFocus = FocusNode();
+  final _lastNameFocus = FocusNode();
+  final _companyFocus = FocusNode();
+  final _jobTitleFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  late final List<FocusNode> _phoneFocusNodes;
+
+  List<Contact> _allContacts = [];
+  final Set<String> _dismissedFields = {};
+
   Uint8List? _photoBytes;
   bool _saving = false;
 
@@ -78,17 +89,198 @@ class _AddContactScreenState extends State<AddContactScreen> {
       ..addListener(_onNameChanged);
     _lastNameController = TextEditingController(text: lastGuess)
       ..addListener(_onNameChanged);
-    _phoneControllers = [
-      TextEditingController(text: widget.initialPhone ?? ''),
-    ];
+
+    final initialPhoneText = widget.initialPhone ?? '';
+    final primaryPhoneController = TextEditingController(text: initialPhoneText)
+      ..addListener(() => _onPhoneChanged(0));
+    _phoneControllers = [primaryPhoneController];
+
+    _phoneFocusNodes = [FocusNode()..addListener(_onFieldChanged)];
+    _firstNameFocus.addListener(_onFieldChanged);
+    _lastNameFocus.addListener(_onFieldChanged);
+    _companyFocus.addListener(_onFieldChanged);
+    _jobTitleFocus.addListener(_onFieldChanged);
+    _emailFocus.addListener(_onFieldChanged);
+
+    _companyController.addListener(_onCompanyChanged);
+    _jobTitleController.addListener(_onJobTitleChanged);
+    _emailController.addListener(_onEmailChanged);
+
+    _loadExistingContacts();
   }
 
   void _onNameChanged() {
+    _clearDismissal('name_first');
+    _clearDismissal('name_last');
     if (mounted) setState(() {});
+  }
+
+  void _onPhoneChanged(int index) {
+    _clearDismissal('phone_$index');
+    if (mounted) setState(() {});
+  }
+
+  void _onCompanyChanged() {
+    _clearDismissal('company');
+    if (mounted) setState(() {});
+  }
+
+  void _onJobTitleChanged() {
+    _clearDismissal('job_title');
+    if (mounted) setState(() {});
+  }
+
+  void _onEmailChanged() {
+    _clearDismissal('email');
+    if (mounted) setState(() {});
+  }
+
+  void _onFieldChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _clearDismissal(String fieldKey) {
+    _dismissedFields.remove(fieldKey);
+  }
+
+  Future<void> _loadExistingContacts() async {
+    if (ContactCache.contacts.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _allContacts = ContactCache.contacts;
+        });
+      }
+    }
+
+    try {
+      final contacts = await FlutterContacts.getContacts(
+        withProperties: true,
+        withThumbnail: true,
+      );
+      if (mounted) {
+        setState(() {
+          _allContacts = contacts;
+        });
+        ContactCache.setContacts(contacts);
+      }
+    } catch (_) {}
+  }
+
+  List<Contact> _getMatchingContactsForName() {
+    final first = _firstNameController.text.trim().toLowerCase();
+    final last = _lastNameController.text.trim().toLowerCase();
+    final full = '$first $last'.trim();
+
+    if (first.length < 2 && last.length < 2 && full.length < 2) return const [];
+
+    return _allContacts.where((contact) {
+      final cDisplay = contact.displayName.trim().toLowerCase();
+      final cFirst = contact.name.first.trim().toLowerCase();
+      final cLast = contact.name.last.trim().toLowerCase();
+      final cFull = '$cFirst $cLast'.trim();
+
+      if (full.length >= 2 &&
+          (cDisplay.contains(full) || (cFull.isNotEmpty && cFull.contains(full)))) {
+        return true;
+      }
+      if (first.length >= 2 &&
+          ((cFirst.isNotEmpty && cFirst.contains(first)) || cDisplay.contains(first))) {
+        return true;
+      }
+      if (last.length >= 2 &&
+          ((cLast.isNotEmpty && cLast.contains(last)) || cDisplay.contains(last))) {
+        return true;
+      }
+      return false;
+    }).take(6).toList();
+  }
+
+  List<Contact> _getMatchingContactsForPhone(String phoneText) {
+    final digits = phoneText.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 3) return const [];
+
+    return _allContacts.where((contact) {
+      return contact.phones.any((p) {
+        final pDigits = p.number.replaceAll(RegExp(r'\D'), '');
+        return pDigits.contains(digits);
+      });
+    }).take(6).toList();
+  }
+
+  List<Contact> _getMatchingContactsForCompany(String companyText) {
+    final q = companyText.trim().toLowerCase();
+    if (q.length < 2) return const [];
+
+    return _allContacts.where((contact) {
+      return contact.organizations.any((o) {
+        return o.company.toLowerCase().contains(q);
+      });
+    }).take(6).toList();
+  }
+
+  List<Contact> _getMatchingContactsForJobTitle(String titleText) {
+    final q = titleText.trim().toLowerCase();
+    if (q.length < 2) return const [];
+
+    return _allContacts.where((contact) {
+      return contact.organizations.any((o) {
+        return o.title.toLowerCase().contains(q);
+      });
+    }).take(6).toList();
+  }
+
+  List<Contact> _getMatchingContactsForEmail(String emailText) {
+    final q = emailText.trim().toLowerCase();
+    if (q.length < 2) return const [];
+
+    return _allContacts.where((contact) {
+      return contact.emails.any((e) {
+        return e.address.toLowerCase().contains(q);
+      });
+    }).take(6).toList();
+  }
+
+  List<Contact> get _nameSuggestions => _getMatchingContactsForName();
+  List<Contact> get _companySuggestions =>
+      _getMatchingContactsForCompany(_companyController.text);
+  List<Contact> get _jobTitleSuggestions =>
+      _getMatchingContactsForJobTitle(_jobTitleController.text);
+  List<Contact> get _emailSuggestions =>
+      _getMatchingContactsForEmail(_emailController.text);
+
+  String _buildNameSubtitle(Contact c) {
+    if (c.phones.isNotEmpty) return c.phones.first.number;
+    if (c.emails.isNotEmpty) return c.emails.first.address;
+    if (c.organizations.isNotEmpty) return c.organizations.first.company;
+    return 'Existing contact';
+  }
+
+  Future<void> _navigateToEditContact(Contact contact) async {
+    HapticFeedback.selectionClick();
+    FocusScope.of(context).unfocus();
+
+    final updated = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute(
+        builder: (context) => EditContactScreen(contact: contact),
+      ),
+    );
+
+    if (updated == true && mounted) {
+      Navigator.of(context).pop(contact);
+    }
   }
 
   @override
   void dispose() {
+    _firstNameFocus.dispose();
+    _lastNameFocus.dispose();
+    _companyFocus.dispose();
+    _jobTitleFocus.dispose();
+    _emailFocus.dispose();
+    for (final f in _phoneFocusNodes) {
+      f.dispose();
+    }
+
     _firstNameController.removeListener(_onNameChanged);
     _lastNameController.removeListener(_onNameChanged);
     _firstNameController.dispose();
@@ -105,7 +297,14 @@ class _AddContactScreenState extends State<AddContactScreen> {
 
   void _addPhoneField() {
     HapticFeedback.selectionClick();
-    setState(() => _phoneControllers.add(TextEditingController()));
+    final newIndex = _phoneControllers.length;
+    final controller = TextEditingController()
+      ..addListener(() => _onPhoneChanged(newIndex));
+    final focusNode = FocusNode()..addListener(_onFieldChanged);
+    setState(() {
+      _phoneControllers.add(controller);
+      _phoneFocusNodes.add(focusNode);
+    });
   }
 
   void _removePhoneField(int index) {
@@ -113,6 +312,8 @@ class _AddContactScreenState extends State<AddContactScreen> {
     setState(() {
       _phoneControllers[index].dispose();
       _phoneControllers.removeAt(index);
+      _phoneFocusNodes[index].dispose();
+      _phoneFocusNodes.removeAt(index);
     });
   }
 
@@ -260,11 +461,19 @@ class _AddContactScreenState extends State<AddContactScreen> {
     required String label,
     required TextEditingController controller,
     required String placeholder,
+    FocusNode? focusNode,
+    List<Contact>? suggestions,
+    String Function(Contact)? suggestionSubtitle,
+    String? fieldDismissKey,
     TextInputType keyboardType = TextInputType.text,
     TextInputAction textInputAction = TextInputAction.next,
     bool autofocus = false,
   }) {
     final scheme = Theme.of(context).colorScheme;
+    final showSuggestions = suggestions != null &&
+        suggestions.isNotEmpty &&
+        (focusNode?.hasFocus ?? false) &&
+        (fieldDismissKey == null || !_dismissedFields.contains(fieldDismissKey));
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -285,6 +494,7 @@ class _AddContactScreenState extends State<AddContactScreen> {
           ),
           GlassTextField(
             controller: controller,
+            focusNode: focusNode,
             placeholder: placeholder,
             keyboardType: keyboardType,
             textInputAction: textInputAction,
@@ -303,6 +513,18 @@ class _AddContactScreenState extends State<AddContactScreen> {
               color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
             ),
           ),
+          if (showSuggestions)
+            ContactSuggestionsDropdown(
+              contacts: suggestions,
+              fieldLabel: label,
+              subtitleBuilder: suggestionSubtitle,
+              onSelect: _navigateToEditContact,
+              onDismiss: () {
+                if (fieldDismissKey != null) {
+                  setState(() => _dismissedFields.add(fieldDismissKey));
+                }
+              },
+            ),
         ],
       ),
     );
@@ -465,6 +687,10 @@ class _AddContactScreenState extends State<AddContactScreen> {
                     context: context,
                     label: 'First Name',
                     controller: _firstNameController,
+                    focusNode: _firstNameFocus,
+                    suggestions: _nameSuggestions,
+                    suggestionSubtitle: _buildNameSubtitle,
+                    fieldDismissKey: 'name_first',
                     placeholder: 'Given name…',
                     textInputAction: TextInputAction.next,
                     autofocus: true,
@@ -473,6 +699,10 @@ class _AddContactScreenState extends State<AddContactScreen> {
                     context: context,
                     label: 'Last Name',
                     controller: _lastNameController,
+                    focusNode: _lastNameFocus,
+                    suggestions: _nameSuggestions,
+                    suggestionSubtitle: _buildNameSubtitle,
+                    fieldDismissKey: 'name_last',
                     placeholder: 'Family name…',
                     textInputAction: TextInputAction.next,
                   ),
@@ -487,7 +717,16 @@ class _AddContactScreenState extends State<AddContactScreen> {
                   ..._phoneControllers.asMap().entries.map((entry) {
                     final index = entry.key;
                     final controller = entry.value;
+                    final focusNode = _phoneFocusNodes.length > index
+                        ? _phoneFocusNodes[index]
+                        : null;
+                    final phoneSuggestions =
+                        _getMatchingContactsForPhone(controller.text);
                     final isOnly = _phoneControllers.length == 1;
+                    final fieldDismissKey = 'phone_$index';
+                    final showSuggestions = phoneSuggestions.isNotEmpty &&
+                        (focusNode?.hasFocus ?? false) &&
+                        !_dismissedFields.contains(fieldDismissKey);
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -547,6 +786,7 @@ class _AddContactScreenState extends State<AddContactScreen> {
                           ),
                           GlassTextField(
                             controller: controller,
+                            focusNode: focusNode,
                             placeholder: 'e.g. +1 555 123 4567',
                             keyboardType: TextInputType.phone,
                             textInputAction: TextInputAction.next,
@@ -570,6 +810,34 @@ class _AddContactScreenState extends State<AddContactScreen> {
                                   .withValues(alpha: 0.45),
                             ),
                           ),
+                          if (showSuggestions)
+                            ContactSuggestionsDropdown(
+                              contacts: phoneSuggestions,
+                              fieldLabel: index == 0
+                                  ? 'Primary Number'
+                                  : 'Alternate Number ${index + 1}',
+                              subtitleBuilder: (c) {
+                                final digits = controller.text
+                                    .replaceAll(RegExp(r'\D'), '');
+                                final matchedPhone = c.phones.firstWhere(
+                                  (p) => p.number
+                                      .replaceAll(RegExp(r'\D'), '')
+                                      .contains(digits),
+                                  orElse: () => c.phones.isNotEmpty
+                                      ? c.phones.first
+                                      : Phone(''),
+                                );
+                                return matchedPhone.number.isNotEmpty
+                                    ? matchedPhone.number
+                                    : (c.emails.isNotEmpty
+                                        ? c.emails.first.address
+                                        : 'Existing contact');
+                              },
+                              onSelect: _navigateToEditContact,
+                              onDismiss: () => setState(
+                                () => _dismissedFields.add(fieldDismissKey),
+                              ),
+                            ),
                         ],
                       ),
                     );
@@ -599,6 +867,14 @@ class _AddContactScreenState extends State<AddContactScreen> {
                     context: context,
                     label: 'Company',
                     controller: _companyController,
+                    focusNode: _companyFocus,
+                    suggestions: _companySuggestions,
+                    suggestionSubtitle: (c) => c.organizations.isNotEmpty
+                        ? c.organizations.first.company
+                        : (c.phones.isNotEmpty
+                            ? c.phones.first.number
+                            : 'Existing contact'),
+                    fieldDismissKey: 'company',
                     placeholder: 'Company / Organization name…',
                     textInputAction: TextInputAction.next,
                   ),
@@ -606,6 +882,14 @@ class _AddContactScreenState extends State<AddContactScreen> {
                     context: context,
                     label: 'Job Title',
                     controller: _jobTitleController,
+                    focusNode: _jobTitleFocus,
+                    suggestions: _jobTitleSuggestions,
+                    suggestionSubtitle: (c) => c.organizations.isNotEmpty
+                        ? '${c.organizations.first.title}${c.organizations.first.company.isNotEmpty ? " • ${c.organizations.first.company}" : ""}'
+                        : (c.phones.isNotEmpty
+                            ? c.phones.first.number
+                            : 'Existing contact'),
+                    fieldDismissKey: 'job_title',
                     placeholder: 'Role or Designation…',
                     textInputAction: TextInputAction.next,
                   ),
@@ -621,6 +905,20 @@ class _AddContactScreenState extends State<AddContactScreen> {
                     context: context,
                     label: 'Email',
                     controller: _emailController,
+                    focusNode: _emailFocus,
+                    suggestions: _emailSuggestions,
+                    suggestionSubtitle: (c) {
+                      final q = _emailController.text.trim().toLowerCase();
+                      final matched = c.emails.firstWhere(
+                        (e) => e.address.toLowerCase().contains(q),
+                        orElse: () =>
+                            c.emails.isNotEmpty ? c.emails.first : Email(''),
+                      );
+                      return matched.address.isNotEmpty
+                          ? matched.address
+                          : 'Existing contact';
+                    },
+                    fieldDismissKey: 'email',
                     placeholder: 'contact@example.com',
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.done,
@@ -630,6 +928,273 @@ class _AddContactScreenState extends State<AddContactScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ContactSuggestionsDropdown extends StatelessWidget {
+  final List<Contact> contacts;
+  final String fieldLabel;
+  final String Function(Contact)? subtitleBuilder;
+  final ValueChanged<Contact> onSelect;
+  final VoidCallback onDismiss;
+
+  const ContactSuggestionsDropdown({
+    super.key,
+    required this.contacts,
+    required this.fieldLabel,
+    this.subtitleBuilder,
+    required this.onSelect,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF1E2230).withValues(alpha: 0.88)
+            : const Color(0xFFF1F5F9).withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: scheme.primary.withValues(alpha: 0.28),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Header Banner ──────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.08),
+              border: Border(
+                bottom: BorderSide(
+                  color: scheme.outlineVariant.withValues(alpha: 0.25),
+                  width: 0.8,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_search_rounded,
+                  size: 15,
+                  color: scheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${contacts.length} existing contact${contacts.length > 1 ? 's' : ''} found',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
+                      letterSpacing: 0.1,
+                    ),
+                  ),
+                ),
+                Text(
+                  'Tap to edit',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onDismiss,
+                  child: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 14,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Contacts List ──────────────────────────────────────────
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: contacts.length > 2 ? 180 : 120,
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              physics: const ClampingScrollPhysics(),
+              itemCount: contacts.length,
+              separatorBuilder: (context, index) => Divider(
+                height: 1,
+                indent: 52,
+                endIndent: 12,
+                color: scheme.outlineVariant.withValues(alpha: 0.18),
+              ),
+              itemBuilder: (context, i) {
+                final contact = contacts[i];
+                final displayName = contact.displayName.trim().isNotEmpty
+                    ? contact.displayName.trim()
+                    : '${contact.name.first} ${contact.name.last}'.trim();
+                final nameToShow =
+                    displayName.isNotEmpty ? displayName : 'Unnamed Contact';
+                final subtitle = subtitleBuilder != null
+                    ? subtitleBuilder!(contact)
+                    : (contact.phones.isNotEmpty
+                        ? contact.phones.first.number
+                        : (contact.emails.isNotEmpty
+                            ? contact.emails.first.address
+                            : 'Existing contact'));
+
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => onSelect(contact),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          _buildAvatar(contact),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  nameToShow,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.onSurface,
+                                  ),
+                                ),
+                                if (subtitle.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    subtitle,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: scheme.onSurfaceVariant
+                                          .withValues(alpha: 0.75),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Edit',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  size: 10,
+                                  color: scheme.primary,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(Contact contact) {
+    final photo = contact.thumbnail ?? contact.photo;
+    if (photo != null) {
+      return Container(
+        width: 34,
+        height: 34,
+        decoration: const BoxDecoration(shape: BoxShape.circle),
+        clipBehavior: Clip.antiAlias,
+        child: Image.memory(photo, fit: BoxFit.cover),
+      );
+    }
+
+    final name = contact.displayName.trim();
+    final initials = name.isNotEmpty
+        ? (name.length >= 2
+            ? name.substring(0, 2).toUpperCase()
+            : name[0].toUpperCase())
+        : '?';
+    final hash = name.codeUnits.fold(0, (sum, c) => sum + c);
+    final gradient = _AddContactScreenState._avatarGradients[
+        hash % _AddContactScreenState._avatarGradients.length];
+
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
       ),
     );

@@ -19,6 +19,7 @@ An intelligent, glassmorphism-styled Call History, Relationship Analytics, and P
 - **Streak Tracking & Weekly Insights**: Automated notifications celebrating communication streaks and weekly summaries.
 
 ### 👤 3. Contact Intelligence & Personal CRM
+- **Real-Time Duplicate Detection & Autocomplete Dropdown**: Live duplicate checking and instant autocomplete suggestions across First Name, Last Name, Phone Number, Email, Company, and Job Title fields when creating a contact. Tapping any matched contact seamlessly redirects to the pre-filled Edit Contact screen.
 - **Detailed Contact Profiles**: Custom notes, tags, color coding, preferred communication methods, and best time to call.
 - **Social & Web Links**: Custom link attachments for contacts (LinkedIn, X, WhatsApp, etc.).
 - **Archived & Favorite Contacts**: Organize contacts into favorites or archive inactive records.
