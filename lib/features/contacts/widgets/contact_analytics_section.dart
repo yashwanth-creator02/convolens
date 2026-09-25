@@ -284,30 +284,18 @@ class ContactAnalyticsSection extends StatelessWidget {
       quality: GlassQuality.standard,
       detents: const {GlassSheetDetent.medium},
       initialState: GlassSheetState.half,
-      builder: (context) => GlassPage(
-        child: Material(
-          type: MaterialType.transparency,
-          child: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(top: 8, bottom: 16),
-                      decoration: BoxDecoration(
-                        color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  Row(
+      builder: (context) => Material(
+        type: MaterialType.transparency,
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -401,9 +389,7 @@ class ContactAnalyticsSection extends StatelessWidget {
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
+            ],
           ),
         ),
       ),

@@ -128,29 +128,17 @@ class ContactLinksSection extends StatelessWidget {
       quality: GlassQuality.standard,
       detents: const {GlassSheetDetent.medium},
       initialState: GlassSheetState.half,
-      builder: (context) => GlassPage(
-        child: Material(
-          type: MaterialType.transparency,
-          child: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(top: 8, bottom: 16),
-                      decoration: BoxDecoration(
-                        color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  Container(
+      builder: (context) => Material(
+        type: MaterialType.transparency,
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: scheme.surfaceContainerHighest
@@ -239,8 +227,7 @@ class ContactLinksSection extends StatelessWidget {
                     textColor: scheme.error,
                     onTap: () => Navigator.pop(context, 'delete'),
                   ),
-                ],
-              ),
+              ],
             ),
           ),
         ),

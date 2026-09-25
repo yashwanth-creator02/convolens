@@ -15,6 +15,7 @@ class App extends StatefulWidget {
 
 class _AppState extends State<App> {
   late final AppDatabase _db;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -52,15 +53,16 @@ class _AppState extends State<App> {
   Widget _buildAppWithTheme({
     required AppThemeType themeType,
     ThemeMode themeMode = ThemeMode.dark,
-    AppDatabase? db,
-    Widget? home,
+    required AppDatabase db,
   }) {
     final activeTheme = AppTheme.getTheme(
       themeType == AppThemeType.system ? AppThemeType.dark : themeType,
     );
 
     return MaterialApp(
-      title: 'Point',
+      key: const ValueKey('ConvolensAppMaterialApp'),
+      navigatorKey: _navigatorKey,
+      title: 'Convolens',
       theme: themeType == AppThemeType.light
           ? activeTheme
           : AppTheme.getTheme(AppThemeType.light),
@@ -76,13 +78,7 @@ class _AppState extends State<App> {
           ),
         );
       },
-      home:
-          home ??
-          (db != null
-              ? MainShell(db: db)
-              : const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                )),
+      home: MainShell(db: db),
     );
   }
 
@@ -91,15 +87,10 @@ class _AppState extends State<App> {
     return StreamBuilder<Setting>(
       stream: _db.watchSettings(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return _buildAppWithTheme(
-            themeType: AppThemeType.dark,
-            themeMode: ThemeMode.dark,
-          );
-        }
-
-        final settings = snapshot.data!;
-        final themeType = _themeFromString(settings.theme);
+        final settings = snapshot.data;
+        final themeType = settings != null
+            ? _themeFromString(settings.theme)
+            : AppThemeType.dark;
 
         return _buildAppWithTheme(
           themeType: themeType,

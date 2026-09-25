@@ -213,93 +213,80 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       quality: GlassQuality.standard,
       detents: const {GlassSheetDetent.medium},
       initialState: GlassSheetState.half,
-      builder: (context) => GlassPage(
-        child: Material(
-          type: MaterialType.transparency,
-          child: SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(top: 8, bottom: 16),
+      builder: (context) => Material(
+        type: MaterialType.transparency,
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
+                        color: scheme.primary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.compare_arrows_rounded,
+                        size: 20,
+                        color: scheme.primary,
                       ),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: scheme.primary.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.compare_arrows_rounded,
-                          size: 20,
-                          color: scheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Compare Analytics',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: scheme.onSurface,
-                            ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Compare Analytics',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: scheme.onSurface,
                           ),
-                          Text(
-                            'Select comparison benchmark',
-                            style: TextStyle(
-                              fontSize: 12.5,
-                              color: scheme.onSurfaceVariant
-                                  .withValues(alpha: 0.8),
-                            ),
+                        ),
+                        Text(
+                          'Select comparison benchmark',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: scheme.onSurfaceVariant
+                                .withValues(alpha: 0.8),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _buildComparisonOptionTile(
-                    context: context,
-                    icon: Icons.calendar_month_rounded,
-                    title: 'This Month vs Last Month',
-                    subtitle: 'Month-over-month volume and talk time shift',
-                    value: 'month',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildComparisonOptionTile(
-                    context: context,
-                    icon: Icons.calendar_today_rounded,
-                    title: 'This Year vs Last Year',
-                    subtitle: 'Year-over-year annual communication pace',
-                    value: 'year',
-                  ),
-                  const SizedBox(height: 8),
-                  _buildComparisonOptionTile(
-                    context: context,
-                    icon: Icons.people_outline_rounded,
-                    title: 'Contact vs Contact',
-                    subtitle: 'Head-to-head comparison between two contacts',
-                    value: 'contact',
-                  ),
-                ],
-              ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildComparisonOptionTile(
+                  context: context,
+                  icon: Icons.calendar_month_rounded,
+                  title: 'This Month vs Last Month',
+                  subtitle: 'Month-over-month volume and talk time shift',
+                  value: 'month',
+                ),
+                const SizedBox(height: 8),
+                _buildComparisonOptionTile(
+                  context: context,
+                  icon: Icons.calendar_today_rounded,
+                  title: 'This Year vs Last Year',
+                  subtitle: 'Year-over-year annual communication pace',
+                  value: 'year',
+                ),
+                const SizedBox(height: 8),
+                _buildComparisonOptionTile(
+                  context: context,
+                  icon: Icons.people_outline_rounded,
+                  title: 'Contact vs Contact',
+                  subtitle: 'Head-to-head comparison between two contacts',
+                  value: 'contact',
+                ),
+              ],
             ),
           ),
         ),

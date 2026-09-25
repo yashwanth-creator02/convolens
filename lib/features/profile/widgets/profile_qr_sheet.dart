@@ -65,9 +65,8 @@ class _ProfileQrSheetState extends State<ProfileQrSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return GlassPage(
-      child: Material(
-        type: MaterialType.transparency,
+    return Material(
+      type: MaterialType.transparency,
         child: SafeArea(
           top: false,
           child: SingleChildScrollView(

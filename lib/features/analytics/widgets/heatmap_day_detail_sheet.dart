@@ -112,32 +112,18 @@ class _HeatmapDayDetailSheetState extends State<HeatmapDayDetailSheet> {
     final scheme = Theme.of(context).colorScheme;
     final formattedDate = _formatDate(widget.day);
 
-    return GlassPage(
-      child: Material(
-        type: MaterialType.transparency,
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Drag Handle ─────────────────────────────────────────────
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 8, bottom: 16),
-                    decoration: BoxDecoration(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-
-                // ── Header Bar ──────────────────────────────────────────────
+    return Material(
+      type: MaterialType.transparency,
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Header Bar ──────────────────────────────────────────────
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -306,81 +292,86 @@ class _HeatmapDayDetailSheetState extends State<HeatmapDayDetailSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // ── Metrics Strip ───────────────────────────────────
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: scheme.outlineVariant
+                                      .withValues(alpha: 0.2),
                                 ),
-                                decoration: BoxDecoration(
-                                  color: scheme.surfaceContainerHighest
-                                      .withValues(alpha: 0.35),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: scheme.outlineVariant
-                                        .withValues(alpha: 0.2),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.timer_outlined,
+                                    size: 16,
+                                    color: scheme.primary,
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.timer_outlined,
-                                      size: 16,
-                                      color: scheme.primary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'TOTAL TALK',
-                                          style: TextStyle(
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 0.6,
-                                            color: scheme.onSurfaceVariant
-                                                .withValues(alpha: 0.7),
-                                          ),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'TOTAL TALK',
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.6,
+                                          color: scheme.onSurfaceVariant
+                                              .withValues(alpha: 0.7),
                                         ),
-                                        Text(
-                                          formatDuration(totalSeconds),
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w800,
-                                            color: scheme.onSurface,
-                                          ),
+                                      ),
+                                      Text(
+                                        formatDuration(totalSeconds),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: scheme.onSurface,
                                         ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 8),
-                            if (incoming > 0)
-                              _buildPill(
-                                label: '$incoming in',
-                                color: const Color(0xFF10B981),
-                                icon: Icons.call_received_rounded,
-                              ),
-                            if (incoming > 0 && outgoing > 0)
-                              const SizedBox(width: 6),
-                            if (outgoing > 0)
-                              _buildPill(
-                                label: '$outgoing out',
-                                color: const Color(0xFF3B82F6),
-                                icon: Icons.call_made_rounded,
-                              ),
-                            if ((incoming > 0 || outgoing > 0) && missed > 0)
-                              const SizedBox(width: 6),
-                            if (missed > 0)
-                              _buildPill(
-                                label: '$missed missed',
-                                color: const Color(0xFFEF4444),
-                                icon: Icons.call_missed_rounded,
-                              ),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                if (incoming > 0)
+                                  _buildPill(
+                                    label: '$incoming in',
+                                    color: const Color(0xFF10B981),
+                                    icon: Icons.call_received_rounded,
+                                  ),
+                                if (outgoing > 0)
+                                  _buildPill(
+                                    label: '$outgoing out',
+                                    color: const Color(0xFF3B82F6),
+                                    icon: Icons.call_made_rounded,
+                                  ),
+                                if (missed > 0)
+                                  _buildPill(
+                                    label: '$missed missed',
+                                    color: const Color(0xFFEF4444),
+                                    icon: Icons.call_missed_rounded,
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
 
@@ -593,7 +584,6 @@ class _HeatmapDayDetailSheetState extends State<HeatmapDayDetailSheet> {
                 ),
               ],
             ),
-          ),
         ),
       ),
     );

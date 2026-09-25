@@ -16,29 +16,17 @@ void showAnalyticsInfoSheet(
     quality: GlassQuality.standard,
     detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
     initialState: GlassSheetState.half,
-    builder: (context) => GlassPage(
-      child: Material(
-        type: MaterialType.transparency,
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 8, bottom: 16),
-                    decoration: BoxDecoration(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                Row(
+    builder: (context) => Material(
+      type: MaterialType.transparency,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -123,8 +111,7 @@ void showAnalyticsInfoSheet(
                     ),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),

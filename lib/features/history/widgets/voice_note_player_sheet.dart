@@ -53,27 +53,15 @@ class _VoiceNotePlayerSheetState extends State<VoiceNotePlayerSheet> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return GlassPage(
-      child: Material(
-        type: MaterialType.transparency,
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    margin: const EdgeInsets.only(top: 8, bottom: 20),
-                    decoration: BoxDecoration(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
+    return Material(
+      type: MaterialType.transparency,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
                 if (_loading)
                   const Center(
                     child: Padding(
@@ -192,8 +180,6 @@ class _VoiceNotePlayerSheetState extends State<VoiceNotePlayerSheet> {
                   ),
                 ],
               ],
-            ),
-          ),
         ),
       ),
     );
