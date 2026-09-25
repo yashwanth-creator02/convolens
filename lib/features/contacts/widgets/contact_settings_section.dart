@@ -41,28 +41,36 @@ Total calls: ${calls.length}
 
     if (!context.mounted) return;
 
-    await showDialog(
+    await GlassDialog.show(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Export Contact'),
-        content: SingleChildScrollView(child: Text(summary)),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: summary));
-              if (context.mounted) {
-                Navigator.pop(context);
-                ToastService.success(context, 'Copied to clipboard.');
-              }
-            },
-            child: const Text('Copy'),
+      title: 'Export Contact',
+      maxWidth: 320,
+      content: Container(
+        constraints: const BoxConstraints(maxHeight: 220),
+        child: SingleChildScrollView(
+          child: Text(
+            summary,
+            style: const TextStyle(fontSize: 13, height: 1.4),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
+        ),
       ),
+      actions: [
+        GlassDialogAction(
+          label: 'Close',
+          onPressed: () => Navigator.pop(context),
+        ),
+        GlassDialogAction(
+          label: 'Copy',
+          isPrimary: true,
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: summary));
+            if (context.mounted) {
+              Navigator.pop(context);
+              ToastService.success(context, 'Copied to clipboard.');
+            }
+          },
+        ),
+      ],
     );
   }
 

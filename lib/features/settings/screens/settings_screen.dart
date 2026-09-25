@@ -97,7 +97,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: 'Turn off Archive Mode?',
       message:
           'Calls that are removed from your phone\'s call log '
-          'will also be permanently deleted from Point the '
+          'will also be permanently deleted from Convolens the '
           'next time it syncs. This cannot be undone.',
       confirmLabel: 'Turn Off',
       isDestructive: true,

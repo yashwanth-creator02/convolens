@@ -270,37 +270,65 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
       return;
     }
 
-    final first = await showDialog<ContactSummary>(
+    final first = await GlassDialog.show<ContactSummary>(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('First contact'),
-        children: candidates
-            .map(
-              (c) => SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, c),
-                child: Text(c.displayName),
-              ),
-            )
-            .toList(),
+      title: 'First Contact',
+      maxWidth: 320,
+      content: Container(
+        constraints: const BoxConstraints(maxHeight: 280),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: candidates
+                .map(
+                  (c) => ListTile(
+                    title: Text(c.displayName),
+                    subtitle: Text('${c.callCount} calls'),
+                    onTap: () => Navigator.pop(context, c),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
       ),
+      actions: [
+        GlassDialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
     );
 
     if (first == null || !mounted) return;
 
-    final second = await showDialog<ContactSummary>(
+    final second = await GlassDialog.show<ContactSummary>(
       context: context,
-      builder: (context) => SimpleDialog(
-        title: const Text('Second contact'),
-        children: candidates
-            .where((c) => c.normalizedNumber != first.normalizedNumber)
-            .map(
-              (c) => SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, c),
-                child: Text(c.displayName),
-              ),
-            )
-            .toList(),
+      title: 'Second Contact',
+      maxWidth: 320,
+      content: Container(
+        constraints: const BoxConstraints(maxHeight: 280),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: candidates
+                .where((c) => c.normalizedNumber != first.normalizedNumber)
+                .map(
+                  (c) => ListTile(
+                    title: Text(c.displayName),
+                    subtitle: Text('${c.callCount} calls'),
+                    onTap: () => Navigator.pop(context, c),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
       ),
+      actions: [
+        GlassDialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
     );
 
     if (second == null) return;

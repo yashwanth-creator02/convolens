@@ -123,25 +123,36 @@ class _AnalyticsFilterSheetState extends State<AnalyticsFilterSheet> {
 
     if (!mounted) return;
 
-    final selected = await showDialog<Tag?>(
+    final selected = await GlassDialog.show<Tag?>(
       context: context,
-      builder: (context) =>
-          SimpleDialog(
-            title: const Text('Filter by tag'),
+      title: 'Filter by Tag',
+      maxWidth: 320,
+      content: Container(
+        constraints: const BoxConstraints(maxHeight: 260),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, null),
-                child: const Text('All Tags'),
+              ListTile(
+                title: const Text('All Tags'),
+                onTap: () => Navigator.pop(context, null),
               ),
               ...allTags.map(
-                    (tag) =>
-                    SimpleDialogOption(
-                      onPressed: () => Navigator.pop(context, tag),
-                      child: Text(tag.name),
-                    ),
+                (tag) => ListTile(
+                  title: Text(tag.name),
+                  onTap: () => Navigator.pop(context, tag),
+                ),
               ),
             ],
           ),
+        ),
+      ),
+      actions: [
+        GlassDialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.pop(context, null),
+        ),
+      ],
     );
 
     setState(() {

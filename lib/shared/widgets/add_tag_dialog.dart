@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../../core/database/app_database.dart';
 
@@ -46,8 +47,9 @@ class _AddTagDialogState extends State<AddTagDialog> {
         ? 'Add'
         : (exactMatchExists ? 'Add' : 'Create & Add');
 
-    return AlertDialog(
-      title: const Text('Add Tag'),
+    return GlassDialog(
+      title: 'Add Tag',
+      maxWidth: 320,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,15 +84,18 @@ class _AddTagDialogState extends State<AddTagDialog> {
         ],
       ),
       actions: [
-        TextButton(
+        GlassDialogAction(
+          label: 'Cancel',
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
         ),
-        TextButton(
-          onPressed: _query.isEmpty
-              ? null
-              : () => Navigator.pop(context, _query),
-          child: Text(buttonLabel),
+        GlassDialogAction(
+          label: buttonLabel,
+          isPrimary: _query.isNotEmpty,
+          onPressed: () {
+            if (_query.isNotEmpty) {
+              Navigator.pop(context, _query);
+            }
+          },
         ),
       ],
     );

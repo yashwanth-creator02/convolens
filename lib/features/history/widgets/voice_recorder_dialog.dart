@@ -1,13 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:record/record.dart';
 
 Future<String?> showVoiceRecorderDialog(
   BuildContext context,
   String destinationPath,
 ) {
-  return showDialog<String>(
+  return showCupertinoDialog<String>(
     context: context,
     barrierDismissible: false,
     builder: (context) => VoiceRecorderDialog(destinationPath: destinationPath),
@@ -77,8 +79,9 @@ class _VoiceRecorderDialogState extends State<VoiceRecorderDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Recording Voice Note'),
+    return GlassDialog(
+      title: 'Recording Voice Note',
+      maxWidth: 300,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -88,12 +91,22 @@ class _VoiceRecorderDialogState extends State<VoiceRecorderDialog> {
             color: _isRecording ? Colors.red : Colors.grey,
           ),
           const SizedBox(height: 12),
-          Text(_formatDuration(_elapsed), style: const TextStyle(fontSize: 24)),
+          Text(
+            _formatDuration(_elapsed),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
       actions: [
-        TextButton(onPressed: _cancelRecording, child: const Text('Cancel')),
-        TextButton(onPressed: _stopAndSave, child: const Text('Stop & Save')),
+        GlassDialogAction(
+          label: 'Cancel',
+          onPressed: _cancelRecording,
+        ),
+        GlassDialogAction(
+          label: 'Stop & Save',
+          isPrimary: true,
+          onPressed: _stopAndSave,
+        ),
       ],
     );
   }

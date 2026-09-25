@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 Future<bool> showConfirmDialog({
   required BuildContext context,
@@ -7,26 +8,28 @@ Future<bool> showConfirmDialog({
   String confirmLabel = 'Confirm',
   String cancelLabel = 'Cancel',
   bool isDestructive = false,
+  Widget? content,
+  double maxWidth = 300,
 }) async {
-  final result = await showDialog<bool>(
+  final result = await GlassDialog.show<bool>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text(cancelLabel),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: isDestructive
-              ? TextButton.styleFrom(foregroundColor: Colors.red)
-              : null,
-          child: Text(confirmLabel),
-        ),
-      ],
-    ),
+    title: title,
+    message: message,
+    content: content,
+    maxWidth: maxWidth,
+    barrierDismissible: true,
+    actions: [
+      GlassDialogAction(
+        label: cancelLabel,
+        onPressed: () => Navigator.of(context, rootNavigator: true).pop(false),
+      ),
+      GlassDialogAction(
+        label: confirmLabel,
+        isDestructive: isDestructive,
+        isPrimary: !isDestructive,
+        onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
+      ),
+    ],
   );
 
   return result ?? false;

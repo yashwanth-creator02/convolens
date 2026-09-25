@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 Future<String?> showTextInputDialog({
   required BuildContext context,
@@ -9,7 +11,7 @@ Future<String?> showTextInputDialog({
   String confirmLabel = 'Save',
   String cancelLabel = 'Cancel',
 }) {
-  return showDialog<String>(
+  return showCupertinoDialog<String>(
     context: context,
     builder: (_) => _TextInputDialog(
       title: title,
@@ -64,8 +66,9 @@ class _TextInputDialogState extends State<_TextInputDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
+    return GlassDialog(
+      title: widget.title,
+      maxWidth: 320,
       content: TextField(
         controller: _controller,
         maxLines: widget.maxLines,
@@ -76,11 +79,15 @@ class _TextInputDialogState extends State<_TextInputDialog> {
         ),
       ),
       actions: [
-        TextButton(
+        GlassDialogAction(
+          label: widget.cancelLabel,
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(widget.cancelLabel),
         ),
-        TextButton(onPressed: _save, child: Text(widget.confirmLabel)),
+        GlassDialogAction(
+          label: widget.confirmLabel,
+          isPrimary: true,
+          onPressed: _save,
+        ),
       ],
     );
   }

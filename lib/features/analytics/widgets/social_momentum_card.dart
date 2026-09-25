@@ -64,49 +64,58 @@ class SocialMomentumCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Social Momentum',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        InkWell(
-                          onTap: () {
-                            showAnalyticsInfoSheet(
-                              context,
-                              title: 'Social Momentum',
-                              description:
-                                  'Social Momentum measures the rate of change in your calling activity compared to the preceding 14-day rolling window.\n\n• Positive Velocity (+): Call volume and connection reach are accelerating.\n• Steady Pace (0%): Calling habits have stayed consistent and balanced.\n• Cooldown (-): Outbound or inbound communications have slowed down recently.',
-                              icon: Icons.speed_rounded,
-                              accentColor: statusColor,
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(10),
-                          child: Padding(
-                            padding: const EdgeInsets.all(2.0),
-                            child: Icon(
-                              Icons.info_outline_rounded,
-                              size: 13,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant
-                                  .withValues(alpha: 0.6),
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Social Momentum',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          InkWell(
+                            onTap: () {
+                              showAnalyticsInfoSheet(
+                                context,
+                                title: 'Social Momentum',
+                                description:
+                                    'Social Momentum measures the rate of change in your calling activity compared to the preceding 14-day rolling window.\n\n• Positive Velocity (+): Call volume and connection reach are accelerating.\n• Steady Pace (0%): Calling habits have stayed consistent and balanced.\n• Cooldown (-): Outbound or inbound communications have slowed down recently.',
+                                icon: Icons.speed_rounded,
+                                accentColor: statusColor,
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Padding(
+                              padding: const EdgeInsets.all(2.0),
+                              child: Icon(
+                                Icons.info_outline_rounded,
+                                size: 13,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant
+                                    .withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(10),
@@ -118,6 +127,8 @@ class SocialMomentumCard extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: statusColor,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
