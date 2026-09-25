@@ -393,8 +393,9 @@ class ContactAnalyticsSection extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _sectionTitle(BuildContext context, String title) {
     final scheme = Theme.of(context).colorScheme;

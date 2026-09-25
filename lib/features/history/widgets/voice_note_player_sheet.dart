@@ -180,6 +180,7 @@ class _VoiceNotePlayerSheetState extends State<VoiceNotePlayerSheet> {
                   ),
                 ],
               ],
+          ),
         ),
       ),
     );
