@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+import '../../../../core/toast/toast_service.dart';
+
 /// A [GlassSheet]-based reminder picker.
 ///
 /// Shows quick-select chips for common time offsets, a custom option,
@@ -131,9 +133,7 @@ class _ReminderGlassSheetState extends State<ReminderGlassSheet> {
     if (time == null) return;
 
     if (time.isBefore(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please pick a time in the future.')),
-      );
+      ToastService.warning(context, 'Please pick a time in the future.');
       return;
     }
 

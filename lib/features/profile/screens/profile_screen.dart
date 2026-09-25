@@ -9,6 +9,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/toast/toast_service.dart';
 import '../../../shared/widgets/dome_glass_button.dart';
 import '../../../shared/widgets/route_reveal_fade.dart';
 import '../../history/repository/attachment_storage.dart';
@@ -86,11 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not take photo.'),
-        ),
-      );
+      ToastService.error(context, 'Could not take photo.');
     }
   }
 

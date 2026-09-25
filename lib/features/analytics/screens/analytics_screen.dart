@@ -7,6 +7,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/toast/toast_service.dart';
 import '../../contacts/models/contact_summary.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../models/analytics_filters.dart';
@@ -411,9 +412,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
 
     if (!mounted || candidates.length < 2) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Need at least 2 contacts with calls.')),
-        );
+        ToastService.info(context, 'Need at least 2 contacts with calls.');
       }
       return;
     }
