@@ -41,6 +41,20 @@ class Settings extends Table {
 
   IntColumn get lastWeeklySummaryTimestamp => integer().nullable()();
 
+  BoolColumn get streakNotifications =>
+      boolean().withDefault(const Constant(true))();
+
+  BoolColumn get weeklySummaryNotifications =>
+      boolean().withDefault(const Constant(true))();
+
+  BoolColumn get favoriteInactivityNotifications =>
+      boolean().withDefault(const Constant(true))();
+
+  BoolColumn get missedCallAlerts =>
+      boolean().withDefault(const Constant(true))();
+
+  IntColumn get lastFavoriteInactivityTimestamp => integer().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

@@ -7,6 +7,7 @@ import '../../contacts/models/contact_summary.dart';
 import '../../contacts/repository/contacts_repository.dart';
 import '../models/analytics_filters.dart';
 import '../models/analytics_summary.dart';
+import '../utils/streak_calculator.dart';
 
 class AnalyticsRepository {
   final AppDatabase _db;
@@ -40,103 +41,114 @@ class AnalyticsRepository {
       final type = filters.callTypeCode;
       final periodFormat = _periodFormatFor(filters.dateRange);
 
-      // ============================================================
-      // IGNORED CONTACTS
-      // ============================================================
-
-      final ignoredRows = await (_db.select(
-        _db.contactDetails,
-      )..where((c) => c.ignoreFromAnalytics.equals(true))).get();
-
-      final ignoredNumbers = ignoredRows.map((r) => r.normalizedNumber).toSet();
-
-      // ============================================================
-      // PERIOD ANALYTICS
-      // ============================================================
-
-      final periodCounts = await _db.getCallCountsByPeriod(
-        start,
-        end,
-        periodFormat,
-        contactNumberSuffix: contact,
-        callType: type,
-        tagId: filters.tagId,
-      );
-
-      final durationByPeriod = await _db.getDurationByPeriod(
-        start,
-        end,
-        periodFormat,
-        contactNumberSuffix: contact,
-        callType: type,
-        tagId: filters.tagId,
-      );
-
-      // ============================================================
-      // CALL TYPE ANALYTICS
-      // ============================================================
-
-      // Do NOT pass callType here.
-      //
-      // This method groups by type, so passing callType would filter
-      // the result to one type before grouping.
-      final callTypeCounts = await _db.getCallCountsByType(
-        since: start,
-        until: end,
-        contactNumberSuffix: contact,
-        tagId: filters.tagId,
-      );
-
-      // ============================================================
-      // HOURLY ANALYTICS
-      // ============================================================
-
-      final hourCounts = await _db.getCallCountsByHour(
-        since: start,
-        until: end,
-        contactNumberSuffix: contact,
-        callType: type,
-        tagId: filters.tagId,
-      );
-
-      // ============================================================
-      // WEEKDAY ANALYTICS
-      // ============================================================
-
-      final weekdayCounts = await _db.getCallCountsByWeekday(
-        since: start,
-        until: end,
-        contactNumberSuffix: contact,
-        callType: type,
-        tagId: filters.tagId,
-      );
-
-      // ============================================================
-      // LONGEST CALL
-      // ============================================================
-
-      final longestCallSeconds = await _db.getLongestCallDuration(
-        since: start,
-        until: end,
-        contactNumberSuffix: contact,
-        callType: type,
-        tagId: filters.tagId,
-      );
-
-      // ============================================================
-      // HEATMAP
-      // ============================================================
-
       final yearAgo = DateTime.now().subtract(const Duration(days: 364));
 
-      final heatmapCounts = await _db.getCallCountsByPeriod(
-        yearAgo,
-        DateTime.now(),
-        '%Y-%m-%d',
-        contactNumberSuffix: contact,
-        callType: type,
-        tagId: filters.tagId,
-      );
+      // ============================================================
+      // PARALLELIZED DATABASE QUERIES
+      // ============================================================
+      final results = await Future.wait([
+        // 0: ignoredRows
+        (_db.select(_db.contactDetails)
+              ..where((c) => c.ignoreFromAnalytics.equals(true)))
+            .get(),
+        // 1: periodCounts
+        _db.getCallCountsByPeriod(
+          start,
+          end,
+          periodFormat,
+          contactNumberSuffix: contact,
+          callType: type,
+          tagId: filters.tagId,
+        ),
+        // 2: durationByPeriod
+        _db.getDurationByPeriod(
+          start,
+          end,
+          periodFormat,
+          contactNumberSuffix: contact,
+          callType: type,
+          tagId: filters.tagId,
+        ),
+        // 3: callTypeCounts
+        _db.getCallCountsByType(
+          since: start,
+          until: end,
+          contactNumberSuffix: contact,
+          tagId: filters.tagId,
+        ),
+        // 4: hourCounts
+        _db.getCallCountsByHour(
+          since: start,
+          until: end,
+          contactNumberSuffix: contact,
+          callType: type,
+          tagId: filters.tagId,
+        ),
+        // 5: weekdayCounts
+        _db.getCallCountsByWeekday(
+          since: start,
+          until: end,
+          contactNumberSuffix: contact,
+          callType: type,
+          tagId: filters.tagId,
+        ),
+        // 6: longestCallSeconds
+        _db.getLongestCallDuration(
+          since: start,
+          until: end,
+          contactNumberSuffix: contact,
+          callType: type,
+          tagId: filters.tagId,
+        ),
+        // 7: heatmapCounts
+        _db.getCallCountsByPeriod(
+          yearAgo,
+          DateTime.now(),
+          '%Y-%m-%d',
+          contactNumberSuffix: contact,
+          callType: type,
+          tagId: filters.tagId,
+        ),
+        // 8: allSummaries
+        _contactsRepository.watchAllContactSummaries(deviceContacts).first,
+        // 9: tagCounts
+        _db.getCallCountsByTag(
+          since: start,
+          until: end,
+          contactNumberSuffix: contact,
+          callType: type,
+        ),
+        // 10: favoriteRows
+        (_db.select(_db.contactDetails)..where((c) => c.isFavorite.equals(true)))
+            .get(),
+        // 11: durationDist
+        _db.getCallDurationDistribution(
+          start,
+          end,
+          contactNumberSuffix: contact,
+        ),
+        // 12: longestCallWith
+        _db.getLongestCallWithNumber(start, end),
+        // 13: newContactsByMonth
+        _db.getNewContactsByMonth(start, end),
+      ]);
+
+      final ignoredRows = results[0] as List<ContactDetail>;
+      final periodCounts = results[1] as Map<String, int>;
+      final durationByPeriod = results[2] as Map<String, int>;
+      final callTypeCounts = results[3] as Map<int, int>;
+      final hourCounts = results[4] as Map<int, int>;
+      final weekdayCounts = results[5] as Map<int, int>;
+      final longestCallSeconds = results[6] as int;
+      final heatmapCounts = results[7] as Map<String, int>;
+      final allSummaries = results[8] as List<ContactSummary>;
+      final tagCounts = results[9] as Map<String, int>;
+      final favoriteRows = results[10] as List<ContactDetail>;
+      final durationDist = results[11] as Map<String, int>;
+      final longestCallWith = results[12] as Map<String, dynamic>?;
+      final newContactsByMonth = results[13] as Map<String, int>;
+
+      final ignoredNumbers = ignoredRows.map((r) => r.normalizedNumber).toSet();
 
       // ============================================================
       // CHART DATA
@@ -164,13 +176,7 @@ class AnalyticsRepository {
         return '${parts[1]}/${parts[0].substring(2)}';
       }).toList();
 
-      // ============================================================
-      // CONTACT SUMMARIES
-      // ============================================================
 
-      final allSummaries = await _contactsRepository
-          .watchAllContactSummaries(deviceContacts)
-          .first;
 
       final includedSummaries = allSummaries
           .where(
@@ -239,7 +245,7 @@ class AnalyticsRepository {
       // STREAKS
       // ============================================================
 
-      final streaks = _computeStreaks(heatmapCounts, DateTime.now());
+      final streaks = computeStreaks(heatmapCounts, DateTime.now());
 
       // ============================================================
       // BUSIEST DAY
@@ -250,7 +256,7 @@ class AnalyticsRepository {
           : heatmapCounts.entries.reduce((a, b) => a.value >= b.value ? a : b);
 
       // ============================================================
-      // MISSED CALL RATE
+      // MISSED CALL RATE & ANSWER RATE
       // ============================================================
 
       final missedCount = callTypeCounts[3] ?? 0;
@@ -260,24 +266,16 @@ class AnalyticsRepository {
           ? missedCount / (incomingCount + missedCount)
           : 0.0;
 
-      // ============================================================
-      // TAG ANALYTICS
-      // ============================================================
-
-      final tagCounts = await _db.getCallCountsByTag(
-        since: start,
-        until: end,
-        contactNumberSuffix: contact,
-        callType: type,
-      );
+      final answeredCount =
+          (callTypeCounts[1] ?? 0) + (callTypeCounts[2] ?? 0);
+      final answerRate = totalCalls > 0
+          ? (answeredCount / totalCalls) * 100
+          : 0.0;
 
       // ============================================================
       // FAVORITE COMPARISON
       // ============================================================
 
-      final favoriteRows = await (_db.select(
-        _db.contactDetails,
-      )..where((c) => c.isFavorite.equals(true))).get();
       final favoriteNumbers = favoriteRows
           .map((r) => r.normalizedNumber)
           .toSet();
@@ -302,24 +300,6 @@ class AnalyticsRepository {
       final avgCallsPerOther = otherContactCount > 0
           ? otherCallCount / otherContactCount
           : 0.0;
-
-      // ============================================================
-      // DURATION DISTRIBUTION
-      // ============================================================
-
-      final durationDist = await _db.getCallDurationDistribution(
-        start,
-        end,
-        contactNumberSuffix: contact,
-      );
-
-      final longestCallWith = await _db.getLongestCallWithNumber(start, end);
-
-      // ============================================================
-      // NEW CONTACTS BY MONTH
-      // ============================================================
-
-      final newContactsByMonth = await _db.getNewContactsByMonth(start, end);
 
       // ============================================================
       // ANOMALY DAYS
@@ -347,14 +327,40 @@ class AnalyticsRepository {
         weekdayCalls += weekdayCounts[i] ?? 0;
       }
 
+      final totalWeekdayWeekend = weekendCalls + weekdayCalls;
+      final weekendCallPercentage = totalWeekdayWeekend > 0
+          ? (weekendCalls / totalWeekdayWeekend) * 100
+          : 0.0;
+
+      int maxWindowSum = -1;
+      int bestStartHour = 9;
+      for (int h = 0; h < 24; h++) {
+        final nextH = (h + 1) % 24;
+        final sum = (hourCounts[h] ?? 0) + (hourCounts[nextH] ?? 0);
+        if (sum > maxWindowSum) {
+          maxWindowSum = sum;
+          bestStartHour = h;
+        }
+      }
+      String formatHour(int hour) {
+        if (hour == 0) return '12 AM';
+        if (hour < 12) return '$hour AM';
+        if (hour == 12) return '12 PM';
+        return '${hour - 12} PM';
+      }
+      final endHour = (bestStartHour + 2) % 24;
+      final peakHourWindow = totalCalls > 0
+          ? '${formatHour(bestStartHour)} – ${formatHour(endHour)}'
+          : 'None';
+
       final personalityLabels = _inferPersonality(
         hourCounts: hourCounts,
         weekendCalls: weekendCalls,
         weekdayCalls: weekdayCalls,
         totalCalls: totalCalls,
         totalTalkSeconds: totalTalkSeconds,
-        currentStreak: streaks['current']!,
-        longestStreak: streaks['longest']!,
+        currentStreak: streaks.current,
+        longestStreak: streaks.longest,
       );
 
       final relationshipTiers = _buildRelationshipTiers(includedSummaries);
@@ -392,8 +398,8 @@ class AnalyticsRepository {
 
         heatmapData: heatmapCounts,
 
-        currentStreak: streaks['current']!,
-        longestStreak: streaks['longest']!,
+        currentStreak: streaks.current,
+        longestStreak: streaks.longest,
 
         longestCallSeconds: longestCallSeconds,
 
@@ -424,6 +430,9 @@ class AnalyticsRepository {
         networkConcentration: networkConcentration,
         weekendCalls: weekendCalls,
         weekdayCalls: weekdayCalls,
+        answerRate: answerRate,
+        peakHourWindow: peakHourWindow,
+        weekendCallPercentage: weekendCallPercentage,
       );
     });
   }
@@ -660,46 +669,7 @@ class AnalyticsRepository {
       ..sort((a, b) => b.value.compareTo(a.value));
   }
 
-  Map<String, int> _computeStreaks(
-    Map<String, int> heatmapCounts,
-    DateTime now,
-  ) {
-    int currentStreak = 0;
-    int longestStreak = 0;
-    int runningStreak = 0;
 
-    var cursor = DateTime(now.year, now.month, now.day);
-
-    bool stillCountingCurrent = true;
-
-    for (int i = 0; i < 365; i++) {
-      final key =
-          '${cursor.year.toString().padLeft(4, '0')}-'
-          '${cursor.month.toString().padLeft(2, '0')}-'
-          '${cursor.day.toString().padLeft(2, '0')}';
-
-      final hasCalls = (heatmapCounts[key] ?? 0) > 0;
-
-      if (hasCalls) {
-        runningStreak++;
-
-        if (stillCountingCurrent) {
-          currentStreak++;
-        }
-      } else if (i != 0) {
-        stillCountingCurrent = false;
-        runningStreak = 0;
-      }
-
-      if (runningStreak > longestStreak) {
-        longestStreak = runningStreak;
-      }
-
-      cursor = cursor.subtract(const Duration(days: 1));
-    }
-
-    return {'current': currentStreak, 'longest': longestStreak};
-  }
 }
 
 class _SocialScoreResult {

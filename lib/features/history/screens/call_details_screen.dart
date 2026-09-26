@@ -16,6 +16,7 @@ import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
 import '../../../core/utils/call_recording_scanner.dart';
 import '../../../core/utils/normalize_number.dart';
+import '../../../shared/contact_photo_banner.dart';
 import '../../../shared/widgets/confirm_dialog.dart';
 import '../../contacts/screens/contact_detail_screen.dart';
 import '../../contacts/widgets/add_contact_screen.dart';
@@ -507,8 +508,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     if (!confirmed) return;
 
     try {
-      await AttachmentStorage.deleteFile(attachment.filePath);
-      await widget.db.deleteAttachment(attachment.id);
+      await widget.db.deleteAttachmentWithFile(attachment.id);
 
       if (!context.mounted) return;
       ToastService.success(context, 'Recording removed.');
@@ -613,9 +613,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     if (!confirmed) return;
 
     try {
-      await AttachmentStorage.deleteFile(attachment.filePath);
-
-      await widget.db.deleteAttachment(attachment.id);
+      await widget.db.deleteAttachmentWithFile(attachment.id);
 
       if (!context.mounted) return;
 
@@ -779,6 +777,8 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     final scheme = theme.colorScheme;
     final initials = _getInitials(displayName);
     final photo = _deviceContact?.photo ?? _deviceContact?.thumbnail;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final heroHeight = (screenHeight * 0.32).clamp(220.0, 280.0);
 
     return Container(
       decoration: BoxDecoration(
@@ -805,48 +805,11 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
               onTap: () => _openContact(context, displayName, phoneNumber),
               child: Stack(
                 children: [
-                  // Base layer: Always present so Frame 0 has a vibrant banner with initials
-                  _buildDefaultHeroBanner(callTypeColor, scheme, initials, height: 280),
-                  // High-resolution contact image rendered on top with crisp filtering
-                  if (photo != null && photo.isNotEmpty)
-                    Positioned.fill(
-                      child: Image.memory(
-                        photo,
-                        width: double.infinity,
-                        height: 280,
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        filterQuality: FilterQuality.medium,
-                        gaplessPlayback: true,
-                        frameBuilder:
-                            (context, child, frame, wasSynchronouslyLoaded) {
-                          if (wasSynchronouslyLoaded) return child;
-                          return AnimatedOpacity(
-                            opacity: frame == null ? 0.0 : 1.0,
-                            duration: const Duration(milliseconds: 180),
-                            curve: Curves.easeOut,
-                            child: child,
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) =>
-                            const SizedBox.shrink(),
-                      ),
-                    ),
-                  // Dark scrim for readability
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black.withValues(alpha: 0.6),
-                          ],
-                          stops: const [0.60, 1.0],
-                        ),
-                      ),
-                    ),
+                  ContactPhotoBanner(
+                    photo: photo,
+                    initials: initials,
+                    bannerColor: callTypeColor,
+                    height: heroHeight,
                   ),
                   // Favorite Star Chip — top-right
                   if (isFavorite)
@@ -969,44 +932,6 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildDefaultHeroBanner(
-    Color callTypeColor,
-    ColorScheme scheme,
-    String initials, {
-    double height = 280,
-  }) {
-    return Container(
-      width: double.infinity,
-      height: height,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            callTypeColor.withValues(alpha: 0.55),
-            Color.lerp(
-                  callTypeColor,
-                  scheme.surface,
-                  0.45,
-                ) ??
-                scheme.surface,
-          ],
-        ),
-      ),
-      child: Center(
-        child: Text(
-          initials.isNotEmpty && initials != '#' ? initials : '?',
-          style: TextStyle(
-            fontSize: 56,
-            fontWeight: FontWeight.w800,
-            color: Colors.white.withValues(alpha: 0.85),
-            letterSpacing: 2,
-          ),
-        ),
       ),
     );
   }

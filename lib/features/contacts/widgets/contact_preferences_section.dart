@@ -154,6 +154,63 @@ class _ContactPreferencesSectionState extends State<ContactPreferencesSection> {
             // Also debounce or save when losing focus
           },
         ),
+        const SizedBox(height: 18),
+        Text(
+          'ANALYTICS',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Exclude from Analytics',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Hide this contact\'s calls from global analytics',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            GlassSwitch(
+              value: widget.detail?.ignoreFromAnalytics ?? false,
+              onChanged: (val) {
+                HapticFeedback.selectionClick();
+                widget.db.setContactFields(
+                  widget.normalizedNumber,
+                  ContactDetailsCompanion(
+                    ignoreFromAnalytics: Value(val),
+                  ),
+                );
+              },
+              useOwnLayer: false,
+              quality: GlassQuality.standard,
+              activeColor: scheme.primary,
+              width: 50.0,
+              height: 28.0,
+            ),
+          ],
+        ),
       ],
     );
   }

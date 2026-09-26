@@ -40,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration {
@@ -116,6 +116,14 @@ class AppDatabase extends _$AppDatabase {
         if (from < 15) {
           await m.addColumn(settings, settings.lastNotifiedStreak);
           await m.addColumn(settings, settings.lastWeeklySummaryTimestamp);
+        }
+
+        if (from < 16) {
+          await m.addColumn(settings, settings.streakNotifications);
+          await m.addColumn(settings, settings.weeklySummaryNotifications);
+          await m.addColumn(settings, settings.favoriteInactivityNotifications);
+          await m.addColumn(settings, settings.missedCallAlerts);
+          await m.addColumn(settings, settings.lastFavoriteInactivityTimestamp);
         }
       },
 
@@ -319,6 +327,10 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<Call?> getCallById(int id) {
+    return (select(calls)..where((c) => c.id.equals(id))).getSingleOrNull();
+  }
+
   Stream<List<Call>> watchCallsForNumber(String normalizedNumber) {
     final query = select(calls)
       ..where((c) => c.number.like('%$normalizedNumber'))
@@ -403,6 +415,14 @@ class AppDatabase extends _$AppDatabase {
     return row.archiveMode;
   }
 
+  Future<bool> getSyncEnabled() async {
+    final row = await (select(
+      settings,
+    )..where((s) => s.id.equals(0))).getSingle();
+
+    return row.syncEnabled;
+  }
+
   Future<int> getLastNotifiedStreak() async {
     final row =
         await (select(settings)..where((s) => s.id.equals(0))).getSingle();
@@ -426,6 +446,21 @@ class AppDatabase extends _$AppDatabase {
     await (update(settings)..where((s) => s.id.equals(0))).write(
       SettingsCompanion(
         lastWeeklySummaryTimestamp: Value(date.millisecondsSinceEpoch),
+      ),
+    );
+  }
+
+  Future<DateTime?> getLastFavoriteInactivityDate() async {
+    final row =
+        await (select(settings)..where((s) => s.id.equals(0))).getSingle();
+    final ts = row.lastFavoriteInactivityTimestamp;
+    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
+  }
+
+  Future<void> setLastFavoriteInactivityDate(DateTime date) async {
+    await (update(settings)..where((s) => s.id.equals(0))).write(
+      SettingsCompanion(
+        lastFavoriteInactivityTimestamp: Value(date.millisecondsSinceEpoch),
       ),
     );
   }
@@ -617,6 +652,23 @@ class AppDatabase extends _$AppDatabase {
     await (delete(callAttachments)..where((a) => a.id.equals(id))).go();
   }
 
+  Future<void> deleteAttachmentWithFile(int id) async {
+    final attachment = await (select(callAttachments)
+          ..where((a) => a.id.equals(id)))
+        .getSingleOrNull();
+    if (attachment != null) {
+      try {
+        final file = File(attachment.filePath);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (e) {
+        // Ignore file delete errors
+      }
+    }
+    await (delete(callAttachments)..where((a) => a.id.equals(id))).go();
+  }
+
   Stream<int> watchAttachmentCountForCall(int callId) {
     final query = selectOnly(callAttachments)
       ..addColumns([callAttachments.id.count()])
@@ -734,6 +786,51 @@ class AppDatabase extends _$AppDatabase {
     return query.watch().map(
       (rows) => rows.map((r) => r.normalizedNumber).toSet(),
     );
+  }
+
+  Future<Set<String>> getFavoriteNumbers() async {
+    final rows = await (select(contactDetails)
+          ..where((c) => c.isFavorite.equals(true)))
+        .get();
+    return rows.map((r) => r.normalizedNumber).toSet();
+  }
+
+  Future<List<({String name, String number, DateTime? lastCall})>>
+  getInactiveFavorites(int daysThreshold) async {
+    final favRows = await (select(contactDetails)
+          ..where((c) => c.isFavorite.equals(true) & c.isArchived.equals(false)))
+        .get();
+    if (favRows.isEmpty) return [];
+
+    final thresholdMs = DateTime.now()
+        .subtract(Duration(days: daysThreshold))
+        .millisecondsSinceEpoch;
+    final result = <({String name, String number, DateTime? lastCall})>[];
+
+    for (final fav in favRows) {
+      final num = fav.normalizedNumber;
+      final suffix = num.length >= 7 ? num.substring(num.length - 7) : num;
+      final latestCall = await (select(calls)
+            ..where((c) => c.number.like('%$suffix'))
+            ..orderBy([(c) => OrderingTerm.desc(c.timestamp)])
+            ..limit(1))
+          .getSingleOrNull();
+
+      if (latestCall == null) {
+        result.add((
+          name: fav.normalizedNumber,
+          number: fav.normalizedNumber,
+          lastCall: null,
+        ));
+      } else if (latestCall.timestamp < thresholdMs) {
+        result.add((
+          name: latestCall.name ?? fav.normalizedNumber,
+          number: latestCall.number ?? fav.normalizedNumber,
+          lastCall: DateTime.fromMillisecondsSinceEpoch(latestCall.timestamp),
+        ));
+      }
+    }
+    return result;
   }
 
   Stream<Map<String, int>> watchContactColors() {
@@ -876,6 +973,13 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<ProfileMetaData> watchProfileMeta() {
     return (select(profileMeta)..where((m) => m.id.equals(0))).watchSingle();
+  }
+
+  Future<String?> getProfilePhotoPath() async {
+    final meta = await (select(profileMeta)
+          ..where((m) => m.id.equals(0)))
+        .getSingleOrNull();
+    return meta?.photoPath;
   }
 
   Future<void> setProfilePhotoPath(String? path) async {

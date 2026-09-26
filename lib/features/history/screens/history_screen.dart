@@ -157,6 +157,17 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   Future<void> _requestFetchAndStore() async {
+    final syncEnabled = await widget.db.getSyncEnabled();
+    if (!syncEnabled) {
+      Logger.debug('Sync is disabled in settings. Skipping fetch.', tag: 'Sync');
+      if (mounted && _isFirstLaunchLoading) {
+        setState(() {
+          _isFirstLaunchLoading = false;
+        });
+      }
+      return;
+    }
+
     final alreadyHasCalls = await widget.db.hasAnyCalls();
 
     if (!alreadyHasCalls && mounted) {
@@ -356,7 +367,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             children: [
               CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                scrollCacheExtent: const ScrollCacheExtent.pixels(250.0),
+                scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
                 controller: widget.titleController.scrollController,
                 slivers: [
                   SliverToBoxAdapter(

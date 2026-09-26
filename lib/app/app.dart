@@ -1,9 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../core/database/app_database.dart';
+import '../core/notifications/notification_service.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_theme_type.dart';
+import '../features/history/screens/call_details_screen.dart';
 import 'main_shell.dart';
 
 class App extends StatefulWidget {
@@ -21,12 +24,39 @@ class _AppState extends State<App> {
   void initState() {
     super.initState();
     _db = AppDatabase();
+    NotificationService.onNotificationPayload.addListener(_handleNotificationPayload);
+    // Process any initial payload from cold start
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleNotificationPayload();
+    });
   }
 
   @override
   void dispose() {
+    NotificationService.onNotificationPayload.removeListener(_handleNotificationPayload);
     _db.close();
     super.dispose();
+  }
+
+  Future<void> _handleNotificationPayload() async {
+    final payload = NotificationService.onNotificationPayload.value;
+    if (payload == null) return;
+    NotificationService.onNotificationPayload.value = null;
+
+    if (payload.startsWith('call:')) {
+      final callIdStr = payload.substring(5);
+      final callId = int.tryParse(callIdStr);
+      if (callId == null) return;
+
+      final call = await _db.getCallById(callId);
+      if (call != null && mounted) {
+        _navigatorKey.currentState?.push(
+          CupertinoPageRoute(
+            builder: (context) => CallDetailScreen(call: call, db: _db),
+          ),
+        );
+      }
+    }
   }
 
   AppThemeType _themeFromString(String value) {
@@ -60,9 +90,9 @@ class _AppState extends State<App> {
     );
 
     return MaterialApp(
-      key: const ValueKey('ConvolensAppMaterialApp'),
+      key: const ValueKey('PointAppMaterialApp'),
       navigatorKey: _navigatorKey,
-      title: 'Convolens',
+      title: 'Point',
       theme: themeType == AppThemeType.light
           ? activeTheme
           : AppTheme.getTheme(AppThemeType.light),

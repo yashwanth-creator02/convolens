@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
@@ -10,6 +11,8 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   static bool _initialized = false;
+  static final ValueNotifier<String?> onNotificationPayload =
+      ValueNotifier<String?>(null);
 
   static Future<void> init() async {
     if (_initialized) return;
@@ -24,7 +27,23 @@ class NotificationService {
     );
     const initSettings = InitializationSettings(android: androidSettings);
 
-    await _plugin.initialize(initSettings);
+    await _plugin.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: (response) {
+        if (response.payload != null) {
+          onNotificationPayload.value = response.payload;
+        }
+      },
+    );
+
+    final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp ?? false) {
+      final payload = launchDetails?.notificationResponse?.payload;
+      if (payload != null) {
+        onNotificationPayload.value = payload;
+      }
+    }
+
     _initialized = true;
   }
 
@@ -59,6 +78,10 @@ class NotificationService {
     required String body,
   }) async {
     final tzTime = tz.TZDateTime.from(scheduledTime, tz.local);
+    final canExact = await canScheduleExactAlarms();
+    final scheduleMode = canExact
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.inexactAllowWhileIdle;
 
     await _plugin.zonedSchedule(
       callId,
@@ -74,7 +97,8 @@ class NotificationService {
           priority: Priority.high,
         ),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: 'call:$callId',
+      androidScheduleMode: scheduleMode,
       uiLocalNotificationDateInterpretation:
           UILocalNotificationDateInterpretation.absoluteTime,
     );
@@ -87,7 +111,11 @@ class NotificationService {
   static Future<void> showInsight({
     required String title,
     required String body,
+    String? payload,
   }) async {
+    final hasPermission = await areNotificationsGranted();
+    if (!hasPermission) return;
+
     await _plugin.show(
       DateTime.now().millisecondsSinceEpoch.remainder(100000),
       title,
@@ -101,6 +129,58 @@ class NotificationService {
           priority: Priority.defaultPriority,
         ),
       ),
+      payload: payload,
+    );
+  }
+
+  static Future<void> showMissedCallAlert({
+    required int callId,
+    required String contactName,
+    required String number,
+  }) async {
+    final hasPermission = await areNotificationsGranted();
+    if (!hasPermission) return;
+
+    await _plugin.show(
+      callId.remainder(100000),
+      '📞 Missed call from $contactName',
+      'Tap to view call details for $number',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'missed_call_alerts',
+          'Missed Call Alerts',
+          channelDescription: 'Alerts for missed calls from favorite contacts',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      ),
+      payload: 'call:$callId',
+    );
+  }
+
+  static Future<void> showFavoriteInactivityAlert({
+    required String contactName,
+    required String number,
+    required int daysSince,
+  }) async {
+    final hasPermission = await areNotificationsGranted();
+    if (!hasPermission) return;
+
+    await _plugin.show(
+      number.hashCode.abs().remainder(100000),
+      '💛 Stay in touch with $contactName',
+      'It\'s been $daysSince days since your last call.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'favorite_reminders',
+          'Favorite Reminders',
+          channelDescription:
+              'Gentle reminders to stay in touch with your favorite contacts',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+      ),
+      payload: 'contact:$number',
     );
   }
 

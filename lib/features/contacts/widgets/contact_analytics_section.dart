@@ -25,38 +25,51 @@ class ContactAnalyticsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
       future: () async {
-        final stats = await db.getContactCallStats(normalizedNumber);
-        final firstCallTs = await db.getFirstCallTimestamp(normalizedNumber);
-
         final now = DateTime.now();
         final yearAgo = now.subtract(const Duration(days: 364));
 
-        final heatmap = await db.getCallCountsByPeriod(
+        final statsFuture = db.getContactCallStats(normalizedNumber);
+        final firstCallTsFuture = db.getFirstCallTimestamp(normalizedNumber);
+        final heatmapFuture = db.getCallCountsByPeriod(
           yearAgo,
           now,
           '%Y-%m-%d',
           contactNumberSuffix: normalizedNumber,
         );
-
-        final hourCounts = await db.getCallCountsByHour(
+        final hourCountsFuture = db.getCallCountsByHour(
           since: yearAgo,
           until: now,
           contactNumberSuffix: normalizedNumber,
         );
-
-        final weekdayCounts = await db.getCallCountsByWeekday(
+        final weekdayCountsFuture = db.getCallCountsByWeekday(
           since: yearAgo,
           until: now,
           contactNumberSuffix: normalizedNumber,
         );
-
-        final typeCounts = await db.getCallCountsByType(
+        final typeCountsFuture = db.getCallCountsByType(
           since: yearAgo,
           until: now,
           contactNumberSuffix: normalizedNumber,
         );
+        final timestampsFuture = db.getCallTimestampsForNumber(normalizedNumber);
 
-        final timestamps = await db.getCallTimestampsForNumber(normalizedNumber);
+        final results = await Future.wait([
+          statsFuture,
+          firstCallTsFuture,
+          heatmapFuture,
+          hourCountsFuture,
+          weekdayCountsFuture,
+          typeCountsFuture,
+          timestampsFuture,
+        ]);
+
+        final stats = results[0] as Map<String, dynamic>;
+        final firstCallTs = results[1] as int?;
+        final heatmap = results[2] as Map<String, int>;
+        final hourCounts = results[3] as Map<int, int>;
+        final weekdayCounts = results[4] as Map<int, int>;
+        final typeCounts = results[5] as Map<int, int>;
+        final timestamps = results[6] as List<int>;
         final vitals = computeVitals(timestamps);
 
         return {
@@ -156,6 +169,41 @@ class ContactAnalyticsSection extends StatelessWidget {
         final totalMinutes = (totalDuration / 60).round();
         final avgSeconds = avgDuration.round();
 
+        final typeCounts = stats['typeCounts'] as Map<int, int>? ?? const {};
+        final answeredCalls = (typeCounts[1] ?? 0) + (typeCounts[2] ?? 0);
+        final answerRate = total > 0 ? ((answeredCalls / total) * 100).round() : 0;
+
+        final hourCounts = stats['hourCounts'] as Map<int, int>? ?? const {};
+        String peakHourWindow = '';
+        int bestHourCount = 0;
+        int bestStartHour = -1;
+        for (int h = 0; h < 24; h++) {
+          final count = (hourCounts[h] ?? 0) + (hourCounts[(h + 1) % 24] ?? 0);
+          if (count > bestHourCount && count > 0) {
+            bestHourCount = count;
+            bestStartHour = h;
+          }
+        }
+        if (bestStartHour != -1 && bestHourCount > 0) {
+          final endHour = (bestStartHour + 2) % 24;
+          final startStr = _formatHour(bestStartHour);
+          final endStr = _formatHour(endHour);
+          peakHourWindow = '$startStr – $endStr';
+        }
+
+        final weekdayCounts = stats['weekdayCounts'] as Map<int, int>? ?? const {};
+        int weekdayCalls = 0;
+        int weekendCalls = 0;
+        weekdayCounts.forEach((weekday, count) {
+          if (weekday >= 1 && weekday <= 5) {
+            weekdayCalls += count;
+          } else {
+            weekendCalls += count;
+          }
+        });
+        final totalDays = weekdayCalls + weekendCalls;
+        final weekendPct = totalDays > 0 ? ((weekendCalls / totalDays) * 100).round() : 0;
+
         final vitals = stats['vitals'] as RelationshipVitals;
 
         final firstCallDate = stats['firstCallTs'] != null
@@ -209,6 +257,11 @@ class ContactAnalyticsSection extends StatelessWidget {
                 _stat(context, 'Avg Duration', '${avgSeconds}s'),
                 _stat(context, 'Incoming', '$incoming'),
                 _stat(context, 'Outgoing', '$outgoing'),
+                _stat(context, 'Answer Rate', '$answerRate%'),
+                if (peakHourWindow.isNotEmpty)
+                  _stat(context, 'Peak Time', peakHourWindow),
+                if (totalDays > 0)
+                  _stat(context, 'Weekend Calls', '$weekendPct%'),
               ],
             ),
 
@@ -263,12 +316,22 @@ class ContactAnalyticsSection extends StatelessWidget {
             TalkRatioBar(callTypeCounts: stats['typeCounts'] as Map<int, int>),
 
             const SizedBox(height: 20),
-            _sectionTitle(context, 'BY HOUR OF DAY'),
+            _sectionTitle(
+              context,
+              peakHourWindow.isNotEmpty
+                  ? 'BY HOUR OF DAY • PEAK: $peakHourWindow'
+                  : 'BY HOUR OF DAY',
+            ),
             const SizedBox(height: 8),
             HourHistogram(hourCounts: stats['hourCounts'] as Map<int, int>),
 
             const SizedBox(height: 20),
-            _sectionTitle(context, 'BY WEEKDAY'),
+            _sectionTitle(
+              context,
+              totalDays > 0
+                  ? 'BY WEEKDAY • $weekdayCalls WORKDAY / $weekendCalls WEEKEND'
+                  : 'BY WEEKDAY',
+            ),
             const SizedBox(height: 8),
             WeekdayChart(weekdayCounts: stats['weekdayCounts'] as Map<int, int>),
           ],
@@ -445,5 +508,11 @@ class ContactAnalyticsSection extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _formatHour(int h) {
+    final hour12 = h % 12 == 0 ? 12 : h % 12;
+    final period = h < 12 ? 'AM' : 'PM';
+    return '$hour12 $period';
   }
 }

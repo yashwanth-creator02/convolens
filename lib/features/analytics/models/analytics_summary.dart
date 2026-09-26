@@ -47,6 +47,9 @@ class AnalyticsSummary {
   final double networkConcentration;
   final int weekendCalls;
   final int weekdayCalls;
+  final double answerRate;
+  final String peakHourWindow;
+  final double weekendCallPercentage;
 
   const AnalyticsSummary({
     required this.totalCalls,
@@ -88,5 +91,8 @@ class AnalyticsSummary {
     required this.networkConcentration,
     required this.weekendCalls,
     required this.weekdayCalls,
+    required this.answerRate,
+    required this.peakHourWindow,
+    required this.weekendCallPercentage,
   });
 }

@@ -700,6 +700,76 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         type: DriftSqlType.int,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _streakNotificationsMeta =
+      const VerificationMeta('streakNotifications');
+  @override
+  late final GeneratedColumn<bool> streakNotifications = GeneratedColumn<bool>(
+    'streak_notifications',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("streak_notifications" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _weeklySummaryNotificationsMeta =
+      const VerificationMeta('weeklySummaryNotifications');
+  @override
+  late final GeneratedColumn<bool> weeklySummaryNotifications =
+      GeneratedColumn<bool>(
+        'weekly_summary_notifications',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("weekly_summary_notifications" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _favoriteInactivityNotificationsMeta =
+      const VerificationMeta('favoriteInactivityNotifications');
+  @override
+  late final GeneratedColumn<bool> favoriteInactivityNotifications =
+      GeneratedColumn<bool>(
+        'favorite_inactivity_notifications',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("favorite_inactivity_notifications" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _missedCallAlertsMeta = const VerificationMeta(
+    'missedCallAlerts',
+  );
+  @override
+  late final GeneratedColumn<bool> missedCallAlerts = GeneratedColumn<bool>(
+    'missed_call_alerts',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("missed_call_alerts" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _lastFavoriteInactivityTimestampMeta =
+      const VerificationMeta('lastFavoriteInactivityTimestamp');
+  @override
+  late final GeneratedColumn<int> lastFavoriteInactivityTimestamp =
+      GeneratedColumn<int>(
+        'last_favorite_inactivity_timestamp',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -719,6 +789,11 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     showAttachmentCount,
     lastNotifiedStreak,
     lastWeeklySummaryTimestamp,
+    streakNotifications,
+    weeklySummaryNotifications,
+    favoriteInactivityNotifications,
+    missedCallAlerts,
+    lastFavoriteInactivityTimestamp,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -864,6 +939,51 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         ),
       );
     }
+    if (data.containsKey('streak_notifications')) {
+      context.handle(
+        _streakNotificationsMeta,
+        streakNotifications.isAcceptableOrUnknown(
+          data['streak_notifications']!,
+          _streakNotificationsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('weekly_summary_notifications')) {
+      context.handle(
+        _weeklySummaryNotificationsMeta,
+        weeklySummaryNotifications.isAcceptableOrUnknown(
+          data['weekly_summary_notifications']!,
+          _weeklySummaryNotificationsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('favorite_inactivity_notifications')) {
+      context.handle(
+        _favoriteInactivityNotificationsMeta,
+        favoriteInactivityNotifications.isAcceptableOrUnknown(
+          data['favorite_inactivity_notifications']!,
+          _favoriteInactivityNotificationsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('missed_call_alerts')) {
+      context.handle(
+        _missedCallAlertsMeta,
+        missedCallAlerts.isAcceptableOrUnknown(
+          data['missed_call_alerts']!,
+          _missedCallAlertsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_favorite_inactivity_timestamp')) {
+      context.handle(
+        _lastFavoriteInactivityTimestampMeta,
+        lastFavoriteInactivityTimestamp.isAcceptableOrUnknown(
+          data['last_favorite_inactivity_timestamp']!,
+          _lastFavoriteInactivityTimestampMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -941,6 +1061,26 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.int,
         data['${effectivePrefix}last_weekly_summary_timestamp'],
       ),
+      streakNotifications: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}streak_notifications'],
+      )!,
+      weeklySummaryNotifications: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}weekly_summary_notifications'],
+      )!,
+      favoriteInactivityNotifications: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}favorite_inactivity_notifications'],
+      )!,
+      missedCallAlerts: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}missed_call_alerts'],
+      )!,
+      lastFavoriteInactivityTimestamp: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_favorite_inactivity_timestamp'],
+      ),
     );
   }
 
@@ -968,6 +1108,11 @@ class Setting extends DataClass implements Insertable<Setting> {
   final bool showAttachmentCount;
   final int lastNotifiedStreak;
   final int? lastWeeklySummaryTimestamp;
+  final bool streakNotifications;
+  final bool weeklySummaryNotifications;
+  final bool favoriteInactivityNotifications;
+  final bool missedCallAlerts;
+  final int? lastFavoriteInactivityTimestamp;
   const Setting({
     required this.id,
     required this.syncEnabled,
@@ -986,6 +1131,11 @@ class Setting extends DataClass implements Insertable<Setting> {
     required this.showAttachmentCount,
     required this.lastNotifiedStreak,
     this.lastWeeklySummaryTimestamp,
+    required this.streakNotifications,
+    required this.weeklySummaryNotifications,
+    required this.favoriteInactivityNotifications,
+    required this.missedCallAlerts,
+    this.lastFavoriteInactivityTimestamp,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1009,6 +1159,19 @@ class Setting extends DataClass implements Insertable<Setting> {
     if (!nullToAbsent || lastWeeklySummaryTimestamp != null) {
       map['last_weekly_summary_timestamp'] = Variable<int>(
         lastWeeklySummaryTimestamp,
+      );
+    }
+    map['streak_notifications'] = Variable<bool>(streakNotifications);
+    map['weekly_summary_notifications'] = Variable<bool>(
+      weeklySummaryNotifications,
+    );
+    map['favorite_inactivity_notifications'] = Variable<bool>(
+      favoriteInactivityNotifications,
+    );
+    map['missed_call_alerts'] = Variable<bool>(missedCallAlerts);
+    if (!nullToAbsent || lastFavoriteInactivityTimestamp != null) {
+      map['last_favorite_inactivity_timestamp'] = Variable<int>(
+        lastFavoriteInactivityTimestamp,
       );
     }
     return map;
@@ -1036,6 +1199,14 @@ class Setting extends DataClass implements Insertable<Setting> {
           lastWeeklySummaryTimestamp == null && nullToAbsent
           ? const Value.absent()
           : Value(lastWeeklySummaryTimestamp),
+      streakNotifications: Value(streakNotifications),
+      weeklySummaryNotifications: Value(weeklySummaryNotifications),
+      favoriteInactivityNotifications: Value(favoriteInactivityNotifications),
+      missedCallAlerts: Value(missedCallAlerts),
+      lastFavoriteInactivityTimestamp:
+          lastFavoriteInactivityTimestamp == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastFavoriteInactivityTimestamp),
     );
   }
 
@@ -1068,6 +1239,19 @@ class Setting extends DataClass implements Insertable<Setting> {
       lastWeeklySummaryTimestamp: serializer.fromJson<int?>(
         json['lastWeeklySummaryTimestamp'],
       ),
+      streakNotifications: serializer.fromJson<bool>(
+        json['streakNotifications'],
+      ),
+      weeklySummaryNotifications: serializer.fromJson<bool>(
+        json['weeklySummaryNotifications'],
+      ),
+      favoriteInactivityNotifications: serializer.fromJson<bool>(
+        json['favoriteInactivityNotifications'],
+      ),
+      missedCallAlerts: serializer.fromJson<bool>(json['missedCallAlerts']),
+      lastFavoriteInactivityTimestamp: serializer.fromJson<int?>(
+        json['lastFavoriteInactivityTimestamp'],
+      ),
     );
   }
   @override
@@ -1093,6 +1277,17 @@ class Setting extends DataClass implements Insertable<Setting> {
       'lastWeeklySummaryTimestamp': serializer.toJson<int?>(
         lastWeeklySummaryTimestamp,
       ),
+      'streakNotifications': serializer.toJson<bool>(streakNotifications),
+      'weeklySummaryNotifications': serializer.toJson<bool>(
+        weeklySummaryNotifications,
+      ),
+      'favoriteInactivityNotifications': serializer.toJson<bool>(
+        favoriteInactivityNotifications,
+      ),
+      'missedCallAlerts': serializer.toJson<bool>(missedCallAlerts),
+      'lastFavoriteInactivityTimestamp': serializer.toJson<int?>(
+        lastFavoriteInactivityTimestamp,
+      ),
     };
   }
 
@@ -1114,6 +1309,11 @@ class Setting extends DataClass implements Insertable<Setting> {
     bool? showAttachmentCount,
     int? lastNotifiedStreak,
     Value<int?> lastWeeklySummaryTimestamp = const Value.absent(),
+    bool? streakNotifications,
+    bool? weeklySummaryNotifications,
+    bool? favoriteInactivityNotifications,
+    bool? missedCallAlerts,
+    Value<int?> lastFavoriteInactivityTimestamp = const Value.absent(),
   }) => Setting(
     id: id ?? this.id,
     syncEnabled: syncEnabled ?? this.syncEnabled,
@@ -1134,6 +1334,15 @@ class Setting extends DataClass implements Insertable<Setting> {
     lastWeeklySummaryTimestamp: lastWeeklySummaryTimestamp.present
         ? lastWeeklySummaryTimestamp.value
         : this.lastWeeklySummaryTimestamp,
+    streakNotifications: streakNotifications ?? this.streakNotifications,
+    weeklySummaryNotifications:
+        weeklySummaryNotifications ?? this.weeklySummaryNotifications,
+    favoriteInactivityNotifications:
+        favoriteInactivityNotifications ?? this.favoriteInactivityNotifications,
+    missedCallAlerts: missedCallAlerts ?? this.missedCallAlerts,
+    lastFavoriteInactivityTimestamp: lastFavoriteInactivityTimestamp.present
+        ? lastFavoriteInactivityTimestamp.value
+        : this.lastFavoriteInactivityTimestamp,
   );
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
@@ -1176,6 +1385,23 @@ class Setting extends DataClass implements Insertable<Setting> {
       lastWeeklySummaryTimestamp: data.lastWeeklySummaryTimestamp.present
           ? data.lastWeeklySummaryTimestamp.value
           : this.lastWeeklySummaryTimestamp,
+      streakNotifications: data.streakNotifications.present
+          ? data.streakNotifications.value
+          : this.streakNotifications,
+      weeklySummaryNotifications: data.weeklySummaryNotifications.present
+          ? data.weeklySummaryNotifications.value
+          : this.weeklySummaryNotifications,
+      favoriteInactivityNotifications:
+          data.favoriteInactivityNotifications.present
+          ? data.favoriteInactivityNotifications.value
+          : this.favoriteInactivityNotifications,
+      missedCallAlerts: data.missedCallAlerts.present
+          ? data.missedCallAlerts.value
+          : this.missedCallAlerts,
+      lastFavoriteInactivityTimestamp:
+          data.lastFavoriteInactivityTimestamp.present
+          ? data.lastFavoriteInactivityTimestamp.value
+          : this.lastFavoriteInactivityTimestamp,
     );
   }
 
@@ -1198,13 +1424,22 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('showReminderIndicator: $showReminderIndicator, ')
           ..write('showAttachmentCount: $showAttachmentCount, ')
           ..write('lastNotifiedStreak: $lastNotifiedStreak, ')
-          ..write('lastWeeklySummaryTimestamp: $lastWeeklySummaryTimestamp')
+          ..write('lastWeeklySummaryTimestamp: $lastWeeklySummaryTimestamp, ')
+          ..write('streakNotifications: $streakNotifications, ')
+          ..write('weeklySummaryNotifications: $weeklySummaryNotifications, ')
+          ..write(
+            'favoriteInactivityNotifications: $favoriteInactivityNotifications, ',
+          )
+          ..write('missedCallAlerts: $missedCallAlerts, ')
+          ..write(
+            'lastFavoriteInactivityTimestamp: $lastFavoriteInactivityTimestamp',
+          )
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     syncEnabled,
     archiveMode,
@@ -1222,7 +1457,12 @@ class Setting extends DataClass implements Insertable<Setting> {
     showAttachmentCount,
     lastNotifiedStreak,
     lastWeeklySummaryTimestamp,
-  );
+    streakNotifications,
+    weeklySummaryNotifications,
+    favoriteInactivityNotifications,
+    missedCallAlerts,
+    lastFavoriteInactivityTimestamp,
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1243,7 +1483,14 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.showReminderIndicator == this.showReminderIndicator &&
           other.showAttachmentCount == this.showAttachmentCount &&
           other.lastNotifiedStreak == this.lastNotifiedStreak &&
-          other.lastWeeklySummaryTimestamp == this.lastWeeklySummaryTimestamp);
+          other.lastWeeklySummaryTimestamp == this.lastWeeklySummaryTimestamp &&
+          other.streakNotifications == this.streakNotifications &&
+          other.weeklySummaryNotifications == this.weeklySummaryNotifications &&
+          other.favoriteInactivityNotifications ==
+              this.favoriteInactivityNotifications &&
+          other.missedCallAlerts == this.missedCallAlerts &&
+          other.lastFavoriteInactivityTimestamp ==
+              this.lastFavoriteInactivityTimestamp);
 }
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
@@ -1264,6 +1511,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<bool> showAttachmentCount;
   final Value<int> lastNotifiedStreak;
   final Value<int?> lastWeeklySummaryTimestamp;
+  final Value<bool> streakNotifications;
+  final Value<bool> weeklySummaryNotifications;
+  final Value<bool> favoriteInactivityNotifications;
+  final Value<bool> missedCallAlerts;
+  final Value<int?> lastFavoriteInactivityTimestamp;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.syncEnabled = const Value.absent(),
@@ -1282,6 +1534,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.showAttachmentCount = const Value.absent(),
     this.lastNotifiedStreak = const Value.absent(),
     this.lastWeeklySummaryTimestamp = const Value.absent(),
+    this.streakNotifications = const Value.absent(),
+    this.weeklySummaryNotifications = const Value.absent(),
+    this.favoriteInactivityNotifications = const Value.absent(),
+    this.missedCallAlerts = const Value.absent(),
+    this.lastFavoriteInactivityTimestamp = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1301,6 +1558,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.showAttachmentCount = const Value.absent(),
     this.lastNotifiedStreak = const Value.absent(),
     this.lastWeeklySummaryTimestamp = const Value.absent(),
+    this.streakNotifications = const Value.absent(),
+    this.weeklySummaryNotifications = const Value.absent(),
+    this.favoriteInactivityNotifications = const Value.absent(),
+    this.missedCallAlerts = const Value.absent(),
+    this.lastFavoriteInactivityTimestamp = const Value.absent(),
   });
   static Insertable<Setting> custom({
     Expression<int>? id,
@@ -1320,6 +1582,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<bool>? showAttachmentCount,
     Expression<int>? lastNotifiedStreak,
     Expression<int>? lastWeeklySummaryTimestamp,
+    Expression<bool>? streakNotifications,
+    Expression<bool>? weeklySummaryNotifications,
+    Expression<bool>? favoriteInactivityNotifications,
+    Expression<bool>? missedCallAlerts,
+    Expression<int>? lastFavoriteInactivityTimestamp,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1343,6 +1610,15 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
         'last_notified_streak': lastNotifiedStreak,
       if (lastWeeklySummaryTimestamp != null)
         'last_weekly_summary_timestamp': lastWeeklySummaryTimestamp,
+      if (streakNotifications != null)
+        'streak_notifications': streakNotifications,
+      if (weeklySummaryNotifications != null)
+        'weekly_summary_notifications': weeklySummaryNotifications,
+      if (favoriteInactivityNotifications != null)
+        'favorite_inactivity_notifications': favoriteInactivityNotifications,
+      if (missedCallAlerts != null) 'missed_call_alerts': missedCallAlerts,
+      if (lastFavoriteInactivityTimestamp != null)
+        'last_favorite_inactivity_timestamp': lastFavoriteInactivityTimestamp,
     });
   }
 
@@ -1364,6 +1640,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Value<bool>? showAttachmentCount,
     Value<int>? lastNotifiedStreak,
     Value<int?>? lastWeeklySummaryTimestamp,
+    Value<bool>? streakNotifications,
+    Value<bool>? weeklySummaryNotifications,
+    Value<bool>? favoriteInactivityNotifications,
+    Value<bool>? missedCallAlerts,
+    Value<int?>? lastFavoriteInactivityTimestamp,
   }) {
     return SettingsCompanion(
       id: id ?? this.id,
@@ -1385,6 +1666,16 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       lastNotifiedStreak: lastNotifiedStreak ?? this.lastNotifiedStreak,
       lastWeeklySummaryTimestamp:
           lastWeeklySummaryTimestamp ?? this.lastWeeklySummaryTimestamp,
+      streakNotifications: streakNotifications ?? this.streakNotifications,
+      weeklySummaryNotifications:
+          weeklySummaryNotifications ?? this.weeklySummaryNotifications,
+      favoriteInactivityNotifications:
+          favoriteInactivityNotifications ??
+          this.favoriteInactivityNotifications,
+      missedCallAlerts: missedCallAlerts ?? this.missedCallAlerts,
+      lastFavoriteInactivityTimestamp:
+          lastFavoriteInactivityTimestamp ??
+          this.lastFavoriteInactivityTimestamp,
     );
   }
 
@@ -1446,6 +1737,27 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
         lastWeeklySummaryTimestamp.value,
       );
     }
+    if (streakNotifications.present) {
+      map['streak_notifications'] = Variable<bool>(streakNotifications.value);
+    }
+    if (weeklySummaryNotifications.present) {
+      map['weekly_summary_notifications'] = Variable<bool>(
+        weeklySummaryNotifications.value,
+      );
+    }
+    if (favoriteInactivityNotifications.present) {
+      map['favorite_inactivity_notifications'] = Variable<bool>(
+        favoriteInactivityNotifications.value,
+      );
+    }
+    if (missedCallAlerts.present) {
+      map['missed_call_alerts'] = Variable<bool>(missedCallAlerts.value);
+    }
+    if (lastFavoriteInactivityTimestamp.present) {
+      map['last_favorite_inactivity_timestamp'] = Variable<int>(
+        lastFavoriteInactivityTimestamp.value,
+      );
+    }
     return map;
   }
 
@@ -1468,7 +1780,16 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('showReminderIndicator: $showReminderIndicator, ')
           ..write('showAttachmentCount: $showAttachmentCount, ')
           ..write('lastNotifiedStreak: $lastNotifiedStreak, ')
-          ..write('lastWeeklySummaryTimestamp: $lastWeeklySummaryTimestamp')
+          ..write('lastWeeklySummaryTimestamp: $lastWeeklySummaryTimestamp, ')
+          ..write('streakNotifications: $streakNotifications, ')
+          ..write('weeklySummaryNotifications: $weeklySummaryNotifications, ')
+          ..write(
+            'favoriteInactivityNotifications: $favoriteInactivityNotifications, ',
+          )
+          ..write('missedCallAlerts: $missedCallAlerts, ')
+          ..write(
+            'lastFavoriteInactivityTimestamp: $lastFavoriteInactivityTimestamp',
+          )
           ..write(')'))
         .toString();
   }
@@ -4820,6 +5141,11 @@ typedef $$SettingsTableCreateCompanionBuilder =
       Value<bool> showAttachmentCount,
       Value<int> lastNotifiedStreak,
       Value<int?> lastWeeklySummaryTimestamp,
+      Value<bool> streakNotifications,
+      Value<bool> weeklySummaryNotifications,
+      Value<bool> favoriteInactivityNotifications,
+      Value<bool> missedCallAlerts,
+      Value<int?> lastFavoriteInactivityTimestamp,
     });
 typedef $$SettingsTableUpdateCompanionBuilder =
     SettingsCompanion Function({
@@ -4840,6 +5166,11 @@ typedef $$SettingsTableUpdateCompanionBuilder =
       Value<bool> showAttachmentCount,
       Value<int> lastNotifiedStreak,
       Value<int?> lastWeeklySummaryTimestamp,
+      Value<bool> streakNotifications,
+      Value<bool> weeklySummaryNotifications,
+      Value<bool> favoriteInactivityNotifications,
+      Value<bool> missedCallAlerts,
+      Value<int?> lastFavoriteInactivityTimestamp,
     });
 
 class $$SettingsTableFilterComposer
@@ -4933,6 +5264,31 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<int> get lastWeeklySummaryTimestamp => $composableBuilder(
     column: $table.lastWeeklySummaryTimestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get streakNotifications => $composableBuilder(
+    column: $table.streakNotifications,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get weeklySummaryNotifications => $composableBuilder(
+    column: $table.weeklySummaryNotifications,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get favoriteInactivityNotifications => $composableBuilder(
+    column: $table.favoriteInactivityNotifications,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get missedCallAlerts => $composableBuilder(
+    column: $table.missedCallAlerts,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastFavoriteInactivityTimestamp => $composableBuilder(
+    column: $table.lastFavoriteInactivityTimestamp,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5030,6 +5386,33 @@ class $$SettingsTableOrderingComposer
     column: $table.lastWeeklySummaryTimestamp,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get streakNotifications => $composableBuilder(
+    column: $table.streakNotifications,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get weeklySummaryNotifications => $composableBuilder(
+    column: $table.weeklySummaryNotifications,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get favoriteInactivityNotifications =>
+      $composableBuilder(
+        column: $table.favoriteInactivityNotifications,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<bool> get missedCallAlerts => $composableBuilder(
+    column: $table.missedCallAlerts,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastFavoriteInactivityTimestamp =>
+      $composableBuilder(
+        column: $table.lastFavoriteInactivityTimestamp,
+        builder: (column) => ColumnOrderings(column),
+      );
 }
 
 class $$SettingsTableAnnotationComposer
@@ -5113,6 +5496,33 @@ class $$SettingsTableAnnotationComposer
     column: $table.lastWeeklySummaryTimestamp,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get streakNotifications => $composableBuilder(
+    column: $table.streakNotifications,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get weeklySummaryNotifications => $composableBuilder(
+    column: $table.weeklySummaryNotifications,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get favoriteInactivityNotifications =>
+      $composableBuilder(
+        column: $table.favoriteInactivityNotifications,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<bool> get missedCallAlerts => $composableBuilder(
+    column: $table.missedCallAlerts,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastFavoriteInactivityTimestamp =>
+      $composableBuilder(
+        column: $table.lastFavoriteInactivityTimestamp,
+        builder: (column) => column,
+      );
 }
 
 class $$SettingsTableTableManager
@@ -5160,6 +5570,13 @@ class $$SettingsTableTableManager
                 Value<bool> showAttachmentCount = const Value.absent(),
                 Value<int> lastNotifiedStreak = const Value.absent(),
                 Value<int?> lastWeeklySummaryTimestamp = const Value.absent(),
+                Value<bool> streakNotifications = const Value.absent(),
+                Value<bool> weeklySummaryNotifications = const Value.absent(),
+                Value<bool> favoriteInactivityNotifications =
+                    const Value.absent(),
+                Value<bool> missedCallAlerts = const Value.absent(),
+                Value<int?> lastFavoriteInactivityTimestamp =
+                    const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
                 syncEnabled: syncEnabled,
@@ -5178,6 +5595,13 @@ class $$SettingsTableTableManager
                 showAttachmentCount: showAttachmentCount,
                 lastNotifiedStreak: lastNotifiedStreak,
                 lastWeeklySummaryTimestamp: lastWeeklySummaryTimestamp,
+                streakNotifications: streakNotifications,
+                weeklySummaryNotifications: weeklySummaryNotifications,
+                favoriteInactivityNotifications:
+                    favoriteInactivityNotifications,
+                missedCallAlerts: missedCallAlerts,
+                lastFavoriteInactivityTimestamp:
+                    lastFavoriteInactivityTimestamp,
               ),
           createCompanionCallback:
               ({
@@ -5198,6 +5622,13 @@ class $$SettingsTableTableManager
                 Value<bool> showAttachmentCount = const Value.absent(),
                 Value<int> lastNotifiedStreak = const Value.absent(),
                 Value<int?> lastWeeklySummaryTimestamp = const Value.absent(),
+                Value<bool> streakNotifications = const Value.absent(),
+                Value<bool> weeklySummaryNotifications = const Value.absent(),
+                Value<bool> favoriteInactivityNotifications =
+                    const Value.absent(),
+                Value<bool> missedCallAlerts = const Value.absent(),
+                Value<int?> lastFavoriteInactivityTimestamp =
+                    const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
                 syncEnabled: syncEnabled,
@@ -5216,6 +5647,13 @@ class $$SettingsTableTableManager
                 showAttachmentCount: showAttachmentCount,
                 lastNotifiedStreak: lastNotifiedStreak,
                 lastWeeklySummaryTimestamp: lastWeeklySummaryTimestamp,
+                streakNotifications: streakNotifications,
+                weeklySummaryNotifications: weeklySummaryNotifications,
+                favoriteInactivityNotifications:
+                    favoriteInactivityNotifications,
+                missedCallAlerts: missedCallAlerts,
+                lastFavoriteInactivityTimestamp:
+                    lastFavoriteInactivityTimestamp,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

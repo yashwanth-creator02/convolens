@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +7,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
+import '../../../../shared/contact_photo_banner.dart';
 import 'contact_message_sheet.dart';
 
 class ContactHeader extends StatefulWidget {
@@ -149,37 +149,6 @@ class _ContactHeaderState extends State<ContactHeader>
     );
   }
 
-  Widget _buildGradientBackground(
-    Color bannerColor,
-    ColorScheme scheme,
-    String initials,
-  ) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            bannerColor.withValues(alpha: 0.7),
-            Color.lerp(bannerColor, scheme.surface, 0.5) ?? scheme.surface,
-            scheme.surface,
-          ],
-        ),
-      ),
-      child: Center(
-        child: Text(
-          initials.isNotEmpty && initials != '#' ? initials : '?',
-          style: TextStyle(
-            fontSize: 72,
-            fontWeight: FontWeight.w900,
-            color: Colors.white.withValues(alpha: 0.12),
-            letterSpacing: 4,
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -193,7 +162,7 @@ class _ContactHeaderState extends State<ContactHeader>
 
     final initials = _getInitials(widget.displayName);
     final screenHeight = MediaQuery.of(context).size.height;
-    final headerHeight = (screenHeight * 0.32).clamp(220.0, 270.0);
+    final headerHeight = (screenHeight * 0.32).clamp(220.0, 280.0);
 
     return Container(
       height: headerHeight,
@@ -214,60 +183,13 @@ class _ContactHeaderState extends State<ContactHeader>
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
-          // ── Contact image: ambient blurred backdrop + entire uncropped picture ──
+          // ── Contact image & ambient blur banner ──
           Positioned.fill(
-            child: photo != null && photo.isNotEmpty
-                ? Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Ambient blurred background filling the header
-                      ImageFiltered(
-                        imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                        child: Image.memory(
-                          photo,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              _buildGradientBackground(
-                                  bannerColor, scheme, initials),
-                        ),
-                      ),
-                      // Subtle darkening so the uncropped picture and buttons pop
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      // Entire uncropped picture with high filter quality
-                      Center(
-                        child: Image.memory(
-                          photo,
-                          fit: BoxFit.contain,
-                          filterQuality: FilterQuality.high,
-                          gaplessPlayback: true,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const SizedBox.shrink(),
-                        ),
-                      ),
-                    ],
-                  )
-                : _buildGradientBackground(bannerColor, scheme, initials),
-          ),
-
-          // ── Scrim overlay – lighter at top to show more of the photo ──────
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.04),
-                    Colors.black.withValues(alpha: 0.10),
-                    Colors.black.withValues(alpha: 0.42),
-                  ],
-                  stops: const [0.0, 0.45, 1.0],
-                ),
-              ),
+            child: ContactPhotoBanner(
+              photo: photo,
+              initials: initials,
+              bannerColor: bannerColor,
+              height: headerHeight,
             ),
           ),
 

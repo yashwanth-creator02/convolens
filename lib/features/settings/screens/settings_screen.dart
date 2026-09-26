@@ -88,7 +88,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await widget.db.updateSetting(
         const SettingsCompanion(archiveMode: Value(true)),
       );
-      await CallsRepository(widget.db).syncFromDevice(archiveMode: true);
+      final syncEnabled = await widget.db.getSyncEnabled();
+      if (syncEnabled) {
+        await CallsRepository(widget.db).syncFromDevice(archiveMode: true);
+      }
       return;
     }
 
@@ -97,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: 'Turn off Archive Mode?',
       message:
           'Calls that are removed from your phone\'s call log '
-          'will also be permanently deleted from Convolens the '
+          'will also be permanently deleted from Point the '
           'next time it syncs. This cannot be undone.',
       confirmLabel: 'Turn Off',
       isDestructive: true,
@@ -109,7 +112,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const SettingsCompanion(archiveMode: Value(false)),
     );
 
-    await CallsRepository(widget.db).syncFromDevice(archiveMode: false);
+    final syncEnabled = await widget.db.getSyncEnabled();
+    if (syncEnabled) {
+      await CallsRepository(widget.db).syncFromDevice(archiveMode: false);
+    }
   }
 
   Widget _buildTitleWithInfo({
@@ -278,6 +284,132 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Navigator.of(context).push(
                                 CupertinoPageRoute(
                                   builder: (context) => const PermissionsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+
+                      // ── Notifications ─────────────────────────────────────
+                      GlassGroupedSection(
+                        margin: const EdgeInsets.only(bottom: 18),
+                        shape: const LiquidRoundedSuperellipse(borderRadius: 20),
+                        quality: GlassQuality.standard,
+                        header: _buildSectionHeader(
+                          context,
+                          title: 'Notifications',
+                          icon: Icons.notifications_outlined,
+                        ),
+                        children: [
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.local_fire_department_outlined, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'Streak Milestones',
+                              infoTooltip: 'Get notified when you hit new calling streak records',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassSwitch(
+                              value: settings.streakNotifications,
+                              onChanged: (value) {
+                                widget.db.updateSetting(
+                                  SettingsCompanion(streakNotifications: Value(value)),
+                                );
+                              },
+                              useOwnLayer: false,
+                              quality: GlassQuality.standard,
+                              activeColor: scheme.primary,
+                              width: 50.0,
+                              height: 28.0,
+                            ),
+                            onTap: () {
+                              widget.db.updateSetting(
+                                SettingsCompanion(
+                                  streakNotifications: Value(!settings.streakNotifications),
+                                ),
+                              );
+                            },
+                          ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.insights_rounded, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'Weekly Summary',
+                              infoTooltip: 'Receive weekly calling digest and trend updates',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassSwitch(
+                              value: settings.weeklySummaryNotifications,
+                              onChanged: (value) {
+                                widget.db.updateSetting(
+                                  SettingsCompanion(weeklySummaryNotifications: Value(value)),
+                                );
+                              },
+                              useOwnLayer: false,
+                              quality: GlassQuality.standard,
+                              activeColor: scheme.primary,
+                              width: 50.0,
+                              height: 28.0,
+                            ),
+                            onTap: () {
+                              widget.db.updateSetting(
+                                SettingsCompanion(
+                                  weeklySummaryNotifications: Value(!settings.weeklySummaryNotifications),
+                                ),
+                              );
+                            },
+                          ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.star_outline_rounded, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'Favorite Inactivity',
+                              infoTooltip: 'Gentle reminders when you haven\'t called a favorite in 14+ days',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassSwitch(
+                              value: settings.favoriteInactivityNotifications,
+                              onChanged: (value) {
+                                widget.db.updateSetting(
+                                  SettingsCompanion(favoriteInactivityNotifications: Value(value)),
+                                );
+                              },
+                              useOwnLayer: false,
+                              quality: GlassQuality.standard,
+                              activeColor: scheme.primary,
+                              width: 50.0,
+                              height: 28.0,
+                            ),
+                            onTap: () {
+                              widget.db.updateSetting(
+                                SettingsCompanion(
+                                  favoriteInactivityNotifications: Value(!settings.favoriteInactivityNotifications),
+                                ),
+                              );
+                            },
+                          ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.phone_missed_rounded, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'Missed Call Alerts',
+                              infoTooltip: 'Immediate alerts when a favorite contact calls and is missed',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassSwitch(
+                              value: settings.missedCallAlerts,
+                              onChanged: (value) {
+                                widget.db.updateSetting(
+                                  SettingsCompanion(missedCallAlerts: Value(value)),
+                                );
+                              },
+                              useOwnLayer: false,
+                              quality: GlassQuality.standard,
+                              activeColor: scheme.primary,
+                              width: 50.0,
+                              height: 28.0,
+                            ),
+                            onTap: () {
+                              widget.db.updateSetting(
+                                SettingsCompanion(
+                                  missedCallAlerts: Value(!settings.missedCallAlerts),
                                 ),
                               );
                             },
@@ -541,7 +673,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Version 1.0.0 • Liquid Glass UI',
+                                  'Version 1.1.0 • Liquid Glass UI',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: scheme.onSurfaceVariant

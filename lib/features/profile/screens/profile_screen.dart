@@ -62,10 +62,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       allowedExtensions: ['jpg', 'jpeg', 'png'],
     );
     if (result == null || result.files.single.path == null) return;
+    final oldPath = await widget.db.getProfilePhotoPath();
     final savedPath = await AttachmentStorage.saveProfilePhoto(
       result.files.single.path!,
     );
     await widget.db.setProfilePhotoPath(savedPath);
+    if (oldPath != null && oldPath.isNotEmpty && oldPath != savedPath) {
+      await AttachmentStorage.deleteFile(oldPath);
+    }
   }
 
   Future<void> _takePhoto() async {
@@ -79,11 +83,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (photo == null) return;
 
+      final oldPath = await widget.db.getProfilePhotoPath();
       final savedPath = await AttachmentStorage.saveProfilePhoto(
         photo.path,
       );
 
       await widget.db.setProfilePhotoPath(savedPath);
+      if (oldPath != null && oldPath.isNotEmpty && oldPath != savedPath) {
+        await AttachmentStorage.deleteFile(oldPath);
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -91,8 +99,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showPhotoOptions(BuildContext context) {
+  Future<void> _removePhoto() async {
+    final oldPath = await widget.db.getProfilePhotoPath();
+    await widget.db.setProfilePhotoPath(null);
+    if (oldPath != null && oldPath.isNotEmpty) {
+      await AttachmentStorage.deleteFile(oldPath);
+    }
+  }
+
+  void _showPhotoOptions(BuildContext context) async {
     HapticFeedback.mediumImpact();
+
+    final currentPhoto = await widget.db.getProfilePhotoPath();
+    final hasPhoto = currentPhoto != null && currentPhoto.isNotEmpty;
+    if (!context.mounted) return;
 
     GlassSheet.show<void>(
       context: context,
@@ -170,6 +190,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
+
+                    if (hasPhoto) ...[
+                      const SizedBox(width: 36),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GlassIconButton(
+                            icon: Icon(CupertinoIcons.trash, color: scheme.error),
+                            onPressed: () {
+                              Navigator.of(ctx).pop();
+                              _removePhoto();
+                            },
+                            size: 56,
+                            quality: GlassQuality.standard,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Remove',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: scheme.error,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -178,6 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+
   }
 
   // ── Pull-to-open QR ──────────────────────────────────────────────────────

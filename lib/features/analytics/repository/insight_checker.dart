@@ -1,5 +1,6 @@
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
+import '../utils/streak_calculator.dart';
 
 class InsightChecker {
   final AppDatabase db;
@@ -7,6 +8,13 @@ class InsightChecker {
   InsightChecker(this.db);
 
   Future<void> checkStreakRecord() async {
+    final granted = await NotificationService.areNotificationsGranted();
+    if (!granted) return;
+
+    final settings =
+        await (db.select(db.settings)..where((s) => s.id.equals(0))).getSingle();
+    if (!settings.streakNotifications) return;
+
     final now = DateTime.now();
     final yearAgo = now.subtract(const Duration(days: 364));
     final heatmapCounts = await db.getCallCountsByPeriod(
@@ -15,8 +23,8 @@ class InsightChecker {
       '%Y-%m-%d',
     );
 
-    final streaks = _computeStreaks(heatmapCounts, now);
-    final currentStreak = streaks['current']!;
+    final streaks = computeStreaks(heatmapCounts, now);
+    final currentStreak = streaks.current;
 
     final lastNotifiedStreak = await db.getLastNotifiedStreak();
 
@@ -30,6 +38,13 @@ class InsightChecker {
   }
 
   Future<void> checkWeeklySummary() async {
+    final granted = await NotificationService.areNotificationsGranted();
+    if (!granted) return;
+
+    final settings =
+        await (db.select(db.settings)..where((s) => s.id.equals(0))).getSingle();
+    if (!settings.weeklySummaryNotifications) return;
+
     final lastSent = await db.getLastWeeklySummaryDate();
     final now = DateTime.now();
 
@@ -48,29 +63,32 @@ class InsightChecker {
     await db.setLastWeeklySummaryDate(now);
   }
 
-  Map<String, int> _computeStreaks(
-    Map<String, int> heatmapCounts,
-    DateTime now,
-  ) {
-    int currentStreak = 0;
-    var cursor = DateTime(now.year, now.month, now.day);
-    bool stillCounting = true;
+  Future<void> checkFavoriteInactivity() async {
+    final granted = await NotificationService.areNotificationsGranted();
+    if (!granted) return;
 
-    for (int i = 0; i < 365; i++) {
-      final key =
-          '${cursor.year.toString().padLeft(4, '0')}-'
-          '${cursor.month.toString().padLeft(2, '0')}-'
-          '${cursor.day.toString().padLeft(2, '0')}';
-      final hasCalls = (heatmapCounts[key] ?? 0) > 0;
+    final settings =
+        await (db.select(db.settings)..where((s) => s.id.equals(0))).getSingle();
+    if (!settings.favoriteInactivityNotifications) return;
 
-      if (hasCalls) {
-        if (stillCounting) currentStreak++;
-      } else if (i != 0) {
-        stillCounting = false;
-      }
-      cursor = cursor.subtract(const Duration(days: 1));
-    }
+    final lastSent = await db.getLastFavoriteInactivityDate();
+    final now = DateTime.now();
 
-    return {'current': currentStreak};
+    if (lastSent != null && now.difference(lastSent).inDays < 7) return;
+
+    final inactive = await db.getInactiveFavorites(14);
+    if (inactive.isEmpty) return;
+
+    final target = inactive.first;
+    final daysSince = target.lastCall != null
+        ? now.difference(target.lastCall!).inDays
+        : 14;
+
+    await NotificationService.showFavoriteInactivityAlert(
+      contactName: target.name,
+      number: target.number,
+      daysSince: daysSince,
+    );
+    await db.setLastFavoriteInactivityDate(now);
   }
 }

@@ -754,6 +754,13 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         value:
                             '${summary.busiestDayDate} (${summary.busiestDayCount} calls)',
                       ),
+                    if (summary.peakHourWindow.isNotEmpty)
+                      _buildInsightRow(
+                        icon: Icons.schedule_rounded,
+                        color: const Color(0xFF3B82F6),
+                        title: 'Peak Call Window',
+                        value: summary.peakHourWindow,
+                      ),
                     if (summary.longestCallSeconds > 0)
                       _buildInsightRow(
                         icon: Icons.emoji_events_outlined,
@@ -761,12 +768,19 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         title: 'Longest Conversation',
                         value: _formatDuration(summary.longestCallSeconds),
                       ),
+                    if (summary.totalCalls > 0)
+                      _buildInsightRow(
+                        icon: Icons.check_circle_outline_rounded,
+                        color: const Color(0xFF10B981),
+                        title: 'Answer Rate',
+                        value: '${(summary.answerRate * 100).round()}% connected',
+                      ),
                     _buildInsightRow(
                       icon: Icons.wb_sunny_outlined,
                       color: const Color(0xFF06B6D4),
                       title: 'Weekend vs Weekday',
                       value:
-                          '${summary.weekdayCalls} weekday • ${summary.weekendCalls} weekend',
+                          '${summary.weekdayCalls} weekday (${(100 - summary.weekendCallPercentage * 100).round()}%) • ${summary.weekendCalls} weekend (${(summary.weekendCallPercentage * 100).round()}%)',
                     ),
                     const SizedBox(height: 10),
                     _buildWeekdayWeekendSplitBar(summary),
@@ -947,6 +961,7 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(6),
@@ -958,21 +973,37 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              title,
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w500,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: scheme.onSurface,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: scheme.onSurface,
+                    ),
+                    textAlign: TextAlign.end,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1180,7 +1211,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
             AnalyticsCard(
               title: 'Call Outcomes',
               icon: Icons.phone_callback_rounded,
-              subtitle: 'Answered, missed, and rejected calls',
+              subtitle: summary.totalCalls > 0
+                  ? 'Answered, missed, & rejected • ${(summary.answerRate * 100).round()}% answer rate'
+                  : 'Answered, missed, and rejected calls',
               infoDescription:
                   'Categorizes all phone call events into:\n\n• Answered: Calls that successfully connected.\n• Missed: Incoming calls that went unanswered.\n• Declined: Inbound calls rejected or dismissed.\n\nA high answer rate (>80%) indicates strong phone availability.',
               child: AnsweredMissedDeclinedBars(
@@ -1202,7 +1235,9 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
             AnalyticsCard(
               title: 'Busiest Hours',
               icon: Icons.access_time_rounded,
-              subtitle: 'Time of day when calls occur most often',
+              subtitle: summary.peakHourWindow.isNotEmpty
+                  ? 'Peak window: ${summary.peakHourWindow}'
+                  : 'Time of day when calls occur most often',
               infoDescription:
                   'Visualizes your 24-hour diurnal calling rhythm.\n\nHelps identify your peak communication window and categorizes activity into four time-of-day segments: Morning (6 AM–12 PM), Afternoon (12 PM–5 PM), Evening (5 PM–9 PM), and Night (9 PM–6 AM).',
               trailing: GlassChip(

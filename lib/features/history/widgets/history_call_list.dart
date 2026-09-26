@@ -136,8 +136,50 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
   @override
   Widget build(BuildContext context) {
     if (widget.items.isEmpty) {
-      return const SliverFillRemaining(
-        child: Center(child: Text('No calls yet.')),
+      final scheme = Theme.of(context).colorScheme;
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.history_rounded,
+                    size: 28,
+                    color: scheme.primary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No Call History Yet',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Calls recorded on your device will automatically appear here',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 

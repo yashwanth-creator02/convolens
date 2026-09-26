@@ -137,8 +137,10 @@ class _MainShellState extends State<MainShell> {
 
     NotificationService.init();
 
-    InsightChecker(_db).checkStreakRecord();
-    InsightChecker(_db).checkWeeklySummary();
+    final insightChecker = InsightChecker(_db);
+    insightChecker.checkStreakRecord();
+    insightChecker.checkWeeklySummary();
+    insightChecker.checkFavoriteInactivity();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _analyticsScreenKey.currentState?.setActive(_selectedIndex == 1);
