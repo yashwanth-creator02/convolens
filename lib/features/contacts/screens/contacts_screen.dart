@@ -7,6 +7,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/services/contact_cache.dart';
 import '../models/contact_summary.dart';
 import '../repository/contacts_repository.dart';
 import '../utils/group_contacts_by_letter.dart';
@@ -149,6 +150,20 @@ class ContactsScreenState extends State<ContactsScreen>
   void setActive(bool active) {
     if (_isActive == active) return;
     _isActive = active;
+    if (active) {
+      if (ContactCache.contacts.isNotEmpty) {
+        _deviceContacts = List.from(ContactCache.contacts);
+      }
+      refreshDeviceContacts();
+    }
+    _updateSubscriptions();
+  }
+
+  void _onContactCacheChanged() {
+    if (!mounted) return;
+    setState(() {
+      _deviceContacts = List.from(ContactCache.contacts);
+    });
     _updateSubscriptions();
   }
 
@@ -213,6 +228,16 @@ class ContactsScreenState extends State<ContactsScreen>
 
     _repository = ContactsRepository(widget.db);
 
+    ContactCache.changeNotifier.addListener(_onContactCacheChanged);
+
+    if (ContactCache.contacts.isNotEmpty) {
+      _deviceContacts = List.from(ContactCache.contacts);
+      _permissionGranted = true;
+      _loadingContacts = false;
+      _contactsLoaded = true;
+      _updateSubscriptions();
+    }
+
     _loadDeviceContacts();
 
     _searchFocusNode.addListener(_onSearchFocusChanged);
@@ -221,6 +246,7 @@ class ContactsScreenState extends State<ContactsScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    ContactCache.changeNotifier.removeListener(_onContactCacheChanged);
     _searchFocusNode.dispose();
     _contactsSub?.cancel();
     _favoritesSub?.cancel();
@@ -238,10 +264,6 @@ class ContactsScreenState extends State<ContactsScreen>
 
   Future<void> _loadDeviceContacts() async {
     if (!mounted) return;
-
-    setState(() {
-      _loadingContacts = true;
-    });
 
     final status = await Permission.contacts.status;
 
@@ -263,9 +285,10 @@ class ContactsScreenState extends State<ContactsScreen>
 
       if (!mounted) return;
 
+      ContactCache.setContacts(contacts);
       setState(() {
         _permissionGranted = true;
-        _deviceContacts = contacts;
+        _deviceContacts = List.from(contacts);
         _loadingContacts = false;
       });
       _updateSubscriptions();
@@ -313,10 +336,10 @@ class ContactsScreenState extends State<ContactsScreen>
     return false; // let the notification keep bubbling
   }
 
-  void _openContact(ContactSummary contact) {
+  Future<void> _openContact(ContactSummary contact) async {
     if (contact.displayNumber.isEmpty) return;
 
-    Navigator.of(context).push(
+    final result = await Navigator.of(context).push(
       CupertinoPageRoute(
         builder: (context) => ContactDetailScreen(
           normalizedNumber: contact.normalizedNumber,
@@ -327,6 +350,10 @@ class ContactsScreenState extends State<ContactsScreen>
         ),
       ),
     );
+
+    if (result == true || mounted) {
+      await refreshDeviceContacts();
+    }
   }
 
   void _scrollToLetter(String letter) {

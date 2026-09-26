@@ -144,12 +144,15 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
     return selected;
   }
 
-  Future<void> _deleteNumber(String numberToDelete) async {
-    final contact = _deviceContact;
+  Future<void> _deleteNumber(String numberToDelete, {bool forceDeleteContact = false}) async {
+    Contact? contact = _deviceContact ??
+        ContactCache.findContact(number: numberToDelete) ??
+        ContactCache.findContact(number: widget.normalizedNumber) ??
+        ContactCache.findContact(name: widget.displayName);
     final isDeviceContact = contact != null;
     final phones = contact?.phones ?? const <Phone>[];
 
-    if (isDeviceContact && phones.length > 1) {
+    if (isDeviceContact && phones.length > 1 && !forceDeleteContact) {
       final matchingPhone = phones.any((p) =>
           normalizePhoneNumber(p.number) == normalizePhoneNumber(numberToDelete) ||
           p.number.replaceAll(RegExp(r'\s+'), '') == numberToDelete.replaceAll(RegExp(r'\s+'), ''));
@@ -161,7 +164,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
       }
     }
 
-    final isMultiNumber = isDeviceContact && phones.length > 1;
+    final isMultiNumber = isDeviceContact && phones.length > 1 && !forceDeleteContact;
     final contactName = _getTitleText();
 
     final confirmed = await showConfirmDialog(
@@ -169,8 +172,8 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
       title: isMultiNumber ? 'Delete Phone Number?' : 'Delete Contact & Number?',
       message: isMultiNumber
           ? 'Are you sure you want to remove $numberToDelete from $contactName? The contact will remain with their other numbers.'
-          : 'Are you sure you want to delete $numberToDelete? This will permanently remove $contactName and its associated call logs and notes.',
-      confirmLabel: isMultiNumber ? 'Delete Number' : 'Delete',
+          : 'Are you sure you want to delete $contactName? This will permanently remove the contact, its phone numbers, and associated call logs.',
+      confirmLabel: isMultiNumber ? 'Delete Number' : 'Delete Contact',
       isDestructive: true,
     );
 
@@ -210,24 +213,34 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
         }
       } else {
         if (isDeviceContact) {
-          await FlutterContacts.deleteContact(contact);
+          try {
+            await FlutterContacts.deleteContact(contact);
+          } catch (e) {
+            debugPrint('Error deleting contact from FlutterContacts: $e');
+          }
           ContactCache.removeContact(contact.id);
         }
         ContactCache.removeNumber(numberToDelete);
         ContactCache.removeNumber(widget.normalizedNumber);
+        if (contact != null) {
+          for (final p in contact.phones) {
+            ContactCache.removeNumber(p.number);
+            await widget.db.deleteContactAndNumberData(p.number);
+          }
+        }
         await widget.db.deleteContactAndNumberData(numberToDelete);
         if (widget.normalizedNumber != numberToDelete) {
           await widget.db.deleteContactAndNumberData(widget.normalizedNumber);
         }
 
         if (mounted) {
-          ToastService.success(context, 'Number deleted successfully.');
+          ToastService.success(context, 'Contact deleted successfully.');
           Navigator.of(context).pop(true);
         }
       }
     } catch (e) {
       if (mounted) {
-        ToastService.error(context, 'Failed to delete number: $e');
+        ToastService.error(context, 'Failed to delete: $e');
       }
     }
   }
@@ -451,7 +464,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                       },
                     ),
                     GlassMenuItem(
-                      title: 'Delete Number',
+                      title: _deviceContact != null ? 'Delete Contact' : 'Delete Number',
                       icon: Icon(
                         Icons.delete_outline_rounded,
                         size: 18,
@@ -470,6 +483,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                             : widget.displayNumber.isNotEmpty
                                 ? widget.displayNumber
                                 : widget.normalizedNumber,
+                        forceDeleteContact: _deviceContact != null,
                       ),
                     ),
                   ],

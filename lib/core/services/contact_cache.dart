@@ -1,6 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 
 import '../utils/normalize_number.dart';
+
+class ContactCacheNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
 
 /// In-memory cache for device contacts to ensure O(1) synchronous lookups
 /// across all screens and instant image rendering on frame 0.
@@ -9,11 +14,15 @@ class ContactCache {
   static final Map<String, Contact> _byNumber = {};
   static final Map<String, Contact> _byName = {};
 
-  static List<Contact> get contacts => _contacts;
+  /// Global notifier that broadcasts whenever cached contacts are added,
+  /// updated, or removed so any active screen can refresh instantaneously.
+  static final ContactCacheNotifier changeNotifier = ContactCacheNotifier();
+
+  static List<Contact> get contacts => List.unmodifiable(_contacts);
 
   /// Updates the full cached contact list and rebuilds fast lookup maps.
   static void setContacts(List<Contact> newContacts) {
-    _contacts = newContacts;
+    _contacts = List.from(newContacts);
     _byNumber.clear();
     _byName.clear();
 
@@ -29,6 +38,7 @@ class ContactCache {
         _byName[name] = contact;
       }
     }
+    changeNotifier.notify();
   }
 
   /// Finds a cached contact by normalized phone number or display name.
@@ -64,6 +74,7 @@ class ContactCache {
     if (name.isNotEmpty) {
       _byName[name] = updated;
     }
+    changeNotifier.notify();
   }
 
   /// Removes a contact and all its associations from the cache.
@@ -71,6 +82,7 @@ class ContactCache {
     _contacts.removeWhere((c) => c.id == id);
     _byNumber.removeWhere((_, c) => c.id == id);
     _byName.removeWhere((_, c) => c.id == id);
+    changeNotifier.notify();
   }
 
   /// Removes a specific phone number association from the cache.
@@ -80,5 +92,21 @@ class ContactCache {
       _byNumber.remove(normalized);
     }
     _byNumber.remove(rawOrNormalizedNumber);
+
+    // Also update any contact in memory that held this number
+    for (int i = _contacts.length - 1; i >= 0; i--) {
+      final c = _contacts[i];
+      c.phones.removeWhere((p) =>
+          normalizePhoneNumber(p.number) == normalized ||
+          p.number.replaceAll(RegExp(r'\s+'), '') ==
+              rawOrNormalizedNumber.replaceAll(RegExp(r'\s+'), ''));
+      if (c.phones.isEmpty) {
+        _contacts.removeAt(i);
+        _byName.remove(c.displayName.trim().toLowerCase());
+      }
+    }
+
+    changeNotifier.notify();
   }
 }
+

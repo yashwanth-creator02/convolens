@@ -960,18 +960,24 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> deleteCallsForNumber(String rawOrNormalizedNumber) async {
     final normalized = normalizePhoneNumber(rawOrNormalizedNumber);
-    final matchingCalls = await (select(calls)..where((c) =>
-      c.number.equals(rawOrNormalizedNumber) |
-      (normalized.isNotEmpty ? c.number.like('%$normalized') : const Constant(false)) |
-      (normalized.isNotEmpty ? c.number.equals(normalized) : const Constant(false))
-    )).get();
+    final stripped = rawOrNormalizedNumber.replaceAll(RegExp(r'\D'), '');
+    final allCalls = await select(calls).get();
+    final matchingIds = allCalls.where((c) {
+      if (c.number == rawOrNormalizedNumber) return true;
+      final callNorm = normalizePhoneNumber(c.number ?? '');
+      if (normalized.isNotEmpty && callNorm == normalized) return true;
+      final callStripped = c.number?.replaceAll(RegExp(r'\D'), '') ?? '';
+      if (stripped.isNotEmpty && (callStripped == stripped || callStripped.endsWith(stripped) || stripped.endsWith(callStripped))) {
+        return true;
+      }
+      return false;
+    }).map((c) => c.id).toList();
 
-    final callIds = matchingCalls.map((c) => c.id).toList();
-    if (callIds.isNotEmpty) {
-      await (delete(callDetails)..where((d) => d.callId.isIn(callIds))).go();
-      await (delete(callTags)..where((t) => t.callId.isIn(callIds))).go();
-      await (delete(callAttachments)..where((a) => a.callId.isIn(callIds))).go();
-      await (delete(calls)..where((c) => c.id.isIn(callIds))).go();
+    if (matchingIds.isNotEmpty) {
+      await (delete(callDetails)..where((d) => d.callId.isIn(matchingIds))).go();
+      await (delete(callTags)..where((t) => t.callId.isIn(matchingIds))).go();
+      await (delete(callAttachments)..where((a) => a.callId.isIn(matchingIds))).go();
+      await (delete(calls)..where((c) => c.id.isIn(matchingIds))).go();
     }
   }
 

@@ -46,8 +46,10 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
     _repository = ContactsRepository(widget.db);
     _searchController = TextEditingController();
 
+    ContactCache.changeNotifier.addListener(_onContactCacheChanged);
+
     if (ContactCache.contacts.isNotEmpty) {
-      _deviceContacts = ContactCache.contacts;
+      _deviceContacts = List.from(ContactCache.contacts);
       _loading = false;
     } else {
       _load();
@@ -59,6 +61,13 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
     });
   }
 
+  void _onContactCacheChanged() {
+    if (!mounted) return;
+    setState(() {
+      _deviceContacts = List.from(ContactCache.contacts);
+    });
+  }
+
   Future<void> _load() async {
     final status = await Permission.contacts.status;
     if (status.isGranted) {
@@ -67,11 +76,11 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
         withThumbnail: true,
       );
       if (mounted) {
+        ContactCache.setContacts(contacts);
         setState(() {
-          _deviceContacts = contacts;
+          _deviceContacts = List.from(contacts);
           _loading = false;
         });
-        ContactCache.setContacts(contacts);
       }
     } else {
       if (mounted) {
@@ -82,6 +91,7 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
 
   @override
   void dispose() {
+    ContactCache.changeNotifier.removeListener(_onContactCacheChanged);
     _debounce?.cancel();
     _searchFocusNode.dispose();
     _searchController.dispose();
@@ -108,8 +118,8 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
     });
   }
 
-  void _openContact(ContactSummary contact) {
-    Navigator.of(context).push(
+  Future<void> _openContact(ContactSummary contact) async {
+    final result = await Navigator.of(context).push(
       CupertinoPageRoute(
         builder: (context) => ContactDetailScreen(
           normalizedNumber: contact.normalizedNumber,
@@ -120,6 +130,10 @@ class _ContactSearchScreenState extends State<ContactSearchScreen> {
         ),
       ),
     );
+
+    if (result == true || mounted) {
+      await _load();
+    }
   }
 
   @override
