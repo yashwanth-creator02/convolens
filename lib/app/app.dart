@@ -23,6 +23,7 @@ class App extends StatefulWidget {
 class _AppState extends State<App> {
   late final AppDatabase _db;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  bool? _hasCompletedOnboarding;
 
   @override
   void initState() {
@@ -114,7 +115,7 @@ class _AppState extends State<App> {
     );
 
     return MaterialApp(
-      key: const ValueKey('PointAppMaterialApp'),
+      key: ValueKey('PointAppMaterialApp_$hasCompletedOnboarding'),
       navigatorKey: _navigatorKey,
       title: 'Point',
       theme: themeType == AppThemeType.light
@@ -136,7 +137,11 @@ class _AppState extends State<App> {
           ? MainShell(db: db)
           : OnboardingScreen(
               db: db,
-              onFinish: () => setState(() {}),
+              onFinish: () {
+                setState(() {
+                  _hasCompletedOnboarding = true;
+                });
+              },
             ),
     );
   }
@@ -146,12 +151,21 @@ class _AppState extends State<App> {
     return StreamBuilder<Setting>(
       stream: _db.watchSettings(),
       builder: (context, snapshot) {
-        final settings = snapshot.data;
-        final themeType = settings != null
-            ? _themeFromString(settings.theme)
-            : AppThemeType.dark;
-        final hasCompletedOnboarding =
-            settings?.hasCompletedOnboarding ?? false;
+        if (!snapshot.hasData) {
+          final darkTheme = AppTheme.getTheme(AppThemeType.dark);
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: darkTheme,
+            home: Scaffold(
+              backgroundColor: darkTheme.scaffoldBackgroundColor,
+              body: const SizedBox.shrink(),
+            ),
+          );
+        }
+
+        final settings = snapshot.data!;
+        final themeType = _themeFromString(settings.theme);
+        _hasCompletedOnboarding ??= settings.hasCompletedOnboarding;
 
         return _buildAppWithTheme(
           themeType: themeType,
@@ -161,7 +175,7 @@ class _AppState extends State<App> {
                   ? ThemeMode.light
                   : ThemeMode.dark),
           db: _db,
-          hasCompletedOnboarding: hasCompletedOnboarding,
+          hasCompletedOnboarding: _hasCompletedOnboarding!,
         );
       },
     );

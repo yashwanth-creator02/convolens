@@ -37,6 +37,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (!widget.isRevisit) {
+      widget.db.setOnboardingCompleted(true);
+    }
     _checkPermissions();
   }
 

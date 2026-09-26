@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -82,6 +83,9 @@ class TimelineWaveNavigator extends StatefulWidget {
   final List<Object> items;
   final void Function(int itemIndex) onCommit;
   final TimelineWaveTheme? theme;
+  final Widget? child;
+  final double topInset;
+  final double bottomInset;
 
   const TimelineWaveNavigator({
     super.key,
@@ -89,6 +93,9 @@ class TimelineWaveNavigator extends StatefulWidget {
     required this.yearIndex,
     required this.onCommit,
     this.theme,
+    this.child,
+    this.topInset = 0.0,
+    this.bottomInset = 0.0,
   });
 
   @override
@@ -101,15 +108,15 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   // Geometry Thresholds
   // ---------------------------------------------------------------------------
   // Width of the touch activation area along the screen's right edge
-  static const double _activationZoneWidth = 64.0;
+  static const double _activationZoneWidth = 88.0;
 
   // Horizontal depth thresholds (distance pulled inward from the right bezel)
-  static const double _abortThreshold = 36.0; // < 36px is the abort/cancel zone
-  static const double _yearDepthMax = 95.0; // 36..95px: Year selection
-  static const double _monthDepthMax = 160.0; // 95..160px: Month selection
-  static const double _dateDepthMax = 220.0; // 160..220px: Date selection
+  static const double _abortThreshold = 22.0; // < 22px is the abort/cancel zone
+  static const double _yearDepthMax = 80.0; // 22..80px: Year selection
+  static const double _monthDepthMax = 140.0; // 80..140px: Month selection
+  static const double _dateDepthMax = 195.0; // 140..195px: Date selection
   static const double _triggerDepth =
-      220.0; // >= 220px: Trigger scrolling instant!
+      195.0; // >= 195px: Trigger scrolling instant!
 
   static const double _spread = 115.0; // Gaussian curve vertical spread
   static const double _smoothingSpeed = 22.0;
@@ -143,6 +150,9 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
 
   @override
   void dispose() {
+    if (_ticker.isActive) {
+      _ticker.stop();
+    }
     _ticker.dispose();
     _state.dispose();
     super.dispose();
@@ -177,8 +187,9 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   void _updateWaveState(double displayY, double currentDx, double timeSeconds) {
     if (_availableHeight <= 0) return;
 
-    // Pull depth physically referenced to the screen's right bezel
-    double rawPullDepth = (_activationZoneWidth - currentDx).clamp(0.0, 320.0);
+    // Pull depth physically referenced to the screen's right bezel with sensitivity gain
+    double rawPullDepth =
+        ((_activationZoneWidth - currentDx) * 1.25).clamp(0.0, 320.0);
     if (_isRetracting) {
       rawPullDepth *= _retractionProgress;
     } else {
@@ -336,15 +347,17 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   }
 
   int? _nearestIndexFor(double y, int count) {
-    if (count <= 0 || _availableHeight <= 0) return null;
-    final slot = _availableHeight / count;
-    return (y / slot).floor().clamp(0, count - 1);
+    if (count <= 0 || _availableHeight <= 24.0) return null;
+    final usableHeight = _availableHeight - 24.0;
+    final clampedY = (y - 12.0).clamp(0.0, usableHeight);
+    final slot = usableHeight / count;
+    return (clampedY / slot).floor().clamp(0, count - 1);
   }
 
   void _onPanStart(DragStartDetails details, double availableHeight) {
     _availableHeight = availableHeight;
     _currentDx = details.localPosition.dx;
-    _targetY = details.localPosition.dy;
+    _targetY = details.localPosition.dy.clamp(12.0, availableHeight - 12.0);
     _lastElapsed = Duration.zero;
     _isRetracting = false;
     _retractionProgress = 1.0;
@@ -357,14 +370,16 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
     _cachedDateIndex = const [];
 
     HapticFeedback.selectionClick();
-    _updateWaveState(details.localPosition.dy, details.localPosition.dx, 0.0);
-    _ticker.start();
+    _updateWaveState(_targetY, details.localPosition.dx, 0.0);
+    if (!_ticker.isActive) {
+      _ticker.start();
+    }
   }
 
   void _onPanUpdate(DragUpdateDetails details, double availableHeight) {
     _availableHeight = availableHeight;
     _currentDx = details.localPosition.dx;
-    _targetY = details.localPosition.dy;
+    _targetY = details.localPosition.dy.clamp(12.0, availableHeight - 12.0);
   }
 
   void _startRetraction() {
@@ -429,60 +444,311 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.yearIndex.isEmpty) {
+      return widget.child ?? const SizedBox.shrink();
+    }
+
     final waveTheme = widget.theme ?? TimelineWaveTheme.defaultTheme(context);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final height = constraints.maxHeight;
+        final totalHeight = constraints.maxHeight;
+        final top = widget.topInset;
+        final bottom = widget.bottomInset;
+        final stripHeight =
+            (totalHeight - top - bottom).clamp(1.0, double.infinity);
 
-        return SizedBox(
-          width: 320,
-          height: height,
-          child: Stack(
-            children: [
-              // Wave Painter Layer
-              IgnorePointer(
-                child: RepaintBoundary(
+        final stackChildren = <Widget>[
+          // 1. Atmospheric Fog Layer over the touch activation range (BEHIND child!)
+          Positioned(
+            right: 0,
+            top: top + 12,
+            bottom: bottom + 12,
+            width: _activationZoneWidth,
+            child: IgnorePointer(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(28),
+                  bottomLeft: Radius.circular(28),
+                ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
                   child: ValueListenableBuilder<_WaveState>(
                     valueListenable: _state,
                     builder: (context, state, _) {
-                      return CustomPaint(
-                        isComplex: true,
-                        willChange: true,
-                        size: Size(320, height),
-                        painter: _LiquidWavePainter(
-                          state: state,
-                          theme: waveTheme,
-                          spread: _spread,
-                          availableHeight: height,
-                          abortThreshold: _abortThreshold,
-                          yearDepthMax: _yearDepthMax,
-                          monthDepthMax: _monthDepthMax,
-                          triggerDepth: _triggerDepth,
-                        ),
+                      final isActive = state.active;
+
+                      Color activeColor = scheme.primary;
+                      if (isActive) {
+                        switch (state.level) {
+                          case WaveLevel.year:
+                            activeColor = waveTheme.yearStyle.waveColor;
+                            break;
+                          case WaveLevel.month:
+                            activeColor = waveTheme.monthStyle.waveColor;
+                            break;
+                          case WaveLevel.date:
+                            activeColor = waveTheme.dateStyle.waveColor;
+                            break;
+                        }
+                      }
+
+                      final mistBase =
+                          isDark ? const Color(0xFF94A3B8) : Colors.white;
+
+                      final usableH =
+                          (stripHeight - 24.0).clamp(1.0, double.infinity);
+                      final normalizedY =
+                          ((state.displayY - 12.0) / usableH)
+                                  .clamp(0.0, 1.0) *
+                              2.0 -
+                          1.0;
+
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          // Base Fog Gradient (dissipates from transparent on the left to soft mist on the right)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOutCubic,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                stops: const [0.0, 0.25, 0.55, 0.82, 1.0],
+                                colors: isDark
+                                    ? [
+                                        mistBase.withValues(alpha: 0.0),
+                                        mistBase.withValues(
+                                          alpha: isActive ? 0.05 : 0.02,
+                                        ),
+                                        mistBase.withValues(
+                                          alpha: isActive ? 0.12 : 0.06,
+                                        ),
+                                        mistBase.withValues(
+                                          alpha: isActive ? 0.22 : 0.12,
+                                        ),
+                                        mistBase.withValues(
+                                          alpha: isActive ? 0.32 : 0.18,
+                                        ),
+                                      ]
+                                    : [
+                                        Colors.white.withValues(alpha: 0.0),
+                                        Colors.white.withValues(
+                                          alpha: isActive ? 0.15 : 0.08,
+                                        ),
+                                        Colors.white.withValues(
+                                          alpha: isActive ? 0.35 : 0.22,
+                                        ),
+                                        Colors.white.withValues(
+                                          alpha: isActive ? 0.55 : 0.40,
+                                        ),
+                                        Colors.white.withValues(
+                                          alpha: isActive ? 0.72 : 0.58,
+                                        ),
+                                      ],
+                              ),
+                            ),
+                          ),
+
+                          // Interactive Aurora Glow inside the Fog (follows touch location)
+                          if (isActive)
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              curve: Curves.easeOutCubic,
+                              decoration: BoxDecoration(
+                                gradient: RadialGradient(
+                                  center: Alignment(1.0, normalizedY),
+                                  radius: 1.3,
+                                  colors: [
+                                    activeColor.withValues(
+                                      alpha: isDark ? 0.32 : 0.25,
+                                    ),
+                                    activeColor.withValues(
+                                      alpha: isDark ? 0.14 : 0.10,
+                                    ),
+                                    Colors.transparent,
+                                  ],
+                                  stops: const [0.0, 0.45, 1.0],
+                                ),
+                              ),
+                            ),
+                        ],
                       );
                     },
                   ),
                 ),
               ),
+            ),
+          ),
 
-              // Right-edge Touch Activation Detector
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: _activationZoneWidth,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onHorizontalDragStart: (d) => _onPanStart(d, height),
-                  onHorizontalDragUpdate: (d) => _onPanUpdate(d, height),
-                  onHorizontalDragEnd: (_) => _endDrag(),
-                  onHorizontalDragCancel: _cancelDrag,
+          // 2. Child Content (e.g. Call Cards - rendered ON TOP of Fog!)
+          if (widget.child != null)
+            Positioned.fill(child: widget.child!),
+
+          // 3. Wave Painter Layer (rendered ON TOP of cards when pulled!)
+          Positioned(
+            right: 0,
+            top: top,
+            bottom: bottom,
+            width: 320,
+            child: IgnorePointer(
+              child: RepaintBoundary(
+                child: ValueListenableBuilder<_WaveState>(
+                  valueListenable: _state,
+                  builder: (context, state, _) {
+                    return CustomPaint(
+                      isComplex: true,
+                      willChange: true,
+                      size: Size(320, stripHeight),
+                      painter: _LiquidWavePainter(
+                        state: state,
+                        theme: waveTheme,
+                        spread: _spread,
+                        availableHeight: stripHeight,
+                        abortThreshold: _abortThreshold,
+                        yearDepthMax: _yearDepthMax,
+                        monthDepthMax: _monthDepthMax,
+                        triggerDepth: _triggerDepth,
+                      ),
+                    );
+                  },
                 ),
               ),
-            ],
+            ),
           ),
-        );
+
+          // 4. Persistent Sculpted Edge Rail with dynamic feedback
+          Positioned(
+            right: 0,
+            top: top + 12,
+            bottom: bottom + 12,
+            child: ValueListenableBuilder<_WaveState>(
+              valueListenable: _state,
+              builder: (context, state, _) {
+                final isActive = state.active;
+                final isMaterialized = state.pullDepth > _abortThreshold;
+
+                // Dynamic accent color based on active wave level
+                Color activeColor = scheme.primary;
+                if (isActive) {
+                  switch (state.level) {
+                    case WaveLevel.year:
+                      activeColor = waveTheme.yearStyle.waveColor;
+                      break;
+                    case WaveLevel.month:
+                      activeColor = waveTheme.monthStyle.waveColor;
+                      break;
+                    case WaveLevel.date:
+                      activeColor = waveTheme.dateStyle.waveColor;
+                      break;
+                  }
+                }
+
+                return AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: isMaterialized ? 0.0 : 1.0,
+                  child: IgnorePointer(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
+                      curve: Curves.easeOutCubic,
+                      width: isActive ? 7.0 : 5.0,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            activeColor.withValues(
+                              alpha:
+                                  isActive ? 0.95 : (isDark ? 0.85 : 0.75),
+                            ),
+                            activeColor.withValues(
+                              alpha:
+                                  isActive ? 0.70 : (isDark ? 0.50 : 0.40),
+                            ),
+                          ],
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(8),
+                          bottomLeft: Radius.circular(8),
+                        ),
+                        border: Border.all(
+                          color: Colors.white.withValues(
+                            alpha:
+                                isActive ? 0.70 : (isDark ? 0.35 : 0.65),
+                          ),
+                          width: 0.8,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: activeColor.withValues(
+                              alpha: isActive
+                                  ? (isDark ? 0.50 : 0.35)
+                                  : (isDark ? 0.25 : 0.12),
+                            ),
+                            blurRadius: isActive ? 8 : 4,
+                            offset: Offset(isActive ? -2 : -1, 0),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          curve: Curves.easeOutCubic,
+                          width: isActive ? 2.5 : 1.8,
+                          height: isActive ? 34.0 : 24.0,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(
+                              alpha:
+                                  isActive ? 0.90 : (isDark ? 0.65 : 0.80),
+                            ),
+                            borderRadius: BorderRadius.circular(2),
+                            boxShadow: isActive
+                                ? [
+                                    BoxShadow(
+                                      color:
+                                          Colors.white.withValues(alpha: 0.5),
+                                      blurRadius: 4,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // 5. Right-edge Touch Activation Detector
+          Positioned(
+            right: 0,
+            top: top,
+            bottom: bottom,
+            width: _activationZoneWidth,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (_) => HapticFeedback.lightImpact(),
+              onHorizontalDragStart: (d) => _onPanStart(d, stripHeight),
+              onHorizontalDragUpdate: (d) => _onPanUpdate(d, stripHeight),
+              onHorizontalDragEnd: (_) => _endDrag(),
+              onHorizontalDragCancel: _cancelDrag,
+            ),
+          ),
+        ];
+
+        return widget.child != null
+            ? Stack(children: stackChildren)
+            : SizedBox(
+                width: 320,
+                height: totalHeight,
+                child: Stack(children: stackChildren),
+              );
       },
     );
   }
@@ -648,28 +914,32 @@ class _LiquidWavePainter extends CustomPainter {
     required bool isTriggered,
   }) {
     const steps = 48;
-    final dy = availableHeight / steps;
+    const startY = 12.0;
+    final endY = availableHeight - 12.0;
+    final waveHeight = endY - startY;
+    if (waveHeight <= 0) return;
+    final dy = waveHeight / steps;
 
     final wavePath = Path();
-    wavePath.moveTo(size.width, 0);
+    wavePath.moveTo(size.width, startY);
 
     for (int i = 0; i <= steps; i++) {
-      final y = dy * i;
+      final y = startY + dy * i;
       final dist = (y - peakY) / spread;
       final bell = exp(-(dist * dist));
       final x = size.width - amplitude * bell;
       wavePath.lineTo(x, y);
     }
 
-    wavePath.lineTo(size.width, size.height);
+    wavePath.lineTo(size.width, endY);
     wavePath.close();
 
     // Fluid liquid gradient
     final Rect fillRect = Rect.fromLTWH(
       size.width - amplitude,
-      0,
+      startY,
       amplitude,
-      size.height,
+      waveHeight,
     );
 
     final fillPaint = Paint()
@@ -687,7 +957,7 @@ class _LiquidWavePainter extends CustomPainter {
     // Outer luminous crest curve
     final crestPath = Path();
     for (int i = 0; i <= steps; i++) {
-      final y = dy * i;
+      final y = startY + dy * i;
       final dist = (y - peakY) / spread;
       final bell = exp(-(dist * dist));
       final x = size.width - amplitude * bell;
@@ -732,9 +1002,11 @@ class _LiquidWavePainter extends CustomPainter {
         break;
     }
 
-    final slot = availableHeight / count;
+    final usableHeight = availableHeight - 24.0;
+    if (usableHeight <= 0) return;
+    final slot = usableHeight / count;
     for (int i = 0; i < count; i++) {
-      final y = slot * i + slot / 2;
+      final y = 12.0 + slot * i + slot / 2;
       final dist = (y - state.displayY).abs();
       if (dist > 30.0) {
         final bell = exp(-pow((y - state.displayY) / spread, 2));

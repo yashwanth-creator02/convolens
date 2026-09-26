@@ -640,11 +640,20 @@ class _HistoryScreenState extends State<HistoryScreen>
           }
         }
 
+        final topInset = MediaQuery.of(context).padding.top + kToolbarHeight;
+        const bottomInset = 100.0;
+
         return Material(
           type: MaterialType.transparency,
-          child: Stack(
-            children: [
-              CustomScrollView(
+          child: TimelineWaveNavigator(
+            items: _cachedItems,
+            yearIndex: _cachedYearIndex,
+            onCommit: _onCommitYear,
+            topInset: topInset,
+            bottomInset: bottomInset,
+            child: Stack(
+              children: [
+                CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
                 controller: widget.titleController.scrollController,
@@ -823,16 +832,6 @@ class _HistoryScreenState extends State<HistoryScreen>
                   );
                 },
               ),
-              Positioned(
-                right: 0,
-                top: MediaQuery.of(context).padding.top + kToolbarHeight,
-                bottom: 100,
-                child: TimelineWaveNavigator(
-                  items: _cachedItems,
-                  yearIndex: _cachedYearIndex,
-                  onCommit: _onCommitYear,
-                ),
-              ),
               ValueListenableBuilder<bool>(
                 valueListenable: _showScrollToTopNotifier,
                 builder: (context, showScrollToTop, _) {
@@ -870,8 +869,9 @@ class _HistoryScreenState extends State<HistoryScreen>
               ),
             ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 }
