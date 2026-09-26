@@ -31,20 +31,20 @@ class NotificationTroubleshootingScreen extends StatelessWidget {
                 'haven\'t.',
           ),
           _step(
-            '2. Enable Autostart for Convolens',
-            'Open your phone\'s own Settings app (not this app) → Apps → Convolens → look for '
+            '2. Enable Autostart for Point',
+            'Open your phone\'s own Settings app (not this app) → Apps → Point → look for '
                 '"Autostart" or "Auto-launch," and turn it on. On some phones this instead lives '
                 'in a separate "Phone Manager" or "Security" app rather than Settings itself.',
           ),
           _step(
             '3. Lock the app in recent apps',
-            'Open your recent apps switcher, find Convolens, and look for a lock icon (often '
+            'Open your recent apps switcher, find Point, and look for a lock icon (often '
                 'from a long-press or a small padlock in the corner) — this tells the system not '
                 'to kill it when memory is low.',
           ),
           _step(
             '4. Check notification settings directly',
-            'Open your phone\'s Settings → Apps → Convolens → Notifications, and make sure '
+            'Open your phone\'s Settings → Apps → Point → Notifications, and make sure '
                 'notifications are fully enabled there too, separate from what this app can '
                 'control.',
           ),

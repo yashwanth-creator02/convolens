@@ -322,7 +322,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 24),
           const Text(
-            'Welcome to ConvoLens',
+            'Welcome to Point',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 26,
@@ -398,7 +398,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ),
           const SizedBox(height: 6),
           Text(
-            'ConvoLens runs entirely locally on your phone. Granting access allows the app to populate your timeline and organize contacts.',
+            'Point runs entirely locally on your phone. Granting access allows the app to populate your timeline and organize contacts.',
             style: TextStyle(
               fontSize: 14,
               height: 1.4,
@@ -577,7 +577,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Tap Get Started to enter ConvoLens. You can adjust permissions anytime in Settings.',
+                        'Tap Get Started to enter Point. You can adjust permissions anytime in Settings.',
                         style: TextStyle(
                           fontSize: 13,
                           color: scheme.onSurfaceVariant,

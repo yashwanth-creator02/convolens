@@ -53,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     _lastEasterEggTap = now;
 
-    if (_easterEggTapCount >= 7) {
+    if (_easterEggTapCount >= 8) {
       _easterEggTapCount = 0;
       try {
         _currentToastDismiss?.call();
@@ -67,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     } else if (_easterEggTapCount >= 4) {
       HapticFeedback.selectionClick();
-      final remaining = 7 - _easterEggTapCount;
+      final remaining = 8 - _easterEggTapCount;
       try {
         _currentToastDismiss?.call();
       } catch (_) {}

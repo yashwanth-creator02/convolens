@@ -114,9 +114,9 @@ class _AppState extends State<App> {
     );
 
     return MaterialApp(
-      key: const ValueKey('ConvoLensAppMaterialApp'),
+      key: const ValueKey('PointAppMaterialApp'),
       navigatorKey: _navigatorKey,
-      title: 'ConvoLens',
+      title: 'Point',
       theme: themeType == AppThemeType.light
           ? activeTheme
           : AppTheme.getTheme(AppThemeType.light),

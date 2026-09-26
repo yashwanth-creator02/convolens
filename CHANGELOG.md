@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] - 2026-09-26
+
+### Changed
+- **Branding & Display Name Consistency**:
+  - Updated all onboarding screens and system descriptions to the official app display name **"Point"**.
+  - Synchronized `MaterialApp.title` and permission troubleshooting guides to reflect "Point" branding.
+- **App Capabilities & Features Catalog Expanded**:
+  - Completely updated `AppFeaturesScreen` (unlocked via the 8-tap logo easter egg in Settings) with in-depth cards for:
+    - Contact Quick Swipe Actions (Call & SMS)
+    - Callback Latency & Responsiveness Engine (24h follow-ups, return rate %, initiation balance split, and Best Time to Call)
+    - Precision Date Jumper & In-Memory Filter Chips (Today shortcut, live counters)
+    - Permanent Glass Alphabet Scrubber & Real-Time Duplicate Detection
+    - Actionable Notifications & Deep Linking
+    - Multi-Step Onboarding & Permissions Hub
+    - Sub-Pixel Hero Alignment & Fluid Transitions
+
+---
+
 ## [1.3.0] - 2026-09-26
 
 ### Added

@@ -323,6 +323,125 @@ class _AppFeaturesScreenState extends State<AppFeaturesScreen> {
                       'Multi-Theme Support: Purple, Cosmo, Dark, and Light themes tailored with HSL colors.',
                     ],
                   ),
+
+                  // Feature 6: Interactive Contact Swipe Actions
+                  _buildFeatureCard(
+                    context: context,
+                    title: 'Contact Quick Swipe Actions',
+                    icon: Icons.swipe_rounded,
+                    accentColor: const Color(0xFF10B981),
+                    summary:
+                        'Direct, gesture-driven calling and messaging from the contact list with non-destructive spring-back physics.',
+                    tags: ['Swipe-to-Call', 'Swipe-to-SMS', 'Spring Physics', 'Haptics'],
+                    bulletPoints: [
+                      'Swipe Right (Emerald Green): Instantly initiates a direct cellular phone call.',
+                      'Swipe Left (Accent Blue): Quickly opens SMS messaging for the contact.',
+                      'Non-Destructive Spring: Contact cards spring back cleanly into place without record deletion.',
+                      'Sensory Haptics: Crisp physical vibration feedback confirms gesture activation.',
+                    ],
+                  ),
+
+                  // Feature 7: Callback Latency & Responsiveness Engine
+                  _buildFeatureCard(
+                    context: context,
+                    title: 'Callback Latency & Responsiveness',
+                    icon: Icons.speed_rounded,
+                    accentColor: const Color(0xFFF59E0B),
+                    summary:
+                        'Intelligent SQLite analytics engine measuring missed call response times and communication balance.',
+                    tags: ['24h Return Rate', 'Average Latency', 'Initiation Balance', 'Best Time to Call'],
+                    bulletPoints: [
+                      '24-Hour Follow-Up Tracking: Calculates exact minutes elapsed before returning missed calls with normalized E.164 phone matching.',
+                      'Missed Call Return Rate %: Visual gauge of your overall responsiveness and reliability.',
+                      'Initiation Balance Split: Comparative balance bar showing what percentage of calls were initiated by you vs. the contact.',
+                      'Automated "Best Time to Call": Identifies historical peak answering patterns (e.g., "Wednesdays, 4 PM – 6 PM") on contact profiles.',
+                    ],
+                  ),
+
+                  // Feature 8: Precision Date Jumper & Filter Chips
+                  _buildFeatureCard(
+                    context: context,
+                    title: 'Precision Date Jumper & Filter Chips',
+                    icon: Icons.calendar_month_rounded,
+                    accentColor: const Color(0xFF06B6D4),
+                    summary:
+                        'Zero-latency call history filtering and instant temporal navigation without scrolling lag.',
+                    tags: ['Floating Jumper', 'Today Shortcut', 'In-Memory Filters', 'Live Counts'],
+                    bulletPoints: [
+                      'Floating Date Badge: Real-time date chip displays current list position and opens an interactive year/month selector.',
+                      'Instant "Today" Shortcut: Jump directly to the most recent call logs with a single tap.',
+                      'In-Memory Filter Chips: Instant pill bar switching between All, Missed, Incoming, Outgoing, and Unknown calls.',
+                      'Reactive Badge Counters: Live call tallies update synchronously with zero database round-trip overhead.',
+                    ],
+                  ),
+
+                  // Feature 9: Permanent Glass Alphabet Scrubber
+                  _buildFeatureCard(
+                    context: context,
+                    title: 'Glass Alphabet Scrubber & Autocomplete',
+                    icon: Icons.sort_by_alpha_rounded,
+                    accentColor: const Color(0xFFE11D48),
+                    summary:
+                        'Tactile edge scrubber with precomputed jumps and real-time duplicate contact detection dropdown.',
+                    tags: ['Alphabet Scrubber', 'Duplicate Detection', 'Autocomplete', 'Precomputed Offsets'],
+                    bulletPoints: [
+                      'Permanent Glass Scrubber: Semi-transparent vertical letter rail resting along the right bezel, blooming to full opacity on touch.',
+                      'Precomputed Jump Offsets: Letter dragging moves the list instantaneously without queuing conflicting animations.',
+                      'Live Duplicate Detection: Auto-suggests matching contacts as you type first name, last name, phone, or company.',
+                      'One-Tap Redirection: Tapping any matched suggestion opens the pre-filled contact editor immediately.',
+                    ],
+                  ),
+
+                  // Feature 10: Actionable Notifications & Deep Linking
+                  _buildFeatureCard(
+                    context: context,
+                    title: 'Actionable Notifications & Deep Linking',
+                    icon: Icons.notifications_active_rounded,
+                    accentColor: const Color(0xFFEC4899),
+                    summary:
+                        'Interactive system alerts with quick actions and compound payload deep linking.',
+                    tags: ['Call Back Button', 'Message Button', 'Deep Links', 'Diagnostics'],
+                    bulletPoints: [
+                      'Action Buttons: Return missed calls or send text messages directly from your device notification shade.',
+                      'Deep Link Routing: Tapping alerts navigates straight to Call Details or Contact Profiles.',
+                      'Daily Streak Reminders: Automated milestone tracking celebrating consistent relationship keeping.',
+                      'Built-in Diagnostics: Dedicated notification tester screen under Settings to verify system channels.',
+                    ],
+                  ),
+
+                  // Feature 11: Multi-Step Onboarding & Permissions Hub
+                  _buildFeatureCard(
+                    context: context,
+                    title: 'Onboarding & Permissions Hub',
+                    icon: Icons.verified_user_rounded,
+                    accentColor: const Color(0xFF8B5CF6),
+                    summary:
+                        'Guided 3-step setup walkthrough with interactive permissions checklist and one-tap granting.',
+                    tags: ['3-Step Guide', 'Grant All Required', 'Live Status', 'Local Privacy'],
+                    bulletPoints: [
+                      'Interactive Checklist: Live status cards for Call Logs, Contacts, Notifications, Microphone, and Exact Alarms.',
+                      'One-Tap "Grant All Required": Sequentially prompts for essential permissions with emerald check badges.',
+                      'Settings Revisit: Walkthrough can be relaunched anytime via Settings ➔ Permissions & Security ➔ Welcome Guide & Setup.',
+                      'Privacy-First Architecture: Validates local-only offline storage guarantees.',
+                    ],
+                  ),
+
+                  // Feature 12: Sub-Pixel Hero Alignment & Fluid Transitions
+                  _buildFeatureCard(
+                    context: context,
+                    title: 'Sub-Pixel Hero Alignment & Fluid Transitions',
+                    icon: Icons.auto_awesome_motion_rounded,
+                    accentColor: const Color(0xFF6366F1),
+                    summary:
+                        'Coordinated Hero image positioning and directional slide navigation matching native back button physics.',
+                    tags: ['Hero Morphs', 'Directional Tab Slide', 'Cupertino Navigation', 'GPU Blur Isolation'],
+                    bulletPoints: [
+                      'Sub-Pixel Hero Alignment: Call Details and Contact Details share exact physical coordinates (top: padding.top + kToolbarHeight + 16.0) for wobble-free morphs.',
+                      'Directional Tab Sliding: Main shell switches tabs with horizontal slide-and-fade matching forward and back navigation.',
+                      'Universal Cupertino Transitions: Pushing screens and tapping the top-left back button utilize consistent, smooth slide curves.',
+                      'RepaintBoundary Isolation: Heavy backdrop blur shaders are isolated from sliver list redraws for silky 120 FPS scrolling.',
+                    ],
+                  ),
                 ]),
               ),
             ),
