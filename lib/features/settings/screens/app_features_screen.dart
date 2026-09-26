@@ -252,6 +252,7 @@ class _AppFeaturesScreenState extends State<AppFeaturesScreen> {
                       'Fluid Wave Canvas: Real-time dynamic canvas rendering fluid wave crests with animated text markers.',
                       'Pop-out Preview: Floating badge projects left of your thumb, giving instant temporal feedback before release.',
                       'Call Cards: Detailed logs displaying avatar, call type, duration, attachments, and scheduled follow-ups.',
+                      'Liquid Dialer Numpad: Ergonomic quick dialer with high-contrast keys, real-time contact matching, and persistent One-Handed mode.',
                     ],
                   ),
 
@@ -324,20 +325,20 @@ class _AppFeaturesScreenState extends State<AppFeaturesScreen> {
                     ],
                   ),
 
-                  // Feature 6: Interactive Contact Swipe Actions
+                  // Feature 6: Interactive Call Card & Contact Swipe Actions
                   _buildFeatureCard(
                     context: context,
-                    title: 'Contact Quick Swipe Actions',
+                    title: 'History & Contact Swipe Actions',
                     icon: Icons.swipe_rounded,
                     accentColor: const Color(0xFF10B981),
                     summary:
-                        'Direct, gesture-driven calling and messaging from the contact list with non-destructive spring-back physics.',
-                    tags: ['Swipe-to-Call', 'Swipe-to-SMS', 'Spring Physics', 'Haptics'],
+                        'Direct, gesture-driven calling and messaging from both call history cards and contact cards with non-destructive spring-back physics.',
+                    tags: ['History Swipe-to-Call', 'Contact Swipe', 'Swipe-to-SMS', 'Haptics'],
                     bulletPoints: [
-                      'Swipe Right (Emerald Green): Instantly initiates a direct cellular phone call.',
-                      'Swipe Left (Accent Blue): Quickly opens SMS messaging for the contact.',
-                      'Non-Destructive Spring: Contact cards spring back cleanly into place without record deletion.',
-                      'Sensory Haptics: Crisp physical vibration feedback confirms gesture activation.',
+                      'Swipe Right (Emerald Green): Instantly initiates a direct cellular phone call from call history cards or contact cards.',
+                      'Swipe Left (Accent Blue): Quickly opens SMS messaging for the caller or contact.',
+                      'Non-Destructive Spring: Cards spring back cleanly into place with natural physics without deleting records.',
+                      'Sensory Haptics: Crisp physical vibration feedback confirms gesture threshold activation.',
                     ],
                   ),
 

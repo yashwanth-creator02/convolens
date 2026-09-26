@@ -17,6 +17,7 @@ class CallCard extends StatelessWidget {
   final bool showCallButton;
   final bool showPhoneNumber;
   final bool showName;
+  final bool enableSwipeToCall;
 
   const CallCard({
     super.key,
@@ -32,6 +33,7 @@ class CallCard extends StatelessWidget {
     this.showCallButton = true,
     this.showPhoneNumber = true,
     this.showName = true,
+    this.enableSwipeToCall = true,
   });
 
   @override
@@ -55,6 +57,7 @@ class CallCard extends StatelessWidget {
           showCallButton: showCallButton,
           showPhoneNumber: showPhoneNumber,
           showName: showName,
+          enableSwipeToCall: enableSwipeToCall,
         ),
       );
     }
@@ -99,6 +102,7 @@ class CallCard extends StatelessWidget {
                       showCallButton: showCallButton,
                       showPhoneNumber: showPhoneNumber,
                       showName: showName,
+                      enableSwipeToCall: enableSwipeToCall,
                     );
                   },
                 );

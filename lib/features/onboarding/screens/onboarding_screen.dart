@@ -185,6 +185,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                       onPressed: _previousPage,
                       tooltip: 'Back',
                     )
+                  else if (widget.isRevisit)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                      onPressed: () => Navigator.of(context).pop(),
+                      tooltip: 'Back to Settings',
+                    )
                   else
                     const SizedBox(width: 40),
                   const Spacer(),
@@ -218,6 +224,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                    )
+                  else if (widget.isRevisit)
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 22),
+                      onPressed: () => Navigator.of(context).pop(),
+                      tooltip: 'Close',
                     )
                   else
                     const SizedBox(width: 40),
@@ -297,27 +309,36 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             width: 88,
             height: 88,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  scheme.primary,
-                  scheme.primary.withValues(alpha: 0.6),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.35),
+                  color: scheme.primary.withValues(alpha: 0.25),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.blur_on_rounded,
-              size: 48,
-              color: Colors.white,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.asset(
+                'assets/icons/logo.png',
+                width: 88,
+                height: 88,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: scheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Icon(
+                    Icons.all_inclusive_rounded,
+                    size: 44,
+                    color: scheme.primary,
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 24),
