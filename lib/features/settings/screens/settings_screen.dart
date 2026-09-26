@@ -749,7 +749,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Version 1.1.0 • Liquid Glass UI',
+                                  'Version 1.5.0 • Liquid Glass UI',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: scheme.onSurfaceVariant

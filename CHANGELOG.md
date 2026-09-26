@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.0] - 2026-09-27
+
+### Added
+- **MultiHitStack Simultaneous Gesture Processing**:
+  - Implemented `MultiHitStack` allowing overlapping touch targets to participate simultaneously in Flutter's gesture arena without short-circuiting on the first hit.
+  - Call icons on `CallCard` and `TimelineWaveNavigator` now overlap across an 88px activation zone with complete coexistence: tapping calls the contact, swiping horizontally scrubs the liquid wave timeline, and swiping vertically scrolls the call history list.
+- **Standalone Decoupled Timeline Fog Region**:
+  - Extracted `TimelineFogRegion` into an independent background widget with dynamic gradient mist and aurora glow.
+  - Fog is pushed behind call cards and automatically disappears via `AnimatedOpacity` once the timeline wave manifests.
+- **Single-Install Onboarding Auto-Display**:
+  - Integrated persistent install check (`hasCompletedOnboarding`) so the onboarding flow only launches automatically on the very first install/launch, while remaining accessible anytime via Settings.
+
+### Changed
+- **Relative Touch Drag Tracking in Timeline Navigator**:
+  - Inward wave pull depth now tracks relative displacement from the touch down location (`_startDx - currentDx`), eliminating abrupt coordinate jumps when initiating drags from over the call icons.
+  - Increased activation zone to 88px, matching the background fog region.
+- **Immediate State Synchronization**:
+  - Pan updates directly sync wave depth and trigger state for instant responsiveness and haptic feedback.
+
+---
+
+## [1.4.0] - 2026-09-26
+
+### Added
+- **Direct Contact Deletion & Cleanup Cascades**:
+  - Added contact deletion actions in Contact Details and Settings with automatic cleanup across call records and cached contacts.
+- **Persistent One-Handed Dialpad Mode**:
+  - Added one-handed mode toggle with saved user preferences in `NumpadPreferences`.
+
+### Changed
+- **Seamless Gesture Swipe-to-Call**:
+  - Refined swipe-to-call to translate only the contact identity row with a circular badge, preserving metadata tabs and overall card structure.
+
+---
+
 ## [1.3.1] - 2026-09-26
 
 ### Changed

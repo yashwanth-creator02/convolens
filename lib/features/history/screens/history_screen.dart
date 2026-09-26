@@ -11,12 +11,14 @@ import '../../../core/database/app_database.dart';
 import '../../../core/logger/logger.dart';
 import '../../../core/services/contact_cache.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../core/widgets/multi_hit_stack.dart';
 import '../repository/calls_repository.dart';
 import '../utils/build_history_items.dart';
 import '../utils/year_index.dart';
 import '../widgets/history_call_list.dart';
 import '../widgets/history_filter_chips.dart';
 import '../widgets/history_permission_view.dart';
+import '../widgets/timeline_fog_region.dart';
 import '../widgets/timeline_wave_navigator.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -52,6 +54,9 @@ class _HistoryScreenState extends State<HistoryScreen>
     false,
   );
   final ValueNotifier<bool> _showDateChipNotifier = ValueNotifier<bool>(
+    false,
+  );
+  final ValueNotifier<bool> _isTimelineManifestedNotifier = ValueNotifier<bool>(
     false,
   );
 
@@ -188,6 +193,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     _visibleDateNotifier.dispose();
     _showScrollToTopNotifier.dispose();
     _showDateChipNotifier.dispose();
+    _isTimelineManifestedNotifier.dispose();
 
     super.dispose();
   }
@@ -645,15 +651,29 @@ class _HistoryScreenState extends State<HistoryScreen>
 
         return Material(
           type: MaterialType.transparency,
-          child: TimelineWaveNavigator(
-            items: _cachedItems,
-            yearIndex: _cachedYearIndex,
-            onCommit: _onCommitYear,
-            topInset: topInset,
-            bottomInset: bottomInset,
-            child: Stack(
-              children: [
-                CustomScrollView(
+          child: MultiHitStack(
+            children: [
+              // 1. Independent Fog Region (in the deep background, disappears when strip manifests)
+              if (_cachedYearIndex.isNotEmpty)
+                Positioned(
+                  right: 0,
+                  top: topInset + 12,
+                  bottom: bottomInset + 12,
+                  width: 88.0,
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _isTimelineManifestedNotifier,
+                    builder: (context, isManifested, _) {
+                      return IgnorePointer(
+                        child: TimelineFogRegion(
+                          visible: !isManifested,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+              // 2. Main Scroll Content (Call cards, headers, slivers)
+              CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
                 controller: widget.titleController.scrollController,
@@ -745,16 +765,20 @@ class _HistoryScreenState extends State<HistoryScreen>
                 ],
               ),
               ValueListenableBuilder<bool>(
-                valueListenable: _showDateChipNotifier,
-                builder: (context, showDateChip, _) {
-                  return ValueListenableBuilder<String?>(
-                    valueListenable: _visibleDateNotifier,
-                    builder: (context, visibleDate, _) {
-                      if (visibleDate == null) {
-                        return const SizedBox.shrink();
-                      }
+                valueListenable: _isTimelineManifestedNotifier,
+                builder: (context, isManifested, _) {
+                  return ValueListenableBuilder<bool>(
+                    valueListenable: _showDateChipNotifier,
+                    builder: (context, showDateChip, _) {
+                      return ValueListenableBuilder<String?>(
+                        valueListenable: _visibleDateNotifier,
+                        builder: (context, visibleDate, _) {
+                          if (visibleDate == null) {
+                            return const SizedBox.shrink();
+                          }
 
-                      final isVisible = showDateChip && visibleDate.isNotEmpty;
+                          final isVisible =
+                              showDateChip && visibleDate.isNotEmpty && !isManifested;
 
                       return Positioned(
                         top:
@@ -831,21 +855,27 @@ class _HistoryScreenState extends State<HistoryScreen>
                     },
                   );
                 },
-              ),
-              ValueListenableBuilder<bool>(
+              );
+            },
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: _isTimelineManifestedNotifier,
+            builder: (context, isManifested, _) {
+              return ValueListenableBuilder<bool>(
                 valueListenable: _showScrollToTopNotifier,
                 builder: (context, showScrollToTop, _) {
+                  final shouldShow = showScrollToTop && !isManifested;
                   return Positioned(
                     right: 21,
                     bottom: 100,
                     child: AnimatedSlide(
-                      offset: showScrollToTop
+                      offset: shouldShow
                           ? Offset.zero
                           : const Offset(2, 0),
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
                       child: AnimatedOpacity(
-                        opacity: showScrollToTop ? 1.0 : 0.0,
+                        opacity: shouldShow ? 1.0 : 0.0,
                         duration: const Duration(milliseconds: 250),
                         child: GlassContainer(
                           quality: GlassQuality.standard,
@@ -866,11 +896,24 @@ class _HistoryScreenState extends State<HistoryScreen>
                     ),
                   );
                 },
-              ),
-            ],
+              );
+            },
           ),
-        ),
-      );
+          // 5. Scroll Activation Wave Navigator (strictly wave logic & rail)
+          if (_cachedYearIndex.isNotEmpty)
+            Positioned.fill(
+              child: TimelineWaveNavigator(
+                items: _cachedItems,
+                yearIndex: _cachedYearIndex,
+                onCommit: _onCommitYear,
+                topInset: topInset,
+                bottomInset: bottomInset,
+                isManifestedNotifier: _isTimelineManifestedNotifier,
+              ),
+            ),
+        ],
+      ),
+    );
     },
   );
 }

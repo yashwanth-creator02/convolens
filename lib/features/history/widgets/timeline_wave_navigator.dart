@@ -1,10 +1,10 @@
 import 'dart:math';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/widgets/multi_hit_stack.dart';
 import '../utils/year_index.dart';
 
 enum WaveLevel { year, month, date }
@@ -86,6 +86,8 @@ class TimelineWaveNavigator extends StatefulWidget {
   final Widget? child;
   final double topInset;
   final double bottomInset;
+  final ValueNotifier<bool>? isManifestedNotifier;
+  final ValueChanged<bool>? onManifestedChanged;
 
   const TimelineWaveNavigator({
     super.key,
@@ -96,6 +98,8 @@ class TimelineWaveNavigator extends StatefulWidget {
     this.child,
     this.topInset = 0.0,
     this.bottomInset = 0.0,
+    this.isManifestedNotifier,
+    this.onManifestedChanged,
   });
 
   @override
@@ -107,8 +111,8 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   // ---------------------------------------------------------------------------
   // Geometry Thresholds
   // ---------------------------------------------------------------------------
-  // Width of the touch activation area along the screen's right edge
-  static const double _activationZoneWidth = 88.0;
+  // Width of the touch activation area along the screen's right edge (overlaps call buttons & fog region)
+  static const double _touchActivationWidth = 88.0;
 
   // Horizontal depth thresholds (distance pulled inward from the right bezel)
   static const double _abortThreshold = 22.0; // < 22px is the abort/cancel zone
@@ -126,7 +130,9 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   late final Ticker _ticker;
   Duration _lastElapsed = Duration.zero;
 
+  double? _startDx;
   double _currentDx = 0;
+  double _retractionStartDepth = 0;
   double _targetY = 0;
   double _availableHeight = 0;
   bool _isRetracting = false;
@@ -142,6 +148,16 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   List<MonthIndexEntry> _cachedMonthIndex = const [];
   List<DateIndexEntry> _cachedDateIndex = const [];
 
+  bool _wasManifested = false;
+
+  void _checkManifested(bool isManifested) {
+    if (_wasManifested != isManifested) {
+      _wasManifested = isManifested;
+      widget.isManifestedNotifier?.value = isManifested;
+      widget.onManifestedChanged?.call(isManifested);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -150,6 +166,7 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
 
   @override
   void dispose() {
+    _checkManifested(false);
     if (_ticker.isActive) {
       _ticker.stop();
     }
@@ -173,6 +190,7 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
         _isRetracting = false;
         _ticker.stop();
         _state.value = const _WaveState();
+        _checkManifested(false);
         return;
       }
     }
@@ -187,14 +205,19 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   void _updateWaveState(double displayY, double currentDx, double timeSeconds) {
     if (_availableHeight <= 0) return;
 
-    // Pull depth physically referenced to the screen's right bezel with sensitivity gain
-    double rawPullDepth =
-        ((_activationZoneWidth - currentDx) * 1.25).clamp(0.0, 320.0);
+    double rawPullDepth;
     if (_isRetracting) {
-      rawPullDepth *= _retractionProgress;
+      rawPullDepth =
+          (_retractionStartDepth * _retractionProgress).clamp(0.0, 320.0);
     } else {
-      rawPullDepth *= _entryProgress;
+      final double leftwardPull = _startDx != null
+          ? (_startDx! - currentDx).clamp(0.0, double.infinity)
+          : (_touchActivationWidth - currentDx).clamp(0.0, double.infinity);
+      rawPullDepth = (leftwardPull * 1.35).clamp(0.0, 320.0);
     }
+
+    final isManifested = rawPullDepth > _abortThreshold;
+    _checkManifested(isManifested);
 
     WaveLevel targetLevel;
     WaveNavState navState;
@@ -354,8 +377,14 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
     return (clampedY / slot).floor().clamp(0, count - 1);
   }
 
+  void _onPanDown(DragDownDetails details) {
+    _startDx = details.localPosition.dx;
+    _currentDx = details.localPosition.dx;
+  }
+
   void _onPanStart(DragStartDetails details, double availableHeight) {
     _availableHeight = availableHeight;
+    _startDx ??= details.localPosition.dx;
     _currentDx = details.localPosition.dx;
     _targetY = details.localPosition.dy.clamp(12.0, availableHeight - 12.0);
     _lastElapsed = Duration.zero;
@@ -380,11 +409,14 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
     _availableHeight = availableHeight;
     _currentDx = details.localPosition.dx;
     _targetY = details.localPosition.dy.clamp(12.0, availableHeight - 12.0);
+    _updateWaveState(_targetY, _currentDx, _lastElapsed.inMicroseconds / 1e6);
   }
 
   void _startRetraction() {
     _isRetracting = true;
     _retractionProgress = 1.0;
+    _retractionStartDepth = _state.value.pullDepth;
+    _startDx = null;
   }
 
   void _endDrag() {
@@ -392,6 +424,7 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
 
     // Abort if released in the abort zone (near screen edge)
     if (currentState.pullDepth < _abortThreshold) {
+      _checkManifested(false);
       _startRetraction();
       return;
     }
@@ -439,6 +472,7 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   }
 
   void _cancelDrag() {
+    _checkManifested(false);
     _startRetraction();
   }
 
@@ -462,134 +496,11 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
             (totalHeight - top - bottom).clamp(1.0, double.infinity);
 
         final stackChildren = <Widget>[
-          // 1. Atmospheric Fog Layer over the touch activation range (BEHIND child!)
-          Positioned(
-            right: 0,
-            top: top + 12,
-            bottom: bottom + 12,
-            width: _activationZoneWidth,
-            child: IgnorePointer(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(28),
-                  bottomLeft: Radius.circular(28),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-                  child: ValueListenableBuilder<_WaveState>(
-                    valueListenable: _state,
-                    builder: (context, state, _) {
-                      final isActive = state.active;
-
-                      Color activeColor = scheme.primary;
-                      if (isActive) {
-                        switch (state.level) {
-                          case WaveLevel.year:
-                            activeColor = waveTheme.yearStyle.waveColor;
-                            break;
-                          case WaveLevel.month:
-                            activeColor = waveTheme.monthStyle.waveColor;
-                            break;
-                          case WaveLevel.date:
-                            activeColor = waveTheme.dateStyle.waveColor;
-                            break;
-                        }
-                      }
-
-                      final mistBase =
-                          isDark ? const Color(0xFF94A3B8) : Colors.white;
-
-                      final usableH =
-                          (stripHeight - 24.0).clamp(1.0, double.infinity);
-                      final normalizedY =
-                          ((state.displayY - 12.0) / usableH)
-                                  .clamp(0.0, 1.0) *
-                              2.0 -
-                          1.0;
-
-                      return Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          // Base Fog Gradient (dissipates from transparent on the left to soft mist on the right)
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOutCubic,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                stops: const [0.0, 0.25, 0.55, 0.82, 1.0],
-                                colors: isDark
-                                    ? [
-                                        mistBase.withValues(alpha: 0.0),
-                                        mistBase.withValues(
-                                          alpha: isActive ? 0.05 : 0.02,
-                                        ),
-                                        mistBase.withValues(
-                                          alpha: isActive ? 0.12 : 0.06,
-                                        ),
-                                        mistBase.withValues(
-                                          alpha: isActive ? 0.22 : 0.12,
-                                        ),
-                                        mistBase.withValues(
-                                          alpha: isActive ? 0.32 : 0.18,
-                                        ),
-                                      ]
-                                    : [
-                                        Colors.white.withValues(alpha: 0.0),
-                                        Colors.white.withValues(
-                                          alpha: isActive ? 0.15 : 0.08,
-                                        ),
-                                        Colors.white.withValues(
-                                          alpha: isActive ? 0.35 : 0.22,
-                                        ),
-                                        Colors.white.withValues(
-                                          alpha: isActive ? 0.55 : 0.40,
-                                        ),
-                                        Colors.white.withValues(
-                                          alpha: isActive ? 0.72 : 0.58,
-                                        ),
-                                      ],
-                              ),
-                            ),
-                          ),
-
-                          // Interactive Aurora Glow inside the Fog (follows touch location)
-                          if (isActive)
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 120),
-                              curve: Curves.easeOutCubic,
-                              decoration: BoxDecoration(
-                                gradient: RadialGradient(
-                                  center: Alignment(1.0, normalizedY),
-                                  radius: 1.3,
-                                  colors: [
-                                    activeColor.withValues(
-                                      alpha: isDark ? 0.32 : 0.25,
-                                    ),
-                                    activeColor.withValues(
-                                      alpha: isDark ? 0.14 : 0.10,
-                                    ),
-                                    Colors.transparent,
-                                  ],
-                                  stops: const [0.0, 0.45, 1.0],
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 2. Child Content (e.g. Call Cards - rendered ON TOP of Fog!)
+          // 1. Child Content (if provided)
           if (widget.child != null)
             Positioned.fill(child: widget.child!),
 
-          // 3. Wave Painter Layer (rendered ON TOP of cards when pulled!)
+          // 2. Wave Painter Layer (rendered ON TOP when pulled!)
           Positioned(
             right: 0,
             top: top,
@@ -725,15 +636,15 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
             ),
           ),
 
-          // 5. Right-edge Touch Activation Detector
+          // 4. Right-edge Touch Activation Detector (overlaps call buttons & fog region)
           Positioned(
             right: 0,
             top: top,
             bottom: bottom,
-            width: _activationZoneWidth,
+            width: _touchActivationWidth,
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onTapDown: (_) => HapticFeedback.lightImpact(),
+              onHorizontalDragDown: _onPanDown,
               onHorizontalDragStart: (d) => _onPanStart(d, stripHeight),
               onHorizontalDragUpdate: (d) => _onPanUpdate(d, stripHeight),
               onHorizontalDragEnd: (_) => _endDrag(),
@@ -742,13 +653,7 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
           ),
         ];
 
-        return widget.child != null
-            ? Stack(children: stackChildren)
-            : SizedBox(
-                width: 320,
-                height: totalHeight,
-                child: Stack(children: stackChildren),
-              );
+        return MultiHitStack(fit: StackFit.expand, children: stackChildren);
       },
     );
   }
@@ -1221,3 +1126,4 @@ class _LiquidWavePainter extends CustomPainter {
     return oldDelegate.state != state;
   }
 }
+
