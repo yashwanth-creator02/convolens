@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - 2026-09-26
+
+### Added
+- **Multi-Step Onboarding & Permissions Walkthrough**:
+  - 3-step onboarding flow for first-time launch explaining app capabilities, timeline scrubbing, callback analytics, and privacy guarantees.
+  - Interactive permissions checklist requesting **Call Logs & Phone State**, **Device Contacts**, **Notifications & Alerts**, **Microphone / Voice Notes**, and **Exact Alarms**.
+  - One-tap "Grant All Required" action with real-time permission status updates and emerald green badges.
+  - Persistent state in Drift database (`hasCompletedOnboarding`) and "Welcome Guide & Setup" tile under Settings ➔ Permissions & Security to revisit anytime.
+
+### Changed
+- **Sub-Pixel Coordinate Alignment for Hero Photo Banners**:
+  - Aligned global screen coordinates (top offset `padding.top + kToolbarHeight + 16.0`, horizontal margin `16.0`, width `width - 32`, and height `(screenHeight * 0.32).clamp(220, 280)`) between `ContactDetailScreen` and `CallDetailScreen` so Hero photo banners transition with zero jump or distortion.
+- **Fluid Screen Shifting & Directional Tab Transitions**:
+  - Added `CupertinoPageTransitionsBuilder` across all platforms in `AppTheme` ensuring that pushing screens, popping back, and navigation flows have consistent, native-smooth horizontal slide physics.
+  - Upgraded `MainShell` tab switcher to `_SmoothSlideIndexedStack` that slides horizontally with `Curves.easeOutCubic` according to tab direction while preserving scroll offsets.
+  - Replaced `StretchRevealRoute` on contact search with smooth `CupertinoPageRoute`.
+
+### Fixed
+- **Resolved Blank Screen on Android Devices**:
+  - Removed unstable `io.flutter.embedding.android.EnableImpeller = true` meta-data flag from `AndroidManifest.xml` that caused black/blank screens on devices with incompatible Vulkan drivers.
+  - Replaced `backgroundColor: Colors.transparent` on root `Scaffold` with solid `activeTheme.scaffoldBackgroundColor` across all themes to eliminate window transparency fallback failures.
+  - Added defensive `try-catch` blocks around `LiquidGlassWidgets` and `NotificationService` initializers in `main.dart` with global `FlutterError.onError` handler to prevent cold-start freezes.
+
+---
+
 ## [1.2.0] - 2026-09-26
 
 ### Added

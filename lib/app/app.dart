@@ -10,6 +10,7 @@ import '../core/theme/app_theme_type.dart';
 import '../core/utils/normalize_number.dart';
 import '../features/contacts/screens/contact_detail_screen.dart';
 import '../features/history/screens/call_details_screen.dart';
+import '../features/onboarding/screens/onboarding_screen.dart';
 import 'main_shell.dart';
 
 class App extends StatefulWidget {
@@ -106,15 +107,16 @@ class _AppState extends State<App> {
     required AppThemeType themeType,
     ThemeMode themeMode = ThemeMode.dark,
     required AppDatabase db,
+    required bool hasCompletedOnboarding,
   }) {
     final activeTheme = AppTheme.getTheme(
       themeType == AppThemeType.system ? AppThemeType.dark : themeType,
     );
 
     return MaterialApp(
-      key: const ValueKey('PointAppMaterialApp'),
+      key: const ValueKey('ConvoLensAppMaterialApp'),
       navigatorKey: _navigatorKey,
-      title: 'Point',
+      title: 'ConvoLens',
       theme: themeType == AppThemeType.light
           ? activeTheme
           : AppTheme.getTheme(AppThemeType.light),
@@ -124,13 +126,18 @@ class _AppState extends State<App> {
       builder: (context, child) {
         return GlassNavigationShell(
           child: Scaffold(
-            backgroundColor: Colors.transparent,
+            backgroundColor: activeTheme.scaffoldBackgroundColor,
             resizeToAvoidBottomInset: false,
             body: child!,
           ),
         );
       },
-      home: MainShell(db: db),
+      home: hasCompletedOnboarding
+          ? MainShell(db: db)
+          : OnboardingScreen(
+              db: db,
+              onFinish: () => setState(() {}),
+            ),
     );
   }
 
@@ -143,6 +150,8 @@ class _AppState extends State<App> {
         final themeType = settings != null
             ? _themeFromString(settings.theme)
             : AppThemeType.dark;
+        final hasCompletedOnboarding =
+            settings?.hasCompletedOnboarding ?? false;
 
         return _buildAppWithTheme(
           themeType: themeType,
@@ -152,6 +161,7 @@ class _AppState extends State<App> {
                   ? ThemeMode.light
                   : ThemeMode.dark),
           db: _db,
+          hasCompletedOnboarding: hasCompletedOnboarding,
         );
       },
     );

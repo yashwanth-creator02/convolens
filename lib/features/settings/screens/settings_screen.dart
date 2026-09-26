@@ -16,6 +16,7 @@ import 'notification_troubleshooting_screen.dart';
 import 'permissions_screen.dart';
 import 'theme_screen.dart';
 import '../../contacts/screens/archived_contacts_screen.dart';
+import '../../onboarding/screens/onboarding_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -286,6 +287,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Navigator.of(context).push(
                                 CupertinoPageRoute(
                                   builder: (context) => const PermissionsScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.explore_outlined, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'Welcome Guide & Setup',
+                              infoTooltip:
+                                  'Review initial app onboarding, features, and permissions guide',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassListTile.chevron,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) => OnboardingScreen(
+                                    db: widget.db,
+                                    onFinish: () => Navigator.of(context).pop(),
+                                    isRevisit: true,
+                                  ),
                                 ),
                               );
                             },

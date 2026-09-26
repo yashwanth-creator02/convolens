@@ -37,8 +37,14 @@ An intelligent, glassmorphism-styled Call History, Relationship Analytics, and P
 
 ### 💎 5. Liquid Glass Design System
 - Built on `liquid_glass_widgets` featuring standard glassmorphic containers, morphing modal sheets, floating glass app bars, and responsive bottom tab bars.
-- **Fluid Tab Transitions**: Smooth 220ms crossfade between tabs with cached scroll offsets (`_FadeIndexedStack`).
+- **Directional Slide Tab Transitions**: Smooth horizontal sliding transitions between tabs matching forward/back navigation physics with cached scroll offsets (`_SmoothSlideIndexedStack`).
+- **Universal Cupertino Page Transitions**: Smooth, consistent slide transitions across all routes matching the top-left back button.
 - **Interactive Notifications**: Direct "Call Back" and "Message" action buttons with deep link routing to call and contact details.
+
+### 🚀 6. Multi-Step Onboarding & Permissions Hub
+- **Interactive Setup Walkthrough**: 3-step onboarding experience explaining timeline navigation, relationship analytics, and privacy guarantees.
+- **All-in-One Permissions Checklist**: Direct, interactive permission requests for Call Logs, Contacts, Notifications, Microphone, and Exact Alarms with "Grant All Required" capability.
+- **Settings Revisit**: Accessible anytime via Settings ➔ Permissions & Security ➔ Welcome Guide & Setup.
 
 ---
 

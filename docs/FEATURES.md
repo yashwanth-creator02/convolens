@@ -112,14 +112,35 @@ Create a digital business card and share details effortlessly.
 
 ---
 
-## 💎 6. Liquid Glass UI & Fluid Navigation
+## 🚀 6. Multi-Step Onboarding & Permissions Hub
+
+- **Guided 3-Step Walkthrough**:
+  - Automatically launches on first app open, walking new users through timeline navigation, callback latency analytics, and privacy commitments.
+- **Interactive Permissions Checklist**:
+  - Live permission cards with emerald green check badges for:
+    - **Call Logs & Phone Access**: Enables chronological call syncing and callback latency computations.
+    - **Device Contacts**: Matches callers with device contacts and provides duplicate detection.
+    - **Notifications**: Enables missed call return alerts, streak milestones, and scheduled reminders.
+    - **Microphone & Voice Notes**: Enables recording inline voice notes and scanning call recordings.
+    - **Exact Alarms**: Ensures scheduled follow-up notifications arrive at the exact minute.
+  - **"Grant All Required" Action**: Sequentially requests essential permissions in one tap.
+- **Revisit Anytime**:
+  - Accessible directly in **Settings ➔ Permissions & Security ➔ Welcome Guide & Setup**.
+
+---
+
+## 💎 7. Liquid Glass UI & Fluid Navigation
 
 Powered by `liquid_glass_widgets`:
-- **Fluid Shell Transitions (`_FadeIndexedStack`)**:
-  - Tab navigation features a 220ms ease-out crossfade transition while maintaining underlying list scroll positions.
-- **Glass App Bar**: Floating glass title header with smooth collapse/expand animations.
-- **Glass Tab Bar**: Floating bottom navigation bar with contextual action buttons.
+- **Directional Slide Tab Transitions (`_SmoothSlideIndexedStack`)**:
+  - Tab navigation features a 250ms directional slide-and-fade transition with `Curves.easeOutCubic` matching native forward/backward navigation physics while maintaining underlying list scroll positions.
+- **Universal Cupertino Page Transitions**:
+  - All routes across the application utilize `CupertinoPageTransitionsBuilder`, providing consistent, native-smooth horizontal slide gestures matching the top-left back button.
+- **Sub-Pixel Coordinate-Aligned Hero Banners**:
+  - `ContactDetailScreen` and `CallDetailScreen` share identical physical screen coordinates (`top: padding.top + kToolbarHeight + 16.0`, `horizontal: 16.0`, `height: (screenHeight * 0.32).clamp(220, 280)`), enabling seamless Hero image morphs without jumping or distortion.
+- **Glass App Bar & Tab Bar**: Floating glass title headers and bottom navigation bars with contextual action buttons.
 - **Morphing Modal Sheets**: Smooth morphing animations for modal sheets originating from tap anchors.
 - **Shader & Repaint Optimizations**:
   - Blurred photo banner backdrops wrapped in `RepaintBoundary` to eliminate GPU canvas redraws during scroll.
-  - `addRepaintBoundaries: true` enabled on sliver lists.
+  - Solid background colors applied to root scaffolds to prevent window transparency rendering failures.
+

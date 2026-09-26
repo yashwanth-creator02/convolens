@@ -55,6 +55,9 @@ class Settings extends Table {
 
   IntColumn get lastFavoriteInactivityTimestamp => integer().nullable()();
 
+  BoolColumn get hasCompletedOnboarding =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

@@ -770,6 +770,21 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         type: DriftSqlType.int,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _hasCompletedOnboardingMeta =
+      const VerificationMeta('hasCompletedOnboarding');
+  @override
+  late final GeneratedColumn<bool> hasCompletedOnboarding =
+      GeneratedColumn<bool>(
+        'has_completed_onboarding',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("has_completed_onboarding" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -794,6 +809,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     favoriteInactivityNotifications,
     missedCallAlerts,
     lastFavoriteInactivityTimestamp,
+    hasCompletedOnboarding,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -984,6 +1000,15 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         ),
       );
     }
+    if (data.containsKey('has_completed_onboarding')) {
+      context.handle(
+        _hasCompletedOnboardingMeta,
+        hasCompletedOnboarding.isAcceptableOrUnknown(
+          data['has_completed_onboarding']!,
+          _hasCompletedOnboardingMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1081,6 +1106,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.int,
         data['${effectivePrefix}last_favorite_inactivity_timestamp'],
       ),
+      hasCompletedOnboarding: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_completed_onboarding'],
+      )!,
     );
   }
 
@@ -1113,6 +1142,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   final bool favoriteInactivityNotifications;
   final bool missedCallAlerts;
   final int? lastFavoriteInactivityTimestamp;
+  final bool hasCompletedOnboarding;
   const Setting({
     required this.id,
     required this.syncEnabled,
@@ -1136,6 +1166,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     required this.favoriteInactivityNotifications,
     required this.missedCallAlerts,
     this.lastFavoriteInactivityTimestamp,
+    required this.hasCompletedOnboarding,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1174,6 +1205,7 @@ class Setting extends DataClass implements Insertable<Setting> {
         lastFavoriteInactivityTimestamp,
       );
     }
+    map['has_completed_onboarding'] = Variable<bool>(hasCompletedOnboarding);
     return map;
   }
 
@@ -1207,6 +1239,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           lastFavoriteInactivityTimestamp == null && nullToAbsent
           ? const Value.absent()
           : Value(lastFavoriteInactivityTimestamp),
+      hasCompletedOnboarding: Value(hasCompletedOnboarding),
     );
   }
 
@@ -1252,6 +1285,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       lastFavoriteInactivityTimestamp: serializer.fromJson<int?>(
         json['lastFavoriteInactivityTimestamp'],
       ),
+      hasCompletedOnboarding: serializer.fromJson<bool>(
+        json['hasCompletedOnboarding'],
+      ),
     );
   }
   @override
@@ -1288,6 +1324,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       'lastFavoriteInactivityTimestamp': serializer.toJson<int?>(
         lastFavoriteInactivityTimestamp,
       ),
+      'hasCompletedOnboarding': serializer.toJson<bool>(hasCompletedOnboarding),
     };
   }
 
@@ -1314,6 +1351,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     bool? favoriteInactivityNotifications,
     bool? missedCallAlerts,
     Value<int?> lastFavoriteInactivityTimestamp = const Value.absent(),
+    bool? hasCompletedOnboarding,
   }) => Setting(
     id: id ?? this.id,
     syncEnabled: syncEnabled ?? this.syncEnabled,
@@ -1343,6 +1381,8 @@ class Setting extends DataClass implements Insertable<Setting> {
     lastFavoriteInactivityTimestamp: lastFavoriteInactivityTimestamp.present
         ? lastFavoriteInactivityTimestamp.value
         : this.lastFavoriteInactivityTimestamp,
+    hasCompletedOnboarding:
+        hasCompletedOnboarding ?? this.hasCompletedOnboarding,
   );
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
@@ -1402,6 +1442,9 @@ class Setting extends DataClass implements Insertable<Setting> {
           data.lastFavoriteInactivityTimestamp.present
           ? data.lastFavoriteInactivityTimestamp.value
           : this.lastFavoriteInactivityTimestamp,
+      hasCompletedOnboarding: data.hasCompletedOnboarding.present
+          ? data.hasCompletedOnboarding.value
+          : this.hasCompletedOnboarding,
     );
   }
 
@@ -1432,8 +1475,9 @@ class Setting extends DataClass implements Insertable<Setting> {
           )
           ..write('missedCallAlerts: $missedCallAlerts, ')
           ..write(
-            'lastFavoriteInactivityTimestamp: $lastFavoriteInactivityTimestamp',
+            'lastFavoriteInactivityTimestamp: $lastFavoriteInactivityTimestamp, ',
           )
+          ..write('hasCompletedOnboarding: $hasCompletedOnboarding')
           ..write(')'))
         .toString();
   }
@@ -1462,6 +1506,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     favoriteInactivityNotifications,
     missedCallAlerts,
     lastFavoriteInactivityTimestamp,
+    hasCompletedOnboarding,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1490,7 +1535,8 @@ class Setting extends DataClass implements Insertable<Setting> {
               this.favoriteInactivityNotifications &&
           other.missedCallAlerts == this.missedCallAlerts &&
           other.lastFavoriteInactivityTimestamp ==
-              this.lastFavoriteInactivityTimestamp);
+              this.lastFavoriteInactivityTimestamp &&
+          other.hasCompletedOnboarding == this.hasCompletedOnboarding);
 }
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
@@ -1516,6 +1562,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<bool> favoriteInactivityNotifications;
   final Value<bool> missedCallAlerts;
   final Value<int?> lastFavoriteInactivityTimestamp;
+  final Value<bool> hasCompletedOnboarding;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.syncEnabled = const Value.absent(),
@@ -1539,6 +1586,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.favoriteInactivityNotifications = const Value.absent(),
     this.missedCallAlerts = const Value.absent(),
     this.lastFavoriteInactivityTimestamp = const Value.absent(),
+    this.hasCompletedOnboarding = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1563,6 +1611,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.favoriteInactivityNotifications = const Value.absent(),
     this.missedCallAlerts = const Value.absent(),
     this.lastFavoriteInactivityTimestamp = const Value.absent(),
+    this.hasCompletedOnboarding = const Value.absent(),
   });
   static Insertable<Setting> custom({
     Expression<int>? id,
@@ -1587,6 +1636,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<bool>? favoriteInactivityNotifications,
     Expression<bool>? missedCallAlerts,
     Expression<int>? lastFavoriteInactivityTimestamp,
+    Expression<bool>? hasCompletedOnboarding,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1619,6 +1669,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (missedCallAlerts != null) 'missed_call_alerts': missedCallAlerts,
       if (lastFavoriteInactivityTimestamp != null)
         'last_favorite_inactivity_timestamp': lastFavoriteInactivityTimestamp,
+      if (hasCompletedOnboarding != null)
+        'has_completed_onboarding': hasCompletedOnboarding,
     });
   }
 
@@ -1645,6 +1697,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Value<bool>? favoriteInactivityNotifications,
     Value<bool>? missedCallAlerts,
     Value<int?>? lastFavoriteInactivityTimestamp,
+    Value<bool>? hasCompletedOnboarding,
   }) {
     return SettingsCompanion(
       id: id ?? this.id,
@@ -1676,6 +1729,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       lastFavoriteInactivityTimestamp:
           lastFavoriteInactivityTimestamp ??
           this.lastFavoriteInactivityTimestamp,
+      hasCompletedOnboarding:
+          hasCompletedOnboarding ?? this.hasCompletedOnboarding,
     );
   }
 
@@ -1758,6 +1813,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
         lastFavoriteInactivityTimestamp.value,
       );
     }
+    if (hasCompletedOnboarding.present) {
+      map['has_completed_onboarding'] = Variable<bool>(
+        hasCompletedOnboarding.value,
+      );
+    }
     return map;
   }
 
@@ -1788,8 +1848,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           )
           ..write('missedCallAlerts: $missedCallAlerts, ')
           ..write(
-            'lastFavoriteInactivityTimestamp: $lastFavoriteInactivityTimestamp',
+            'lastFavoriteInactivityTimestamp: $lastFavoriteInactivityTimestamp, ',
           )
+          ..write('hasCompletedOnboarding: $hasCompletedOnboarding')
           ..write(')'))
         .toString();
   }
@@ -5146,6 +5207,7 @@ typedef $$SettingsTableCreateCompanionBuilder =
       Value<bool> favoriteInactivityNotifications,
       Value<bool> missedCallAlerts,
       Value<int?> lastFavoriteInactivityTimestamp,
+      Value<bool> hasCompletedOnboarding,
     });
 typedef $$SettingsTableUpdateCompanionBuilder =
     SettingsCompanion Function({
@@ -5171,6 +5233,7 @@ typedef $$SettingsTableUpdateCompanionBuilder =
       Value<bool> favoriteInactivityNotifications,
       Value<bool> missedCallAlerts,
       Value<int?> lastFavoriteInactivityTimestamp,
+      Value<bool> hasCompletedOnboarding,
     });
 
 class $$SettingsTableFilterComposer
@@ -5289,6 +5352,11 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<int> get lastFavoriteInactivityTimestamp => $composableBuilder(
     column: $table.lastFavoriteInactivityTimestamp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hasCompletedOnboarding => $composableBuilder(
+    column: $table.hasCompletedOnboarding,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5413,6 +5481,11 @@ class $$SettingsTableOrderingComposer
         column: $table.lastFavoriteInactivityTimestamp,
         builder: (column) => ColumnOrderings(column),
       );
+
+  ColumnOrderings<bool> get hasCompletedOnboarding => $composableBuilder(
+    column: $table.hasCompletedOnboarding,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsTableAnnotationComposer
@@ -5523,6 +5596,11 @@ class $$SettingsTableAnnotationComposer
         column: $table.lastFavoriteInactivityTimestamp,
         builder: (column) => column,
       );
+
+  GeneratedColumn<bool> get hasCompletedOnboarding => $composableBuilder(
+    column: $table.hasCompletedOnboarding,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsTableTableManager
@@ -5577,6 +5655,7 @@ class $$SettingsTableTableManager
                 Value<bool> missedCallAlerts = const Value.absent(),
                 Value<int?> lastFavoriteInactivityTimestamp =
                     const Value.absent(),
+                Value<bool> hasCompletedOnboarding = const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
                 syncEnabled: syncEnabled,
@@ -5602,6 +5681,7 @@ class $$SettingsTableTableManager
                 missedCallAlerts: missedCallAlerts,
                 lastFavoriteInactivityTimestamp:
                     lastFavoriteInactivityTimestamp,
+                hasCompletedOnboarding: hasCompletedOnboarding,
               ),
           createCompanionCallback:
               ({
@@ -5629,6 +5709,7 @@ class $$SettingsTableTableManager
                 Value<bool> missedCallAlerts = const Value.absent(),
                 Value<int?> lastFavoriteInactivityTimestamp =
                     const Value.absent(),
+                Value<bool> hasCompletedOnboarding = const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
                 syncEnabled: syncEnabled,
@@ -5654,6 +5735,7 @@ class $$SettingsTableTableManager
                 missedCallAlerts: missedCallAlerts,
                 lastFavoriteInactivityTimestamp:
                     lastFavoriteInactivityTimestamp,
+                hasCompletedOnboarding: hasCompletedOnboarding,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

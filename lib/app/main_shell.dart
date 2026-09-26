@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../shared/glass_action_ids.dart';
-import '../shared/utils/stretch_reveal_route.dart';
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
 import '../features/analytics/repository/insight_checker.dart';
@@ -203,7 +202,7 @@ class _MainShellState extends State<MainShell> {
     if (_contactSearchOpen) return;
     setState(() => _contactSearchOpen = true);
     await Navigator.of(context).push(
-      StretchRevealRoute(
+      CupertinoPageRoute(
         builder: (context) => ContactSearchScreen(db: _db),
       ),
     );
@@ -422,7 +421,7 @@ class _MainShellState extends State<MainShell> {
 
       appBar: _buildAppBar(),
 
-      body: _FadeIndexedStack(
+      body: _SmoothSlideIndexedStack(
         index: _selectedIndex,
         children: _screens,
       ),
@@ -432,42 +431,45 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-class _FadeIndexedStack extends StatefulWidget {
+class _SmoothSlideIndexedStack extends StatefulWidget {
   final int index;
   final List<Widget> children;
 
-  const _FadeIndexedStack({
+  const _SmoothSlideIndexedStack({
     required this.index,
     required this.children,
   });
 
   @override
-  State<_FadeIndexedStack> createState() => _FadeIndexedStackState();
+  State<_SmoothSlideIndexedStack> createState() =>
+      _SmoothSlideIndexedStackState();
 }
 
-class _FadeIndexedStackState extends State<_FadeIndexedStack>
+class _SmoothSlideIndexedStackState extends State<_SmoothSlideIndexedStack>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
+  bool _isForward = true;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 250),
     )..value = 1.0;
 
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeOutCubic,
+      curve: const Interval(0.0, 0.85, curve: Curves.easeOut),
     );
   }
 
   @override
-  void didUpdateWidget(covariant _FadeIndexedStack oldWidget) {
+  void didUpdateWidget(covariant _SmoothSlideIndexedStack oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.index != widget.index) {
+      _isForward = widget.index > oldWidget.index;
       _controller.forward(from: 0.0);
     }
   }
@@ -480,8 +482,21 @@ class _FadeIndexedStackState extends State<_FadeIndexedStack>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final sign = _isForward ? 1.0 : -1.0;
+        final t = Curves.easeOutCubic.transform(_controller.value);
+        final slideOffsetX = (1.0 - t) * 36.0 * sign;
+
+        return Transform.translate(
+          offset: Offset(slideOffsetX, 0.0),
+          child: Opacity(
+            opacity: _fadeAnimation.value,
+            child: child,
+          ),
+        );
+      },
       child: IndexedStack(
         index: widget.index,
         children: widget.children,

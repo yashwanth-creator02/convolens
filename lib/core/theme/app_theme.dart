@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'app_theme_type.dart';
@@ -7,19 +8,34 @@ import 'themes/light_theme.dart';
 import 'themes/purple_theme.dart';
 
 class AppTheme {
+  static const _pageTransitionsTheme = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+    },
+  );
+
   static ThemeData getTheme(AppThemeType type) {
+    ThemeData base;
     switch (type) {
       case AppThemeType.light:
-        return LightTheme.data;
+        base = LightTheme.data;
+        break;
 
       case AppThemeType.dark:
-        return DarkTheme.data;
+        base = DarkTheme.data;
+        break;
 
       case AppThemeType.purple:
-        return PurpleTheme.data;
+        base = PurpleTheme.data;
+        break;
 
       case AppThemeType.cosmo:
-        return CosmoTheme.data;
+        base = CosmoTheme.data;
+        break;
 
       case AppThemeType.system:
         throw ArgumentError(
@@ -27,5 +43,6 @@ class AppTheme {
           'Use ThemeMode.system in MaterialApp.',
         );
     }
+    return base.copyWith(pageTransitionsTheme: _pageTransitionsTheme);
   }
 }

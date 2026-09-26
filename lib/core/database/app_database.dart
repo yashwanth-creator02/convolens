@@ -41,7 +41,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration {
@@ -125,6 +125,10 @@ class AppDatabase extends _$AppDatabase {
           await m.addColumn(settings, settings.favoriteInactivityNotifications);
           await m.addColumn(settings, settings.missedCallAlerts);
           await m.addColumn(settings, settings.lastFavoriteInactivityTimestamp);
+        }
+
+        if (from < 17) {
+          await m.addColumn(settings, settings.hasCompletedOnboarding);
         }
       },
 
@@ -422,6 +426,18 @@ class AppDatabase extends _$AppDatabase {
     )..where((s) => s.id.equals(0))).getSingle();
 
     return row.syncEnabled;
+  }
+
+  Future<bool> hasCompletedOnboarding() async {
+    final row =
+        await (select(settings)..where((s) => s.id.equals(0))).getSingle();
+    return row.hasCompletedOnboarding;
+  }
+
+  Future<void> setOnboardingCompleted(bool completed) async {
+    await (update(settings)..where((s) => s.id.equals(0))).write(
+      SettingsCompanion(hasCompletedOnboarding: Value(completed)),
+    );
   }
 
   Future<int> getLastNotifiedStreak() async {

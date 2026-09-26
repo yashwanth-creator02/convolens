@@ -321,12 +321,17 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
               ],
             ),
             body: SafeArea(
+              top: false,
               bottom: false,
               child: Column(
                 children: [
-                  const SizedBox(height: kToolbarHeight),
+                  SizedBox(
+                    height: MediaQuery.of(context).padding.top +
+                        kToolbarHeight +
+                        8,
+                  ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 8.0),
+                    padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
                     child: ContactHeader(
                       displayName: widget.displayName,
                       displayNumber: widget.displayNumber,
