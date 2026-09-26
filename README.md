@@ -6,9 +6,11 @@ An intelligent, glassmorphism-styled Call History, Relationship Analytics, and P
 
 ## 🌟 Features Overview
 
-### 📜 1. Call History & Multi-Tier Timeline Wave
+### 📜 1. Call History & Precision Timeline
 - **Interactive Timeline Wave Navigator**: Scrub seamlessly through thousands of call logs by **Year**, **Month**, and **Date**.
-- **Dynamic Wave Labels**: Displays real-time year, month, and day markers along the liquid wave crest with pop-out badge previews.
+- **Dynamic Wave Labels & Pop-Out Preview**: Displays real-time year, month, and day markers along the liquid wave crest with pop-out badge previews.
+- **Floating Date Jumper Sheet**: Tap the floating date badge anytime to open an interactive modal displaying available years and months from actual call history, plus an instant "Today" shortcut to jump directly without scroll lag.
+- **In-Memory Filter Chips**: Instant pill filter bar below the title for zero-latency switching between **All**, **Missed**, **Incoming**, **Outgoing**, and **Unknown** calls with live count badges.
 - **Rich Call Cards**: Displays call type (incoming, outgoing, missed), duration, timestamp, notes preview, tags, reminder badges, and attachment counters.
 - **Instant Search & Jump**: Fast query searching and estimated scrolling jumps.
 
@@ -16,13 +18,17 @@ An intelligent, glassmorphism-styled Call History, Relationship Analytics, and P
 - **Relationship Web Painter**: Interactive node-graph visualizing communication strength, call density, and contact connections.
 - **Contribution Heatmaps & Calendar Grids**: GitHub-style activity heatmaps showing call distribution across weeks and months.
 - **Hourly Distribution Clock**: 24-hour clock face visualization indicating peak calling hours.
+- **Callback Latency & Responsiveness Engine**: Evaluates 24-hour missed call follow-ups with E.164 phone normalization, calculating average callback latency, missed call return rates, call initiation balance split (% initiated by you vs. contact), and peak calling rhythm.
+- **Optimal Contact Calling Times**: Contact detail screen displays automated "Best Time to Call" recommendation banners based on historical answering patterns.
 - **Streak Tracking & Weekly Insights**: Automated notifications celebrating communication streaks and weekly summaries.
 
 ### 👤 3. Contact Intelligence & Personal CRM
+- **Interactive Swipe Actions**: Direct quick actions from the contacts list: Swipe Right to Call (emerald green) and Swipe Left to Message/SMS (accent blue) using non-destructive spring physics and haptics.
+- **Permanent Glass Alphabet Scrubber**: Semi-transparent, tactile alphabet scrubber on the right bezel with continuous drag tracking and precomputed letter offset jumping.
 - **Real-Time Duplicate Detection & Autocomplete Dropdown**: Live duplicate checking and instant autocomplete suggestions across First Name, Last Name, Phone Number, Email, Company, and Job Title fields when creating a contact. Tapping any matched contact seamlessly redirects to the pre-filled Edit Contact screen.
-- **Detailed Contact Profiles**: Custom notes, tags, color coding, preferred communication methods, and best time to call.
+- **Detailed Contact Profiles & Hero Morphs**: Custom notes, tags, color coding, preferred communication methods, and synchronized Hero photo banners between call details and contact profiles.
 - **Social & Web Links**: Custom link attachments for contacts (LinkedIn, X, WhatsApp, etc.).
-- **Archived & Favorite Contacts**: Organize contacts into favorites or archive inactive records.
+- **Archived & Favorite Contacts**: Organize contacts into favorites or archive inactive records (accessible via Settings ➔ Sync & Storage ➔ Archived Contacts).
 - **Contact QR Generator**: Generate custom QR codes for individual contacts.
 
 ### 💳 4. Digital Profile & QR Sharing
@@ -31,6 +37,8 @@ An intelligent, glassmorphism-styled Call History, Relationship Analytics, and P
 
 ### 💎 5. Liquid Glass Design System
 - Built on `liquid_glass_widgets` featuring standard glassmorphic containers, morphing modal sheets, floating glass app bars, and responsive bottom tab bars.
+- **Fluid Tab Transitions**: Smooth 220ms crossfade between tabs with cached scroll offsets (`_FadeIndexedStack`).
+- **Interactive Notifications**: Direct "Call Back" and "Message" action buttons with deep link routing to call and contact details.
 
 ---
 

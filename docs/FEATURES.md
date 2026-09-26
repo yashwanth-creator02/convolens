@@ -1,34 +1,48 @@
 # ✨ Feature Documentation
 
-This document provides an in-depth explanation of the primary features and user experience modules in **ConvoLens**.
+This document provides an in-depth explanation of the primary features, analytics engines, and user experience modules in **ConvoLens**.
 
 ---
 
-## 📜 1. Call History & Multi-Tier Timeline Wave Navigator
+## 📜 1. Call History & Precision Timeline
 
-The Call History module provides an intuitive timeline interface for browsing call records.
+The Call History module provides an intuitive timeline interface for browsing, filtering, and jumping across thousands of call records with zero latency.
 
 ### Key Capabilities
-- **Multi-Tier Scrubbing**:
+- **Multi-Tier Wave Scrubbing**:
   - Pulling inward from the right bezel activates the liquid wave navigator.
   - **Tier 1 (Year)**: Dragging near the edge selects the year.
   - **Tier 2 (Month)**: Dragging further inward expands month selection (`Jan`, `Feb`, etc.).
   - **Tier 3 (Date)**: Pulling deep into the screen isolates individual dates (`1`, `15`, `28`).
-- **Dynamic Wave Canvas**: Real-time canvas painter (`_LiquidWavePainter`) renders fluid wave crests with animated text markers.
-- **Pop-Out Preview Badge**: A floating badge projects to the left of your thumb, giving real-time feedback on the currently selected year, month, or date before releasing to jump.
-- **Call Cards**:
-  - Displays contact name/number, avatar thumbnail, call type badge (incoming, outgoing, missed), timestamp, and duration.
-  - Shows custom notes, tags, audio recording attachments, and scheduled follow-up reminders.
+- **Dynamic Wave Canvas (`_LiquidWavePainter`)**: Real-time canvas painter renders fluid wave crests with animated text markers and physical spring damping.
+- **Pop-Out Preview Badge**: A floating glass badge projects to the left of your thumb, giving real-time feedback on the currently selected year, month, or date before releasing to jump.
+- **Floating Date Jumper Sheet**:
+  - Tapping the floating date indicator opens an interactive glass bottom sheet displaying available years and months populated directly from actual call history.
+  - Includes a quick **"Today"** shortcut to instantly jump to the newest records without scroll lag or animation stutter.
+- **In-Memory History Filter Chips**:
+  - Pill filter bar anchored below the large title for instantaneous switching between **All**, **Missed**, **Incoming**, **Outgoing**, and **Unknown** calls.
+  - Live count badges update reactively without issuing additional database round-trips.
+- **Rich Call Cards**:
+  - Displays contact name/number, avatar thumbnail, call type badge, timestamp, and duration.
+  - Shows custom notes, color tags, audio attachments, and scheduled follow-up reminders.
 
 ---
 
-## 📊 2. Relationship Analytics & Visualizations
+## 📊 2. Relationship Analytics & Responsiveness Engine
 
-The Analytics dashboard transforms call history into interactive visual data.
+The Analytics dashboard transforms raw call logs into actionable relationship metrics and interactive visualizations.
 
-### Key Visualizations
+### Key Visualizations & Engines
+- **Callback Latency & Responsiveness Engine**:
+  - Evaluates missed call follow-ups within 24 hours using phone number normalization (E.164 and national formats).
+  - Computes **Average Callback Latency** (how quickly missed calls are returned).
+  - Tracks **Missed Call Return Rate %** (percentage of missed calls successfully called back).
+  - Displays **Call Initiation Balance** (visual split bar comparing calls initiated by you vs. the contact).
+- **Optimal Contact Calling Times ("Best Time to Call")**:
+  - Analyzes historical call log answer patterns by weekday and 2-hour time intervals.
+  - Displays an automated recommendation banner on the Contact Detail screen (e.g., *"Wednesdays, 4 PM – 6 PM"*).
 - **Relationship Web Painter (`RelationshipWebPainter`)**:
-  - Node-graph visualization displaying your top contacts as interconnected nodes.
+  - Interactive node-graph visualizing your top contacts as interconnected nodes.
   - Node sizes reflect total interaction volume, while connecting lines represent interaction frequency and strength.
 - **Contribution Heatmaps & Calendar Grids**:
   - GitHub-style color heatmaps displaying daily call volume across months and weeks.
@@ -37,20 +51,29 @@ The Analytics dashboard transforms call history into interactive visual data.
   - A 24-hour radial clock face highlighting peak calling hours during the day.
 - **Communication Streaks & Insights**:
   - Tracks consecutive daily call activity and sends streak milestone notifications.
-  - Automated weekly summary statistics.
+  - Automated weekly summary statistics with percentage scaling for answer rates and weekend volume.
 
 ---
 
 ## 👤 3. Contact Intelligence & Personal CRM
 
-Manage contacts beyond phonebook defaults with custom relationship metadata.
+Manage contacts beyond phonebook defaults with custom relationship metadata and effortless gesture controls.
 
 ### Capabilities
+- **Interactive Contact Swipe Actions**:
+  - Direct quick actions from the contacts list using `Dismissible` with non-destructive spring-back physics and haptic feedback.
+  - **Swipe Right (Emerald Green)**: Instantly initiate a phone call.
+  - **Swipe Left (Accent Blue)**: Open SMS/messaging.
+- **Permanent Glass Alphabet Scrubber**:
+  - Semi-transparent, tactile alphabet scrubber resting along the right screen bezel (blooms to full opacity on touch).
+  - Precomputes relative section offsets to jump smoothly to any letter header without blocking scrolling or frame drops.
 - **Real-Time Duplicate Detection & Autocomplete Dropdown**:
   - Live query evaluation across First Name, Last Name, Phone Number, Email, Company, and Job Title fields as you type.
   - Floating liquid glass dropdown showing matching contacts with high-res avatars/colored initials, matched attributes, and quick action chips.
   - Tap-to-edit workflow: Tapping any suggestion redirects directly to `EditContactScreen` pre-populated with that contact's existing details.
   - One-tap dismissible header to let users continue creating a separate contact if desired.
+- **Synchronized Photo Banner Hero Morphs**:
+  - Coordinated Hero tags (`contact_banner_${normalizedNumber}`) and matching clamp dimensions (`(height * 0.32).clamp(220, 280)`) between Call Details and Contact Details for seamless screen transitions.
 - **Device Contact Synchronization**: Automatically merges local phone contacts with SQLite interaction history via `flutter_contacts`.
 - **Contact Details & Notes**: Add rich notes, meeting context, and internal background information to any contact.
 - **Custom Color Tags**: Assign custom color-coded labels (e.g. `Client`, `VIP`, `Family`, `Work`).
@@ -58,7 +81,7 @@ Manage contacts beyond phonebook defaults with custom relationship metadata.
   - Set preferred contact method (Call, WhatsApp, Email, SMS).
   - Specify best time of day to reach the contact.
 - **Social & Web Links**: Attach social links (LinkedIn, X, GitHub, Website) to contact cards.
-- **Archived & Favorite Lists**: Keep active contact lists focused by archiving inactive entries.
+- **Archived & Favorite Lists**: Keep active contact lists focused by archiving inactive entries (accessible directly in Settings).
 
 ---
 
@@ -76,9 +99,27 @@ Create a digital business card and share details effortlessly.
 
 ---
 
-## 💎 5. Liquid Glass UI System
+## 🔔 5. Notifications & Deep Linking
+
+- **Actionable Notifications**:
+  - System notifications for missed calls include interactive action buttons for **Call Back** and **Message**.
+- **Deep Linking Navigation**:
+  - Tapping a notification or its action buttons launches directly into the relevant `CallDetailScreen` or `ContactDetailScreen` via compound payload resolution.
+- **Streaks & Reminders**:
+  - Daily communication streak tracking and follow-up reminders.
+- **Diagnostics**:
+  - Built-in `NotificationTroubleshootingScreen` under Settings for testing permissions and validating channel dispatch.
+
+---
+
+## 💎 6. Liquid Glass UI & Fluid Navigation
 
 Powered by `liquid_glass_widgets`:
+- **Fluid Shell Transitions (`_FadeIndexedStack`)**:
+  - Tab navigation features a 220ms ease-out crossfade transition while maintaining underlying list scroll positions.
 - **Glass App Bar**: Floating glass title header with smooth collapse/expand animations.
 - **Glass Tab Bar**: Floating bottom navigation bar with contextual action buttons.
 - **Morphing Modal Sheets**: Smooth morphing animations for modal sheets originating from tap anchors.
+- **Shader & Repaint Optimizations**:
+  - Blurred photo banner backdrops wrapped in `RepaintBoundary` to eliminate GPU canvas redraws during scroll.
+  - `addRepaintBoundaries: true` enabled on sliver lists.

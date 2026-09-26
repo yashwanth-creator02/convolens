@@ -83,3 +83,5 @@ lib/
 2. **Gesture Arena Isolation**: Edge gestures (such as the timeline wave) utilize `onHorizontalDrag*` recognizers combined with `IgnorePointer` layers so vertical list scrolling is never blocked.
 3. **Raster Cache Hints**: Custom painters leverage `isComplex: true` and `willChange: true` on `CustomPaint` widgets for efficient rasterization.
 4. **Disposed Listeners & Timers**: All `StreamSubscription`s, `AnimationController`s, and `ValueNotifier`s are safely disposed in widget lifecycles.
+5. **Scroll Offset Retention with Crossfade Navigation**: The `MainShell` uses an animated `_FadeIndexedStack` that retains widget state and scroll positions across tab switches while applying a smooth 220ms ease-out crossfade.
+6. **Repaint Boundary Isolation for Backdrop Blurs**: Contact photo banners and heavy sliver lists isolate GPU blur and filter effects within `RepaintBoundary` widgets, ensuring that scrolling never triggers expensive backdrop filter redraws.
