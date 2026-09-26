@@ -13,6 +13,7 @@ class ContactSettingsSection extends StatelessWidget {
   final String displayNumber;
   final ContactDetail? detail;
   final AppDatabase db;
+  final Future<void> Function(String number)? onDeleteNumber;
 
   const ContactSettingsSection({
     super.key,
@@ -21,6 +22,7 @@ class ContactSettingsSection extends StatelessWidget {
     required this.displayNumber,
     required this.detail,
     required this.db,
+    this.onDeleteNumber,
   });
 
   Future<void> _exportContact(BuildContext context) async {
@@ -207,6 +209,36 @@ Total calls: ${calls.length}
             ),
           ],
         ),
+        if (onDeleteNumber != null) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              onPressed: () => onDeleteNumber!(
+                displayNumber.isNotEmpty ? displayNumber : normalizedNumber,
+              ),
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                size: 16,
+                color: scheme.error,
+              ),
+              label: Text(
+                'Delete Number',
+                style: TextStyle(
+                  color: scheme.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: scheme.errorContainer.withValues(alpha: 0.45),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

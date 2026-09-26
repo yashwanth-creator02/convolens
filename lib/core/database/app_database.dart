@@ -958,6 +958,33 @@ class AppDatabase extends _$AppDatabase {
     await (delete(contactLinks)..where((l) => l.id.equals(id))).go();
   }
 
+  Future<void> deleteCallsForNumber(String rawOrNormalizedNumber) async {
+    final normalized = normalizePhoneNumber(rawOrNormalizedNumber);
+    final matchingCalls = await (select(calls)..where((c) =>
+      c.number.equals(rawOrNormalizedNumber) |
+      (normalized.isNotEmpty ? c.number.like('%$normalized') : const Constant(false)) |
+      (normalized.isNotEmpty ? c.number.equals(normalized) : const Constant(false))
+    )).get();
+
+    final callIds = matchingCalls.map((c) => c.id).toList();
+    if (callIds.isNotEmpty) {
+      await (delete(callDetails)..where((d) => d.callId.isIn(callIds))).go();
+      await (delete(callTags)..where((t) => t.callId.isIn(callIds))).go();
+      await (delete(callAttachments)..where((a) => a.callId.isIn(callIds))).go();
+      await (delete(calls)..where((c) => c.id.isIn(callIds))).go();
+    }
+  }
+
+  Future<void> deleteContactAndNumberData(String rawOrNormalizedNumber) async {
+    await deleteCallsForNumber(rawOrNormalizedNumber);
+    final normalized = normalizePhoneNumber(rawOrNormalizedNumber);
+    if (normalized.isNotEmpty) {
+      await (delete(contactDetails)..where((cd) => cd.normalizedNumber.equals(normalized))).go();
+      await (delete(contactTags)..where((ct) => ct.normalizedNumber.equals(normalized))).go();
+      await (delete(contactLinks)..where((cl) => cl.normalizedNumber.equals(normalized))).go();
+    }
+  }
+
   // ============================================================
   // PROFILE
   // ============================================================

@@ -641,27 +641,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                             },
                           ),
-                          GlassListTile(
-                            leading: _buildTileLeading(Icons.replay_rounded, scheme),
-                            title: _buildTitleWithInfo(
-                              title: 'Trigger Onboarding Again',
-                              infoTooltip:
-                                  'Replay the initial welcome walkthrough, feature highlights, and permissions setup',
-                              scheme: scheme,
-                            ),
-                            trailing: GlassListTile.chevron,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                CupertinoPageRoute(
-                                  builder: (context) => OnboardingScreen(
-                                    db: widget.db,
-                                    onFinish: () => Navigator.of(context).pop(),
-                                    isRevisit: true,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
                         ],
                       ),
 

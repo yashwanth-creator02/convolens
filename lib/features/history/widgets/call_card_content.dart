@@ -329,119 +329,263 @@ class CallCardContent extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ------------------------------------------------
-                      // Contact Row
+                      // Contact Row (Avatar + Name) with Swipe-to-Call
                       // ------------------------------------------------
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          StreamBuilder<ContactDetail?>(
-                            stream: (phoneNumber != null && phoneNumber.isNotEmpty)
-                                ? db.watchContactDetails(
-                                    normalizePhoneNumber(phoneNumber),
-                                  )
-                                : null,
-                            builder: (context, contactDetailSnap) {
-                              final isFav =
-                                  contactDetailSnap.data?.isFavorite == true;
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () {
-                                  final num = phoneNumber ?? '';
-                                  Navigator.of(context).push(
-                                    CupertinoPageRoute(
-                                      builder: (context) => ContactDetailScreen(
-                                        normalizedNumber:
-                                            normalizePhoneNumber(num),
-                                        displayName: displayTitle,
-                                        displayNumber: num,
-                                        deviceContact: deviceContact,
-                                        db: db,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: FavoriteAvatarRing(
-                                  isFavorite: isFav,
-                                  scheme: scheme,
-                                  ringPadding: 2.0,
-                                  starSize: 9.0,
-                                  child: CircleAvatar(
-                                    radius: isFav ? 20 : 22,
-                                    backgroundImage: deviceContact?.thumbnail !=
-                                            null
-                                        ? ResizeImage(
-                                            MemoryImage(
-                                                deviceContact!.thumbnail!),
-                                            width: 96,
-                                            height: 96,
-                                          )
-                                        : deviceContact?.photo != null
-                                            ? ResizeImage(
-                                                MemoryImage(
-                                                    deviceContact!.photo!),
-                                                width: 96,
-                                                height: 96,
-                                              )
-                                            : null,
-                                    backgroundColor: scheme.secondaryContainer,
-                                    child: (deviceContact?.thumbnail == null &&
-                                            deviceContact?.photo == null)
-                                        ? Text(
-                                            _getInitials(
-                                              hasName
-                                                  ? contactName!
-                                                  : displayTitle,
-                                            ),
-                                            style: TextStyle(
-                                              color:
-                                                  scheme.onSecondaryContainer,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: isFav ? 13 : 14,
-                                            ),
-                                          )
-                                        : null,
+                      (enableSwipeToCall && hasNumber)
+                          ? Dismissible(
+                              key: ValueKey('call_swipe_${call.id}'),
+                              direction: DismissDirection.startToEnd,
+                              confirmDismiss: (direction) async {
+                                HapticFeedback.mediumImpact();
+                                if (direction == DismissDirection.startToEnd) {
+                                  await CallLauncher.call(phoneNumber!);
+                                }
+                                return false;
+                              },
+                              background: Container(
+                                color: Colors.transparent,
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.only(left: 4),
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF10B981),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.call_rounded,
+                                    color: Colors.white,
+                                    size: 20,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (showContactNameSetting || !showName)
-                                  Text(
-                                    displayTitle,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(fontWeight: FontWeight.w600),
-                                  ),
-                                if (displaySubtitle != null) ...[
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    displaySubtitle,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                      fontSize: 13,
+                              ),
+                              child: Container(
+                                color: Colors.transparent,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    StreamBuilder<ContactDetail?>(
+                                      stream: (phoneNumber != null && phoneNumber.isNotEmpty)
+                                          ? db.watchContactDetails(
+                                              normalizePhoneNumber(phoneNumber),
+                                            )
+                                          : null,
+                                      builder: (context, contactDetailSnap) {
+                                        final isFav =
+                                            contactDetailSnap.data?.isFavorite == true;
+                                        return GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () {
+                                            final num = phoneNumber ?? '';
+                                            Navigator.of(context).push(
+                                              CupertinoPageRoute(
+                                                builder: (context) => ContactDetailScreen(
+                                                  normalizedNumber:
+                                                      normalizePhoneNumber(num),
+                                                  displayName: displayTitle,
+                                                  displayNumber: num,
+                                                  deviceContact: deviceContact,
+                                                  db: db,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: FavoriteAvatarRing(
+                                            isFavorite: isFav,
+                                            scheme: scheme,
+                                            ringPadding: 2.0,
+                                            starSize: 9.0,
+                                            child: CircleAvatar(
+                                              radius: isFav ? 20 : 22,
+                                              backgroundImage: deviceContact?.thumbnail !=
+                                                      null
+                                                  ? ResizeImage(
+                                                      MemoryImage(
+                                                          deviceContact!.thumbnail!),
+                                                      width: 96,
+                                                      height: 96,
+                                                    )
+                                                  : deviceContact?.photo != null
+                                                      ? ResizeImage(
+                                                          MemoryImage(
+                                                              deviceContact!.photo!),
+                                                          width: 96,
+                                                          height: 96,
+                                                        )
+                                                      : null,
+                                              backgroundColor: scheme.secondaryContainer,
+                                              child: (deviceContact?.thumbnail == null &&
+                                                      deviceContact?.photo == null)
+                                                  ? Text(
+                                                      _getInitials(
+                                                        hasName
+                                                            ? contactName!
+                                                            : displayTitle,
+                                                      ),
+                                                      style: TextStyle(
+                                                        color:
+                                                            scheme.onSecondaryContainer,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: isFav ? 13 : 14,
+                                                      ),
+                                                    )
+                                                  : null,
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          if (showContactNameSetting || !showName)
+                                            Text(
+                                              displayTitle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: theme.textTheme.titleMedium
+                                                  ?.copyWith(fontWeight: FontWeight.w600),
+                                            ),
+                                          if (displaySubtitle != null) ...[
+                                            const SizedBox(height: 1),
+                                            Text(
+                                              displaySubtitle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: theme.textTheme.bodyMedium?.copyWith(
+                                                color: scheme.onSurfaceVariant,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    if (showCallButton && hasNumber)
+                                      IconButton(
+                                        icon: const Icon(Icons.call_outlined, size: 20),
+                                        onPressed: () => CallLauncher.call(phoneNumber!),
+                                        color: scheme.primary,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                StreamBuilder<ContactDetail?>(
+                                  stream: (phoneNumber != null && phoneNumber.isNotEmpty)
+                                      ? db.watchContactDetails(
+                                          normalizePhoneNumber(phoneNumber),
+                                        )
+                                      : null,
+                                  builder: (context, contactDetailSnap) {
+                                    final isFav =
+                                        contactDetailSnap.data?.isFavorite == true;
+                                    return GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {
+                                        final num = phoneNumber ?? '';
+                                        Navigator.of(context).push(
+                                          CupertinoPageRoute(
+                                            builder: (context) => ContactDetailScreen(
+                                              normalizedNumber:
+                                                  normalizePhoneNumber(num),
+                                              displayName: displayTitle,
+                                              displayNumber: num,
+                                              deviceContact: deviceContact,
+                                              db: db,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: FavoriteAvatarRing(
+                                        isFavorite: isFav,
+                                        scheme: scheme,
+                                        ringPadding: 2.0,
+                                        starSize: 9.0,
+                                        child: CircleAvatar(
+                                          radius: isFav ? 20 : 22,
+                                          backgroundImage: deviceContact?.thumbnail !=
+                                                  null
+                                              ? ResizeImage(
+                                                  MemoryImage(
+                                                      deviceContact!.thumbnail!),
+                                                  width: 96,
+                                                  height: 96,
+                                                )
+                                              : deviceContact?.photo != null
+                                                  ? ResizeImage(
+                                                      MemoryImage(
+                                                          deviceContact!.photo!),
+                                                      width: 96,
+                                                      height: 96,
+                                                    )
+                                                  : null,
+                                          backgroundColor: scheme.secondaryContainer,
+                                          child: (deviceContact?.thumbnail == null &&
+                                                  deviceContact?.photo == null)
+                                              ? Text(
+                                                  _getInitials(
+                                                    hasName
+                                                        ? contactName!
+                                                        : displayTitle,
+                                                  ),
+                                                  style: TextStyle(
+                                                    color:
+                                                        scheme.onSecondaryContainer,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: isFav ? 13 : 14,
+                                                  ),
+                                                )
+                                              : null,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (showContactNameSetting || !showName)
+                                        Text(
+                                          displayTitle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(fontWeight: FontWeight.w600),
+                                        ),
+                                      if (displaySubtitle != null) ...[
+                                        const SizedBox(height: 1),
+                                        Text(
+                                          displaySubtitle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodyMedium?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                ],
+                                ),
+                                if (showCallButton && hasNumber)
+                                  IconButton(
+                                    icon: const Icon(Icons.call_outlined, size: 20),
+                                    onPressed: () => CallLauncher.call(phoneNumber!),
+                                    color: scheme.primary,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
                               ],
                             ),
-                          ),
-                          if (showCallButton && hasNumber)
-                            IconButton(
-                              icon: const Icon(Icons.call_outlined, size: 20),
-                              onPressed: () => CallLauncher.call(phoneNumber!),
-                              color: scheme.primary,
-                              visualDensity: VisualDensity.compact,
-                            ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -452,82 +596,7 @@ class CallCardContent extends StatelessWidget {
       ),
     );
 
-    if (!enableSwipeToCall || !hasNumber) {
-      return cardWidget;
-    }
-
-    return Dismissible(
-      key: ValueKey('call_swipe_${call.id}'),
-      direction: DismissDirection.horizontal,
-      confirmDismiss: (direction) async {
-        HapticFeedback.mediumImpact();
-        if (direction == DismissDirection.startToEnd) {
-          await CallLauncher.call(phoneNumber!);
-        } else if (direction == DismissDirection.endToStart) {
-          await CallLauncher.message(phoneNumber!);
-        }
-        return false;
-      },
-      background: Container(
-        margin: EdgeInsets.fromLTRB(
-          11,
-          hasTopTab ? 18 : 2,
-          11,
-          hasBottomTab ? 18 : 2,
-        ),
-        decoration: BoxDecoration(
-          color: const Color(0xFF10B981).withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        alignment: Alignment.centerLeft,
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.call_rounded, color: Colors.white, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Call',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 13.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-      secondaryBackground: Container(
-        margin: EdgeInsets.fromLTRB(
-          11,
-          hasTopTab ? 18 : 2,
-          11,
-          hasBottomTab ? 18 : 2,
-        ),
-        decoration: BoxDecoration(
-          color: const Color(0xFF3B82F6).withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        alignment: Alignment.centerRight,
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Message',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 13.5,
-              ),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 18),
-          ],
-        ),
-      ),
-      child: cardWidget,
-    );
+    return cardWidget;
   }
 
   String _getInitials(String name) {

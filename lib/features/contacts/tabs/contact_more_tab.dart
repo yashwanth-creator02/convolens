@@ -13,6 +13,7 @@ class ContactMoreTab extends StatelessWidget {
   final String displayNumber;
   final ContactDetail? detail;
   final AppDatabase db;
+  final Future<void> Function(String number)? onDeleteNumber;
 
   const ContactMoreTab({
     super.key,
@@ -21,6 +22,7 @@ class ContactMoreTab extends StatelessWidget {
     required this.displayNumber,
     required this.detail,
     required this.db,
+    this.onDeleteNumber,
   });
 
   @override
@@ -72,6 +74,7 @@ class ContactMoreTab extends StatelessWidget {
             displayNumber: displayNumber,
             detail: detail,
             db: db,
+            onDeleteNumber: onDeleteNumber,
           ),
         ),
 

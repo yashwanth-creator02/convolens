@@ -9,11 +9,13 @@ import 'contact_message_sheet.dart';
 class ContactPhoneNumbersSection extends StatelessWidget {
   final Contact? deviceContact;
   final String fallbackNumber;
+  final Future<void> Function(String number)? onDeleteNumber;
 
   const ContactPhoneNumbersSection({
     super.key,
     this.deviceContact,
     required this.fallbackNumber,
+    this.onDeleteNumber,
   });
 
   Future<void> _call(String number) async {
@@ -183,6 +185,25 @@ class ContactPhoneNumbersSection extends StatelessWidget {
                   ),
                 ),
               ),
+              if (onDeleteNumber != null) ...[
+                const SizedBox(width: 6),
+                Material(
+                  color: scheme.error.withValues(alpha: 0.12),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => onDeleteNumber!(number),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: scheme.error,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),

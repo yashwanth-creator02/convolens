@@ -14,21 +14,26 @@ Future<String?> showNumberPadSheet(BuildContext context) {
   // Ensure preferences are initialized
   NumpadPreferences.init();
 
-  return GlassSheet.show<String>(
+  return showModalBottomSheet<String>(
     context: context,
-    quality: GlassQuality.standard,
-    showDragIndicator: false,
-    isScrollable: false,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    barrierColor: Colors.black.withValues(alpha: 0.5),
+    isScrollControlled: true,
     enableDrag: true,
-    interactionScale: 1.0,
-    enableSaturationGlow: false,
-    enableInteractionGlow: false,
-    suppressInteractionOnChildren: true,
-    topBorderRadius: 28,
-    bottomBorderRadius: 0,
-    margin: EdgeInsets.zero,
-    padding: EdgeInsets.zero,
-    builder: (context) => const _NumberPadSheet(),
+    builder: (sheetContext) => MediaQuery.removePadding(
+      context: sheetContext,
+      removeTop: true,
+      child: const GlassSheet(
+        quality: GlassQuality.standard,
+        showDragIndicator: false,
+        isScrollable: false,
+        topBorderRadius: 28,
+        margin: EdgeInsets.zero,
+        padding: EdgeInsets.zero,
+        child: _NumberPadSheet(),
+      ),
+    ),
   );
 }
 
@@ -117,14 +122,10 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
     final matched = _matchedContact;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    // High opacity solid-frosted backdrop to prevent list content bleeding through
-    final sheetBgColor = scheme.surface.withValues(alpha: isDark ? 0.95 : 0.97);
-
-    // Dynamic sizing based on one-handed mode
+    // Compact dynamic sizing for dial keys and controls
     final double buttonSize = _oneHanded ? 46.0 : 54.0;
     final double callButtonSize = _oneHanded ? 48.0 : 56.0;
     final double digitFontSize = _oneHanded ? 18.0 : 21.0;
@@ -145,10 +146,10 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
               ? Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.12),
+                    color: scheme.primary.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: scheme.primary.withValues(alpha: 0.25),
+                      color: scheme.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -203,7 +204,7 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
                       _digits.isEmpty ? FontWeight.w400 : FontWeight.w700,
                   letterSpacing: _digits.isEmpty ? 0.3 : 1.5,
                   color: _digits.isEmpty
-                      ? scheme.onSurfaceVariant.withValues(alpha: 0.45)
+                      ? scheme.onSurfaceVariant.withValues(alpha: 0.5)
                       : scheme.onSurface,
                 ),
               ),
@@ -224,7 +225,6 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
             setState(() => _digits += '+');
           },
           scheme: scheme,
-          isDark: isDark,
         ),
         SizedBox(height: _oneHanded ? 10 : 14),
 
@@ -233,19 +233,30 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Search in History
+            // Search in History (icon only, no button outline)
             SizedBox(
               width: _oneHanded ? 64 : 74,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: _digits.isNotEmpty ? 1.0 : 0.4,
-                child: GlassButton(
-                  onTap: _digits.isEmpty
-                      ? () {}
-                      : () => Navigator.pop(context, _digits),
-                  icon: Icon(Icons.search_rounded, size: _oneHanded ? 16 : 17),
-                  label: 'Search',
-                  quality: GlassQuality.standard,
+              child: Center(
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: _digits.isNotEmpty ? 1.0 : 0.4,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: _digits.isEmpty
+                          ? null
+                          : () => Navigator.pop(context, _digits),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Icon(
+                          Icons.search_rounded,
+                          size: _oneHanded ? 20 : 22,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -327,26 +338,17 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
       ],
     );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: sheetBgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
-          top: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.3),
-            width: 1,
-          ),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ── Top Header Row with Drag Pill & Top Right One-Hand Mode Button ──
-              Row(
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomInset + 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Top Header Row with Drag Pill & Top Right One-Hand Mode Button ──
+            Transform.translate(
+              offset: const Offset(0, -6),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -381,7 +383,7 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
                           ),
                           decoration: BoxDecoration(
                             color: _oneHanded
-                                ? scheme.primary.withValues(alpha: 0.16)
+                                ? scheme.primary.withValues(alpha: 0.22)
                                 : scheme.surfaceContainerHighest.withValues(alpha: 0.45),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
@@ -421,51 +423,51 @@ class _NumberPadSheetState extends State<_NumberPadSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+            ),
+            const SizedBox(height: 2),
 
-              // ── One-Handed vs Full Mode Layout ──
-              if (_oneHanded)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // If aligned to right: Side controls on Left
-                    if (_alignRight) ...[
-                      _SideControlBar(
-                        onFlipSide: _toggleAlignment,
-                        onExpand: _toggleOneHanded,
-                        flipIcon: Icons.chevron_left_rounded,
-                        flipTooltip: 'Move to Left',
-                        scheme: scheme,
-                      ),
-                      const SizedBox(width: 10),
-                    ],
-
-                    // Compact Numpad
-                    Flexible(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 260),
-                        child: numpadCore,
-                      ),
+            // ── One-Handed vs Full Mode Layout ──
+            if (_oneHanded)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // If aligned to right: Side controls on Left
+                  if (_alignRight) ...[
+                    _SideControlBar(
+                      onFlipSide: _toggleAlignment,
+                      onExpand: _toggleOneHanded,
+                      flipIcon: Icons.chevron_left_rounded,
+                      flipTooltip: 'Move to Left',
+                      scheme: scheme,
                     ),
-
-                    // If aligned to left: Side controls on Right
-                    if (!_alignRight) ...[
-                      const SizedBox(width: 10),
-                      _SideControlBar(
-                        onFlipSide: _toggleAlignment,
-                        onExpand: _toggleOneHanded,
-                        flipIcon: Icons.chevron_right_rounded,
-                        flipTooltip: 'Move to Right',
-                        scheme: scheme,
-                      ),
-                    ],
+                    const SizedBox(width: 10),
                   ],
-                )
-              else
-                numpadCore,
-            ],
-          ),
+
+                  // Compact Numpad
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 260),
+                      child: numpadCore,
+                    ),
+                  ),
+
+                  // If aligned to left: Side controls on Right
+                  if (!_alignRight) ...[
+                    const SizedBox(width: 10),
+                    _SideControlBar(
+                      onFlipSide: _toggleAlignment,
+                      onExpand: _toggleOneHanded,
+                      flipIcon: Icons.chevron_right_rounded,
+                      flipTooltip: 'Move to Right',
+                      scheme: scheme,
+                    ),
+                  ],
+                ],
+              )
+            else
+              numpadCore,
+          ],
         ),
       ),
     );
@@ -520,7 +522,6 @@ class _KeypadGrid extends StatelessWidget {
   final void Function(String) onDigit;
   final VoidCallback onLongPressZero;
   final ColorScheme scheme;
-  final bool isDark;
 
   const _KeypadGrid({
     required this.buttonSize,
@@ -530,7 +531,6 @@ class _KeypadGrid extends StatelessWidget {
     required this.onDigit,
     required this.onLongPressZero,
     required this.scheme,
-    required this.isDark,
   });
 
   static const List<List<({String digit, String letters})>> _layout = [
@@ -577,7 +577,6 @@ class _KeypadGrid extends StatelessWidget {
                     onTap: () => onDigit(item.digit),
                     onLongPress: item.digit == '0' ? onLongPressZero : null,
                     scheme: scheme,
-                    isDark: isDark,
                   ),
               ],
             ),
@@ -597,7 +596,6 @@ class _DialKeyButton extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
   final ColorScheme scheme;
-  final bool isDark;
 
   const _DialKeyButton({
     required this.digit,
@@ -608,7 +606,6 @@ class _DialKeyButton extends StatelessWidget {
     required this.onTap,
     this.onLongPress,
     required this.scheme,
-    required this.isDark,
   });
 
   @override
@@ -626,20 +623,12 @@ class _DialKeyButton extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isDark
-                ? scheme.surfaceContainerHigh.withValues(alpha: 0.88)
-                : scheme.surfaceContainerHighest.withValues(alpha: 0.92),
+            // Increased opacity from original 0.38 to 0.62 for high contrast & clarity while preserving glass transparency
+            color: scheme.surfaceContainerHighest.withValues(alpha: 0.62),
             border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.45),
+              color: scheme.outlineVariant.withValues(alpha: 0.35),
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.shadow.withValues(alpha: isDark ? 0.22 : 0.06),
-                blurRadius: 4,
-                offset: const Offset(0, 1.5),
-              ),
-            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

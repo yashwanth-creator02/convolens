@@ -8,6 +8,8 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/services/contact_cache.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../core/utils/normalize_number.dart';
+import '../../../shared/widgets/confirm_dialog.dart';
 import '../tabs/contact_activity_tab.dart';
 import '../tabs/contact_analytics_tab.dart';
 import '../tabs/contact_more_tab.dart';
@@ -96,6 +98,138 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
       return widget.displayNumber.trim();
     }
     return 'Contact';
+  }
+
+  Future<String?> _showSelectNumberToDeleteDialog(List<Phone> phones) async {
+    String? selected;
+    await GlassDialog.show(
+      context: context,
+      title: 'Select Number to Delete',
+      maxWidth: 320,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: phones.map((p) {
+            final scheme = Theme.of(context).colorScheme;
+            return ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.phone_rounded, color: scheme.primary, size: 20),
+              title: Text(
+                p.number,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+              ),
+              subtitle: p.label.name.isNotEmpty
+                  ? Text(
+                      p.label.name,
+                      style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+                    )
+                  : null,
+              trailing: Icon(Icons.delete_outline_rounded, color: scheme.error, size: 20),
+              onTap: () {
+                selected = p.number;
+                Navigator.of(context, rootNavigator: true).pop();
+              },
+            );
+          }).toList(),
+        ),
+      ),
+      actions: [
+        GlassDialogAction(
+          label: 'Cancel',
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+        ),
+      ],
+    );
+    return selected;
+  }
+
+  Future<void> _deleteNumber(String numberToDelete) async {
+    final contact = _deviceContact;
+    final isDeviceContact = contact != null;
+    final phones = contact?.phones ?? const <Phone>[];
+
+    if (isDeviceContact && phones.length > 1) {
+      final matchingPhone = phones.any((p) =>
+          normalizePhoneNumber(p.number) == normalizePhoneNumber(numberToDelete) ||
+          p.number.replaceAll(RegExp(r'\s+'), '') == numberToDelete.replaceAll(RegExp(r'\s+'), ''));
+
+      if (!matchingPhone) {
+        final picked = await _showSelectNumberToDeleteDialog(phones);
+        if (picked == null || !mounted) return;
+        numberToDelete = picked;
+      }
+    }
+
+    final isMultiNumber = isDeviceContact && phones.length > 1;
+    final contactName = _getTitleText();
+
+    final confirmed = await showConfirmDialog(
+      context: context,
+      title: isMultiNumber ? 'Delete Phone Number?' : 'Delete Contact & Number?',
+      message: isMultiNumber
+          ? 'Are you sure you want to remove $numberToDelete from $contactName? The contact will remain with their other numbers.'
+          : 'Are you sure you want to delete $numberToDelete? This will permanently remove $contactName and its associated call logs and notes.',
+      confirmLabel: isMultiNumber ? 'Delete Number' : 'Delete',
+      isDestructive: true,
+    );
+
+    if (!confirmed || !mounted) return;
+
+    HapticFeedback.heavyImpact();
+
+    try {
+      if (isMultiNumber) {
+        Contact target = contact;
+        if (target.accounts.isEmpty) {
+          final full = await FlutterContacts.getContact(
+            target.id,
+            withAccounts: true,
+            withProperties: true,
+            withPhoto: true,
+            withThumbnail: true,
+          );
+          if (full != null) target = full;
+        }
+
+        final normalizedTarget = normalizePhoneNumber(numberToDelete);
+        target.phones.removeWhere((p) =>
+            normalizePhoneNumber(p.number) == normalizedTarget ||
+            p.number.replaceAll(RegExp(r'\s+'), '') == numberToDelete.replaceAll(RegExp(r'\s+'), ''));
+
+        await target.update();
+        ContactCache.updateContact(target);
+        ContactCache.removeNumber(numberToDelete);
+        await widget.db.deleteCallsForNumber(numberToDelete);
+
+        if (mounted) {
+          setState(() {
+            _deviceContact = target;
+          });
+          ToastService.success(context, 'Number $numberToDelete deleted.');
+        }
+      } else {
+        if (isDeviceContact) {
+          await FlutterContacts.deleteContact(contact);
+          ContactCache.removeContact(contact.id);
+        }
+        ContactCache.removeNumber(numberToDelete);
+        ContactCache.removeNumber(widget.normalizedNumber);
+        await widget.db.deleteContactAndNumberData(numberToDelete);
+        if (widget.normalizedNumber != numberToDelete) {
+          await widget.db.deleteContactAndNumberData(widget.normalizedNumber);
+        }
+
+        if (mounted) {
+          ToastService.success(context, 'Number deleted successfully.');
+          Navigator.of(context).pop(true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastService.error(context, 'Failed to delete number: $e');
+      }
+    }
   }
 
   @override
@@ -316,6 +450,28 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                         );
                       },
                     ),
+                    GlassMenuItem(
+                      title: 'Delete Number',
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 18,
+                        color: scheme.error,
+                      ),
+                      titleStyle: TextStyle(
+                        decoration: TextDecoration.none,
+                        color: scheme.error,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.2,
+                      ),
+                      onTap: () => _deleteNumber(
+                        _deviceContact != null && _deviceContact!.phones.length == 1
+                            ? _deviceContact!.phones.first.number
+                            : widget.displayNumber.isNotEmpty
+                                ? widget.displayNumber
+                                : widget.normalizedNumber,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -393,6 +549,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                             deviceContact: _deviceContact,
                             detail: detail,
                             db: widget.db,
+                            onDeleteNumber: _deleteNumber,
                           ),
                         ),
                         _KeepAlivePage(
@@ -415,6 +572,7 @@ class _ContactDetailScreenState extends State<ContactDetailScreen> {
                             displayNumber: widget.displayNumber,
                             detail: detail,
                             db: widget.db,
+                            onDeleteNumber: _deleteNumber,
                           ),
                         ),
                       ],

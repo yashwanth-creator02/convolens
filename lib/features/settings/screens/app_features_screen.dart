@@ -335,8 +335,8 @@ class _AppFeaturesScreenState extends State<AppFeaturesScreen> {
                         'Direct, gesture-driven calling and messaging from both call history cards and contact cards with non-destructive spring-back physics.',
                     tags: ['History Swipe-to-Call', 'Contact Swipe', 'Swipe-to-SMS', 'Haptics'],
                     bulletPoints: [
-                      'Swipe Right (Emerald Green): Instantly initiates a direct cellular phone call from call history cards or contact cards.',
-                      'Swipe Left (Accent Blue): Quickly opens SMS messaging for the caller or contact.',
+                      'Swipe Right (Emerald Green): Instantly initiates a direct cellular phone call on history call cards and contact cards.',
+                      'Contact Swipe Left (Accent Blue): Quickly opens SMS messaging for contacts in the directory.',
                       'Non-Destructive Spring: Cards spring back cleanly into place with natural physics without deleting records.',
                       'Sensory Haptics: Crisp physical vibration feedback confirms gesture threshold activation.',
                     ],

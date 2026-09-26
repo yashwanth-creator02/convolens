@@ -65,4 +65,20 @@ class ContactCache {
       _byName[name] = updated;
     }
   }
+
+  /// Removes a contact and all its associations from the cache.
+  static void removeContact(String id) {
+    _contacts.removeWhere((c) => c.id == id);
+    _byNumber.removeWhere((_, c) => c.id == id);
+    _byName.removeWhere((_, c) => c.id == id);
+  }
+
+  /// Removes a specific phone number association from the cache.
+  static void removeNumber(String rawOrNormalizedNumber) {
+    final normalized = normalizePhoneNumber(rawOrNormalizedNumber);
+    if (normalized.isNotEmpty) {
+      _byNumber.remove(normalized);
+    }
+    _byNumber.remove(rawOrNormalizedNumber);
+  }
 }

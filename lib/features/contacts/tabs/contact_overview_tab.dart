@@ -15,6 +15,7 @@ class ContactOverviewTab extends StatelessWidget {
   final Contact? deviceContact;
   final ContactDetail? detail;
   final AppDatabase db;
+  final Future<void> Function(String number)? onDeleteNumber;
 
   const ContactOverviewTab({
     super.key,
@@ -23,6 +24,7 @@ class ContactOverviewTab extends StatelessWidget {
     required this.deviceContact,
     required this.detail,
     required this.db,
+    this.onDeleteNumber,
   });
 
   @override
@@ -53,6 +55,7 @@ class ContactOverviewTab extends StatelessWidget {
           child: ContactPhoneNumbersSection(
             deviceContact: deviceContact,
             fallbackNumber: displayNumber,
+            onDeleteNumber: onDeleteNumber,
           ),
         ),
 
