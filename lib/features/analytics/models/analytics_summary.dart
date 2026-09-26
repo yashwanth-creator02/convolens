@@ -50,6 +50,12 @@ class AnalyticsSummary {
   final double answerRate;
   final String peakHourWindow;
   final double weekendCallPercentage;
+  final double callbackLatencyMinutes;
+  final double missedCallReturnRate;
+  final int returnedMissedCalls;
+  final int totalMissedCalls;
+  final double initiationRate;
+  final String recommendedTimeWindow;
 
   const AnalyticsSummary({
     required this.totalCalls,
@@ -94,5 +100,11 @@ class AnalyticsSummary {
     required this.answerRate,
     required this.peakHourWindow,
     required this.weekendCallPercentage,
+    required this.callbackLatencyMinutes,
+    required this.missedCallReturnRate,
+    required this.returnedMissedCalls,
+    required this.totalMissedCalls,
+    required this.initiationRate,
+    required this.recommendedTimeWindow,
   });
 }

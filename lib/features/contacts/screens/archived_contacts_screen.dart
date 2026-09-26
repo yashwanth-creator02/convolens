@@ -7,16 +7,17 @@ import '../../../core/database/app_database.dart';
 import '../models/contact_summary.dart';
 import '../repository/contacts_repository.dart';
 import '../widgets/contact_card.dart';
+import '../../../core/services/contact_cache.dart';
 import 'contact_detail_screen.dart';
 
 class ArchivedContactsScreen extends StatefulWidget {
   final AppDatabase db;
-  final List<Contact> deviceContacts;
+  final List<Contact>? deviceContacts;
 
   const ArchivedContactsScreen({
     super.key,
     required this.db,
-    required this.deviceContacts,
+    this.deviceContacts,
   });
 
   @override
@@ -25,6 +26,9 @@ class ArchivedContactsScreen extends StatefulWidget {
 
 class _ArchivedContactsScreenState extends State<ArchivedContactsScreen> {
   final _titleController = GlassLargeTitleController();
+
+  List<Contact> get _effectiveContacts =>
+      widget.deviceContacts ?? ContactCache.contacts;
 
   @override
   void dispose() {
@@ -52,7 +56,7 @@ class _ArchivedContactsScreenState extends State<ArchivedContactsScreen> {
               final contactColors = colorSnapshot.data ?? const {};
 
               return StreamBuilder<List<ContactSummary>>(
-                stream: repository.watchArchivedContacts(widget.deviceContacts),
+                stream: repository.watchArchivedContacts(_effectiveContacts),
                 builder: (context, snapshot) {
                   final contacts = snapshot.data ?? [];
 

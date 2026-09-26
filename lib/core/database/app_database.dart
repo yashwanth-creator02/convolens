@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../utils/normalize_number.dart';
 import 'models/call_number_stat.dart';
 import 'tables/call_attachments_table.dart';
 import 'tables/call_details_table.dart';
@@ -1710,6 +1711,98 @@ class AppDatabase extends _$AppDatabase {
     return {
       for (final row in rows)
         row.read<String>('month'): row.read<int>('new_contacts'),
+    };
+  }
+
+  Future<Map<String, dynamic>> getCallbackLatencyStats({
+    DateTime? since,
+    DateTime? until,
+    String? contactNumberSuffix,
+    int? tagId,
+  }) async {
+    final buffer = StringBuffer('''
+      SELECT number, timestamp, type
+      FROM calls
+      WHERE type IN (2, 3)
+    ''');
+    final variables = <Variable>[];
+
+    if (since != null) {
+      buffer.write(' AND timestamp >= ?');
+      variables.add(Variable.withInt(since.millisecondsSinceEpoch));
+    }
+    if (until != null) {
+      buffer.write(' AND timestamp <= ?');
+      variables.add(
+        Variable.withInt(
+          until.add(const Duration(hours: 24)).millisecondsSinceEpoch,
+        ),
+      );
+    }
+    if (contactNumberSuffix != null) {
+      buffer.write(' AND number LIKE ?');
+      variables.add(Variable.withString('%$contactNumberSuffix'));
+    }
+    if (tagId != null) {
+      buffer.write(
+        ' AND id IN (SELECT call_id FROM call_tags WHERE tag_id = ?)',
+      );
+      variables.add(Variable.withInt(tagId));
+    }
+    buffer.write(' ORDER BY timestamp ASC');
+
+    final rows = await customSelect(
+      buffer.toString(),
+      variables: variables,
+      readsFrom: {calls},
+    ).get();
+
+    int totalMissed = 0;
+    int returnedCount = 0;
+    final latenciesMinutes = <double>[];
+    final pendingMissed = <String, int>{};
+
+    for (final row in rows) {
+      final type = row.read<int>('type');
+      final rawNum = row.read<String>('number');
+      final ts = row.read<int>('timestamp');
+      final norm = normalizePhoneNumber(rawNum);
+      if (norm.isEmpty) continue;
+
+      if (type == 3) {
+        final inWindow =
+            (since == null || ts >= since.millisecondsSinceEpoch) &&
+            (until == null || ts <= until.millisecondsSinceEpoch);
+        if (inWindow) {
+          totalMissed++;
+          if (!pendingMissed.containsKey(norm)) {
+            pendingMissed[norm] = ts;
+          }
+        }
+      } else if (type == 2) {
+        final missedTs = pendingMissed.remove(norm);
+        if (missedTs != null) {
+          final diffMs = ts - missedTs;
+          if (diffMs > 0 && diffMs <= 86400000) {
+            returnedCount++;
+            latenciesMinutes.add(diffMs / (60 * 1000));
+          }
+        }
+      }
+    }
+
+    final returnRate =
+        totalMissed > 0 ? (returnedCount / totalMissed) * 100 : 100.0;
+    final avgLatency =
+        latenciesMinutes.isNotEmpty
+            ? latenciesMinutes.reduce((a, b) => a + b) / latenciesMinutes.length
+            : 0.0;
+
+    return {
+      'totalMissed': totalMissed,
+      'returnedCount': returnedCount,
+      'returnRate': returnRate,
+      'avgLatencyMinutes': avgLatency,
     };
   }
 }

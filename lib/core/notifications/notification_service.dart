@@ -5,6 +5,7 @@ import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../native/device_channel.dart';
+import '../utils/call_launcher.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
@@ -30,8 +31,22 @@ class NotificationService {
     await _plugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (response) {
-        if (response.payload != null) {
-          onNotificationPayload.value = response.payload;
+        final payload = response.payload;
+        if (response.actionId == 'action_call' && payload != null) {
+          final parts = payload.split(':');
+          if (parts.length >= 3) {
+            CallLauncher.call(parts[2]);
+            return;
+          }
+        } else if (response.actionId == 'action_message' && payload != null) {
+          final parts = payload.split(':');
+          if (parts.length >= 3) {
+            CallLauncher.message(parts[2]);
+            return;
+          }
+        }
+        if (payload != null) {
+          onNotificationPayload.value = payload;
         }
       },
     );
@@ -152,9 +167,21 @@ class NotificationService {
           channelDescription: 'Alerts for missed calls from favorite contacts',
           importance: Importance.high,
           priority: Priority.high,
+          actions: <AndroidNotificationAction>[
+            AndroidNotificationAction(
+              'action_call',
+              'Call Back',
+              showsUserInterface: true,
+            ),
+            AndroidNotificationAction(
+              'action_message',
+              'Message',
+              showsUserInterface: true,
+            ),
+          ],
         ),
       ),
-      payload: 'call:$callId',
+      payload: 'call:$callId:$number',
     );
   }
 

@@ -12,8 +12,10 @@ import 'app_features_screen.dart';
 import 'call_card_settings_screen.dart';
 import 'connect_developer_screen.dart';
 import 'developer_screen.dart';
+import 'notification_troubleshooting_screen.dart';
 import 'permissions_screen.dart';
 import 'theme_screen.dart';
+import '../../contacts/screens/archived_contacts_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final AppDatabase db;
@@ -414,6 +416,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                             },
                           ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.notifications_active_outlined, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'Notification Troubleshooting',
+                              infoTooltip: 'Verify notification channels and trigger test reminders',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassListTile.chevron,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) =>
+                                      const NotificationTroubleshootingScreen(),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
 
@@ -473,6 +492,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               height: 28.0,
                             ),
                             onTap: () => _toggleArchiveMode(context, settings.archiveMode),
+                          ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.archive_outlined, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'Archived Contacts',
+                              infoTooltip:
+                                  'Manage contacts hidden from the main contacts directory',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassListTile.chevron,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) => ArchivedContactsScreen(db: widget.db),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -561,6 +597,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 CupertinoPageRoute(
                                   builder: (context) =>
                                       const ConnectDeveloperScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          GlassListTile(
+                            leading: _buildTileLeading(Icons.auto_awesome_rounded, scheme),
+                            title: _buildTitleWithInfo(
+                              title: 'App Features & Capabilities',
+                              infoTooltip:
+                                  'Explore features, gestures, and tips in Point',
+                              scheme: scheme,
+                            ),
+                            trailing: GlassListTile.chevron,
+                            onTap: () {
+                              Navigator.of(context).push(
+                                CupertinoPageRoute(
+                                  builder: (context) =>
+                                      const AppFeaturesScreen(),
                                 ),
                               );
                             },

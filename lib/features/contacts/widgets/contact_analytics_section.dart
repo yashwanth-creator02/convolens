@@ -52,6 +52,9 @@ class ContactAnalyticsSection extends StatelessWidget {
           contactNumberSuffix: normalizedNumber,
         );
         final timestampsFuture = db.getCallTimestampsForNumber(normalizedNumber);
+        final callbackFuture = db.getCallbackLatencyStats(
+          contactNumberSuffix: normalizedNumber,
+        );
 
         final results = await Future.wait([
           statsFuture,
@@ -61,6 +64,7 @@ class ContactAnalyticsSection extends StatelessWidget {
           weekdayCountsFuture,
           typeCountsFuture,
           timestampsFuture,
+          callbackFuture,
         ]);
 
         final stats = results[0] as Map<String, dynamic>;
@@ -70,6 +74,7 @@ class ContactAnalyticsSection extends StatelessWidget {
         final weekdayCounts = results[4] as Map<int, int>;
         final typeCounts = results[5] as Map<int, int>;
         final timestamps = results[6] as List<int>;
+        final callbackStats = results[7] as Map<String, dynamic>;
         final vitals = computeVitals(timestamps);
 
         return {
@@ -79,6 +84,8 @@ class ContactAnalyticsSection extends StatelessWidget {
           'hourCounts': hourCounts,
           'weekdayCounts': weekdayCounts,
           'typeCounts': typeCounts,
+          'timestamps': timestamps,
+          'callbackStats': callbackStats,
           'vitals': vitals,
         };
       }(),
@@ -204,6 +211,55 @@ class ContactAnalyticsSection extends StatelessWidget {
         final totalDays = weekdayCalls + weekendCalls;
         final weekendPct = totalDays > 0 ? ((weekendCalls / totalDays) * 100).round() : 0;
 
+        final callbackStats =
+            stats['callbackStats'] as Map<String, dynamic>? ?? const {};
+        final totalMissed = (callbackStats['totalMissed'] as int?) ?? 0;
+        final returnedCount = (callbackStats['returnedCount'] as int?) ?? 0;
+        final returnRate =
+            (callbackStats['returnRate'] as num?)?.toDouble() ?? 100.0;
+        final latencyMinutes =
+            (callbackStats['avgLatencyMinutes'] as num?)?.toDouble() ?? 0.0;
+        final latencyStr =
+            totalMissed == 0
+                ? 'Instant'
+                : (returnedCount == 0
+                    ? 'N/A'
+                    : (latencyMinutes < 1
+                        ? '< 1m'
+                        : (latencyMinutes < 60
+                            ? '${latencyMinutes.round()}m'
+                            : '${(latencyMinutes / 60).toStringAsFixed(1)}h')));
+
+        final connected = incoming + outgoing;
+        final youInitiatedPct =
+            connected > 0 ? ((outgoing / connected) * 100).round() : 50;
+
+        int bestWeekday = -1;
+        int maxWeekdayCount = 0;
+        weekdayCounts.forEach((weekday, count) {
+          if (count > maxWeekdayCount) {
+            maxWeekdayCount = count;
+            bestWeekday = weekday;
+          }
+        });
+        const weekdayNames = [
+          'Sundays',
+          'Mondays',
+          'Tuesdays',
+          'Wednesdays',
+          'Thursdays',
+          'Fridays',
+          'Saturdays',
+        ];
+        final bestDayName =
+            (bestWeekday >= 0 && bestWeekday < 7)
+                ? weekdayNames[bestWeekday]
+                : '';
+        final recommendedTime =
+            (bestDayName.isNotEmpty && peakHourWindow.isNotEmpty)
+                ? '$bestDayName, $peakHourWindow'
+                : (peakHourWindow.isNotEmpty ? peakHourWindow : '');
+
         final vitals = stats['vitals'] as RelationshipVitals;
 
         final firstCallDate = stats['firstCallTs'] != null
@@ -213,6 +269,8 @@ class ContactAnalyticsSection extends StatelessWidget {
         final firstCallDateStr = firstCallDate != null
             ? '${firstCallDate.day}/${firstCallDate.month}/${firstCallDate.year}'
             : null;
+
+        final scheme = Theme.of(context).colorScheme;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,12 +316,80 @@ class ContactAnalyticsSection extends StatelessWidget {
                 _stat(context, 'Incoming', '$incoming'),
                 _stat(context, 'Outgoing', '$outgoing'),
                 _stat(context, 'Answer Rate', '$answerRate%'),
+                _stat(context, 'You Initiated', '$youInitiatedPct%'),
+                _stat(context, 'Callback Latency', latencyStr),
+                _stat(context, 'Return Rate', '${returnRate.round()}%'),
                 if (peakHourWindow.isNotEmpty)
                   _stat(context, 'Peak Time', peakHourWindow),
                 if (totalDays > 0)
                   _stat(context, 'Weekend Calls', '$weekendPct%'),
               ],
             ),
+
+            if (recommendedTime.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      scheme.primary.withValues(alpha: 0.12),
+                      scheme.secondary.withValues(alpha: 0.08),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: scheme.primary.withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: scheme.primary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 16,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'BEST TIME TO CALL',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.6,
+                              color: scheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            recommendedTime,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             const SizedBox(height: 20),
             _sectionTitle(context, 'RELATIONSHIP VITALS'),

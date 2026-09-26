@@ -23,8 +23,6 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
   String? _activeLetter;
   double _activeY = 0;
   bool _isInteracting = false;
-  double? _touchStartX;
-  bool _hasScrolledForCurrentTouch = false;
   Timer? _dismissTimer;
 
   static const double _columnWidth = 26.0;
@@ -33,13 +31,11 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
 
   void _handlePointerDown(Offset globalPos) {
     _dismissTimer?.cancel();
-    _touchStartX = globalPos.dx;
-    _hasScrolledForCurrentTouch = false;
 
     setState(() {
       _isInteracting = true;
     });
-    _handleTouch(globalPos, commitScroll: false);
+    _handleTouch(globalPos);
   }
 
   void _handlePointerMove(Offset globalPos) {
@@ -50,22 +46,10 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
       });
     }
 
-    // Detect if finger "moves in" (slides inward to the left towards list by > 12px)
-    bool movedIn = false;
-    if (_touchStartX != null && (_touchStartX! - globalPos.dx) > 12.0) {
-      movedIn = true;
-    }
-
-    _handleTouch(globalPos, commitScroll: movedIn);
+    _handleTouch(globalPos);
   }
 
   void _handlePointerUp() {
-    // "when i leave the strip": commit scroll on finger release
-    if (!_hasScrolledForCurrentTouch && _activeLetter != null) {
-      _hasScrolledForCurrentTouch = true;
-      widget.onLetterSelected(_activeLetter!);
-    }
-
     // Keep wave and bubble briefly visible on release so it gracefully blooms and dissolves
     _dismissTimer?.cancel();
     _dismissTimer = Timer(const Duration(milliseconds: 250), () {
@@ -73,13 +57,12 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
         setState(() {
           _isInteracting = false;
           _activeLetter = null;
-          _touchStartX = null;
         });
       }
     });
   }
 
-  void _handleTouch(Offset globalPos, {required bool commitScroll}) {
+  void _handleTouch(Offset globalPos) {
     if (widget.letters.isEmpty) return;
 
     final renderBox =
@@ -107,10 +90,6 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
 
     if (isNewLetter) {
       HapticFeedback.selectionClick();
-    }
-
-    if (commitScroll && !_hasScrolledForCurrentTouch) {
-      _hasScrolledForCurrentTouch = true;
       widget.onLetterSelected(letter);
     }
   }
@@ -129,7 +108,7 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
     final totalLettersHeight = widget.letters.length * _letterHeight;
     final waveSpread = _letterHeight * 3.2;
 
-    // Expanded strip with comfortable letter spacing (22px per letter).
+    // Expanded strip with comfortable letter spacing (18px per letter).
     // Hit area strictly matches 26px width x totalLettersHeight.
     return SizedBox(
       width: _columnWidth,
@@ -163,9 +142,9 @@ class _GlassAlphabetScrubberState extends State<GlassAlphabetScrubber> {
                 ),
               ),
 
-            // Open Letters column with expanded vertical spacing (22px) and fluid wave displacement
+            // Open Letters column with expanded vertical spacing and fluid wave displacement
             AnimatedOpacity(
-              opacity: _isInteracting ? 1.0 : 0.0,
+              opacity: _isInteracting ? 1.0 : 0.55,
               duration: const Duration(milliseconds: 200),
               child: Container(
                 key: _columnKey,

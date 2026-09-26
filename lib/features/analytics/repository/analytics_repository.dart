@@ -131,6 +131,13 @@ class AnalyticsRepository {
         _db.getLongestCallWithNumber(start, end),
         // 13: newContactsByMonth
         _db.getNewContactsByMonth(start, end),
+        // 14: callbackLatencyStats
+        _db.getCallbackLatencyStats(
+          since: start,
+          until: end,
+          contactNumberSuffix: contact,
+          tagId: filters.tagId,
+        ),
       ]);
 
       final ignoredRows = results[0] as List<ContactDetail>;
@@ -147,6 +154,7 @@ class AnalyticsRepository {
       final durationDist = results[11] as Map<String, int>;
       final longestCallWith = results[12] as Map<String, dynamic>?;
       final newContactsByMonth = results[13] as Map<String, int>;
+      final callbackStats = results[14] as Map<String, dynamic>;
 
       final ignoredNumbers = ignoredRows.map((r) => r.normalizedNumber).toSet();
 
@@ -375,6 +383,47 @@ class AnalyticsRepository {
         totalCalls,
       );
 
+      final callbackLatencyMinutes =
+          (callbackStats['avgLatencyMinutes'] as num?)?.toDouble() ?? 0.0;
+      final missedCallReturnRate =
+          (callbackStats['returnRate'] as num?)?.toDouble() ?? 100.0;
+      final returnedMissedCalls =
+          (callbackStats['returnedCount'] as int?) ?? 0;
+      final totalMissedCalls = (callbackStats['totalMissed'] as int?) ?? 0;
+
+      final connectedCalls =
+          (callTypeCounts[1] ?? 0) + (callTypeCounts[2] ?? 0);
+      final initiationRate =
+          connectedCalls > 0
+              ? ((callTypeCounts[2] ?? 0) / connectedCalls) * 100
+              : 50.0;
+
+      int bestWeekday = -1;
+      int maxWeekdayCount = 0;
+      weekdayCounts.forEach((weekday, count) {
+        if (count > maxWeekdayCount) {
+          maxWeekdayCount = count;
+          bestWeekday = weekday;
+        }
+      });
+      const weekdayNames = [
+        'Sundays',
+        'Mondays',
+        'Tuesdays',
+        'Wednesdays',
+        'Thursdays',
+        'Fridays',
+        'Saturdays',
+      ];
+      final dayName =
+          (bestWeekday >= 0 && bestWeekday < 7)
+              ? weekdayNames[bestWeekday]
+              : 'Weekdays';
+      final recommendedTimeWindow =
+          totalCalls > 0 && maxWeekdayCount > 0
+              ? '$dayName, ${formatHour(bestStartHour)} – ${formatHour(endHour)}'
+              : 'None';
+
       // ============================================================
       // RESULT
       // ============================================================
@@ -433,6 +482,12 @@ class AnalyticsRepository {
         answerRate: answerRate,
         peakHourWindow: peakHourWindow,
         weekendCallPercentage: weekendCallPercentage,
+        callbackLatencyMinutes: callbackLatencyMinutes,
+        missedCallReturnRate: missedCallReturnRate,
+        returnedMissedCalls: returnedMissedCalls,
+        totalMissedCalls: totalMissedCalls,
+        initiationRate: initiationRate,
+        recommendedTimeWindow: recommendedTimeWindow,
       );
     });
   }

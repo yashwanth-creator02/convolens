@@ -773,20 +773,90 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
                         icon: Icons.check_circle_outline_rounded,
                         color: const Color(0xFF10B981),
                         title: 'Answer Rate',
-                        value: '${(summary.answerRate * 100).round()}% connected',
+                        value: '${summary.answerRate.round()}% connected',
                       ),
                     _buildInsightRow(
                       icon: Icons.wb_sunny_outlined,
                       color: const Color(0xFF06B6D4),
                       title: 'Weekend vs Weekday',
                       value:
-                          '${summary.weekdayCalls} weekday (${(100 - summary.weekendCallPercentage * 100).round()}%) • ${summary.weekendCalls} weekend (${(summary.weekendCallPercentage * 100).round()}%)',
+                          '${summary.weekdayCalls} weekday (${(100 - summary.weekendCallPercentage).round()}%) • ${summary.weekendCalls} weekend (${summary.weekendCallPercentage.round()}%)',
                     ),
                     const SizedBox(height: 10),
                     _buildWeekdayWeekendSplitBar(summary),
                   ],
                 ),
               ),
+
+            // ── 5. Responsiveness & Callbacks ─────────────────────────────────
+            AnalyticsCard(
+              title: 'Responsiveness & Callbacks',
+              icon: Icons.replay_rounded,
+              accentColor: const Color(0xFF06B6D4),
+              subtitle: 'How quickly and reliably you follow up on missed calls',
+              infoDescription:
+                  'Measures your communication responsiveness:\n\n• Callback Latency: Average time taken to return a missed call within 24 hours.\n• Return Rate: Percentage of missed calls that were followed up with an outgoing call.\n• Initiation Rate: Percentage of all completed calls you initiated.\n• Best Rhythm: The day and hour window with the highest communication activity.',
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildCallbackMetricTile(
+                          icon: Icons.timer_outlined,
+                          color: const Color(0xFF06B6D4),
+                          label: 'CALLBACK LATENCY',
+                          value: summary.totalMissedCalls == 0
+                              ? 'Instant'
+                              : (summary.returnedMissedCalls == 0
+                                  ? 'N/A'
+                                  : (summary.callbackLatencyMinutes < 1
+                                      ? '< 1 min'
+                                      : (summary.callbackLatencyMinutes < 60
+                                          ? '${summary.callbackLatencyMinutes.round()}m'
+                                          : '${(summary.callbackLatencyMinutes / 60).toStringAsFixed(1)}h'))),
+                          subtitle: summary.returnedMissedCalls > 0
+                              ? 'Avg time to call back'
+                              : 'No callbacks yet',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildCallbackMetricTile(
+                          icon: Icons.assignment_turned_in_rounded,
+                          color: const Color(0xFF10B981),
+                          label: 'RETURN RATE',
+                          value: summary.totalMissedCalls == 0
+                              ? '100%'
+                              : '${summary.missedCallReturnRate.round()}%',
+                          subtitle:
+                              '${summary.returnedMissedCalls} of ${summary.totalMissedCalls} returned',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (summary.recommendedTimeWindow.isNotEmpty &&
+                      summary.recommendedTimeWindow != 'None') ...[
+                    _buildInsightRow(
+                      icon: Icons.auto_awesome_rounded,
+                      color: const Color(0xFF8B5CF6),
+                      title: 'Best Calling Rhythm',
+                      value: summary.recommendedTimeWindow,
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                  _buildInsightRow(
+                    icon: Icons.swap_horiz_rounded,
+                    color: const Color(0xFF3B82F6),
+                    title: 'Initiated by You',
+                    value:
+                        '${summary.initiationRate.round()}% out • ${(100 - summary.initiationRate).round()}% in',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildInitiationSplitBar(summary),
+                ],
+              ),
+            ),
           ]),
         ),
       ),
@@ -2821,6 +2891,123 @@ class AnalyticsScreenState extends State<AnalyticsScreen> {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCallbackMetricTile({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required String value,
+    required String subtitle,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: 0.25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 14, color: color),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+              color: scheme.onSurface,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 10.5,
+              color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInitiationSplitBar(AnalyticsSummary summary) {
+    final youPct = summary.initiationRate.clamp(0.0, 100.0);
+    final themPct = (100.0 - youPct).clamp(0.0, 100.0);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        height: 8,
+        child: Row(
+          children: [
+            Expanded(
+              flex: youPct > 0 ? youPct.round() : 1,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF3B82F6), Color(0xFF06B6D4)],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 2),
+            Expanded(
+              flex: themPct > 0 ? themPct.round() : 1,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF14B8A6)],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

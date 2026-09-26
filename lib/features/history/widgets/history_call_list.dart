@@ -222,7 +222,7 @@ class SliverHistoryCallListState extends State<SliverHistoryCallList> {
         },
         childCount: widget.items.length,
         addAutomaticKeepAlives: false,
-        addRepaintBoundaries: false,
+        addRepaintBoundaries: true,
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -14,6 +15,7 @@ import '../repository/calls_repository.dart';
 import '../utils/build_history_items.dart';
 import '../utils/year_index.dart';
 import '../widgets/history_call_list.dart';
+import '../widgets/history_filter_chips.dart';
 import '../widgets/history_permission_view.dart';
 import '../widgets/timeline_wave_navigator.dart';
 
@@ -60,10 +62,52 @@ class _HistoryScreenState extends State<HistoryScreen>
   bool _permissionPermanentlyDenied = false;
 
   // Cached computation of items and yearIndex to avoid recomputing on build
+  HistoryFilterType _selectedFilter = HistoryFilterType.all;
+  HistoryFilterType? _lastFilter;
   List<Call>? _lastCalls;
   List<Object> _cachedItems = [];
   List<YearIndexEntry> _cachedYearIndex = [];
   Map<int, GlobalKey> _cachedBoundaryKeys = {};
+
+  late final Stream<List<Call>> _callsStream;
+  late final Stream<Map<int, CallDetail>> _detailsStream;
+  late final Stream<Map<int, List<Tag>>> _tagsStream;
+  late final Stream<Map<int, int>> _attachmentCountsStream;
+
+  List<Call> _filterCalls(List<Call> calls) {
+    switch (_selectedFilter) {
+      case HistoryFilterType.all:
+        return calls;
+      case HistoryFilterType.missed:
+        return calls.where((c) => c.type == 3 || c.type == 5 || c.type == 6).toList();
+      case HistoryFilterType.incoming:
+        return calls.where((c) => c.type == 1).toList();
+      case HistoryFilterType.outgoing:
+        return calls.where((c) => c.type == 2).toList();
+      case HistoryFilterType.unknown:
+        return calls.where((c) => c.name == null || c.name!.trim().isEmpty).toList();
+    }
+  }
+
+  Map<HistoryFilterType, int> _computeCounts(List<Call> calls) {
+    int missed = 0;
+    int incoming = 0;
+    int outgoing = 0;
+    int unknown = 0;
+    for (final c in calls) {
+      if (c.type == 3 || c.type == 5 || c.type == 6) missed++;
+      if (c.type == 1) incoming++;
+      if (c.type == 2) outgoing++;
+      if (c.name == null || c.name!.trim().isEmpty) unknown++;
+    }
+    return {
+      HistoryFilterType.all: calls.length,
+      HistoryFilterType.missed: missed,
+      HistoryFilterType.incoming: incoming,
+      HistoryFilterType.outgoing: outgoing,
+      HistoryFilterType.unknown: unknown,
+    };
+  }
 
   @override
   void initState() {
@@ -72,6 +116,10 @@ class _HistoryScreenState extends State<HistoryScreen>
     WidgetsBinding.instance.addObserver(this);
 
     _repository = CallsRepository(widget.db);
+    _callsStream = widget.db.watchAllCalls();
+    _detailsStream = widget.db.watchAllCallDetailsMap();
+    _tagsStream = widget.db.watchAllCallTagsMap();
+    _attachmentCountsStream = widget.db.watchAllCallAttachmentCountsMap();
 
     _settingsSubscription = widget.db.watchSettings().listen((settings) {
       Logger.devModeEnabled = settings.devMode;
@@ -259,6 +307,9 @@ class _HistoryScreenState extends State<HistoryScreen>
   double _calculateExactOffset(int targetIndex) {
     if (targetIndex <= 0 || _cachedItems.isEmpty) return 0.0;
 
+    final topInset = MediaQuery.of(context).padding.top + kToolbarHeight;
+    const largeTitleCollapseTravel = 96.0;
+
     final showBottomTab =
         (_currentSettings?.showCallType ?? true) ||
         (_currentSettings?.showDuration ?? true) ||
@@ -266,7 +317,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     final cardHeight = showBottomTab ? 116.0 : 86.0;
     const headerHeight = 42.0;
 
-    double offset = 0.0;
+    double offset = topInset + largeTitleCollapseTravel;
     final limit = targetIndex.clamp(0, _cachedItems.length);
     for (int i = 0; i < limit; i++) {
       final item = _cachedItems[i];
@@ -284,11 +335,21 @@ class _HistoryScreenState extends State<HistoryScreen>
     final scrollController = widget.titleController.scrollController;
     if (!scrollController.hasClients) return;
 
+    if (itemIndex <= 0) {
+      scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+      return;
+    }
+
     final key = _cachedBoundaryKeys[itemIndex];
     final targetContext = key?.currentContext;
     if (targetContext != null) {
       Scrollable.ensureVisible(
         targetContext,
+        alignment: 0.0,
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeOutCubic,
       );
@@ -300,8 +361,223 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     scrollController.animateTo(
       targetOffset,
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 350),
       curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _showDateJumperSheet(BuildContext context) {
+    HapticFeedback.lightImpact();
+    final scheme = Theme.of(context).colorScheme;
+
+    const monthNames = [
+      '',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    GlassModalSheet.show(
+      context: context,
+      quality: GlassQuality.standard,
+      detents: const {GlassSheetDetent.medium, GlassSheetDetent.large},
+      initialState: GlassSheetState.half,
+      builder: (sheetContext) {
+        return Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: scheme.primary.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.calendar_month_rounded,
+                          size: 18,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Jump to Date',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              'Select a month or year to navigate',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: scheme.onSurfaceVariant.withValues(
+                                  alpha: 0.7,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          _onCommitYear(0);
+                        },
+                        child: GlassContainer(
+                          quality: GlassQuality.standard,
+                          useOwnLayer: false,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 7,
+                          ),
+                          shape: const LiquidRoundedSuperellipse(
+                            borderRadius: 14,
+                          ),
+                          child: Text(
+                            'Today',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.primary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  if (_cachedYearIndex.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Text(
+                          'No history entries found',
+                          style: TextStyle(
+                            color: scheme.onSurfaceVariant.withValues(
+                              alpha: 0.6,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    ..._cachedYearIndex.map((yearEntry) {
+                      final months = buildMonthIndex(
+                        _cachedItems,
+                        yearEntry.year,
+                      );
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                _onCommitYear(yearEntry.itemIndex);
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${yearEntry.year}',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: scheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 11,
+                                    color: scheme.primary.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children:
+                                  months.map((mEntry) {
+                                    final mName =
+                                        (mEntry.month >= 1 &&
+                                                mEntry.month <= 12)
+                                            ? monthNames[mEntry.month]
+                                            : 'M${mEntry.month}';
+                                    return InkWell(
+                                      onTap: () {
+                                        Navigator.of(sheetContext).pop();
+                                        _onCommitYear(mEntry.itemIndex);
+                                      },
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: scheme.surfaceContainerHighest
+                                              .withValues(alpha: 0.25),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          border: Border.all(
+                                            color: scheme.outlineVariant
+                                                .withValues(alpha: 0.2),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          mName,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: scheme.onSurface,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -320,7 +596,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     }
 
     return StreamBuilder<List<Call>>(
-      stream: widget.db.watchAllCalls(),
+      stream: _callsStream,
       builder: (context, callsSnapshot) {
         if (callsSnapshot.connectionState == ConnectionState.waiting &&
             !callsSnapshot.hasData) {
@@ -336,12 +612,15 @@ class _HistoryScreenState extends State<HistoryScreen>
           );
         }
 
-        final calls = callsSnapshot.data ?? [];
+        final allCalls = callsSnapshot.data ?? [];
+        final filteredCalls = _filterCalls(allCalls);
+        final counts = _computeCounts(allCalls);
 
         // Memoize calculation of items and yearIndex
-        if (!identical(_lastCalls, calls)) {
-          _lastCalls = calls;
-          _cachedItems = buildHistoryItems(calls);
+        if (!identical(_lastCalls, filteredCalls) || _lastFilter != _selectedFilter) {
+          _lastCalls = filteredCalls;
+          _lastFilter = _selectedFilter;
+          _cachedItems = buildHistoryItems(filteredCalls);
           _cachedYearIndex = buildYearIndex(_cachedItems);
           _cachedBoundaryKeys = <int, GlobalKey>{
             for (final entry in _cachedYearIndex)
@@ -380,36 +659,79 @@ class _HistoryScreenState extends State<HistoryScreen>
                     text: 'History',
                     controller: widget.titleController,
                   ),
-                  StreamBuilder<Map<int, CallDetail>>(
-                    stream: widget.db.watchAllCallDetailsMap(),
-                    builder: (context, detailsSnapshot) {
-                      final detailsMap = detailsSnapshot.data ?? const {};
-                      return StreamBuilder<Map<int, List<Tag>>>(
-                        stream: widget.db.watchAllCallTagsMap(),
-                        builder: (context, tagsSnapshot) {
-                          final tagsMap = tagsSnapshot.data ?? const {};
-                          return StreamBuilder<Map<int, int>>(
-                            stream: widget.db.watchAllCallAttachmentCountsMap(),
-                            builder: (context, attachmentsSnapshot) {
-                              final attachmentCountsMap =
-                                  attachmentsSnapshot.data ?? const {};
-                              return SliverHistoryCallList(
-                                key: _historyListKey,
-                                items: _cachedItems,
-                                db: widget.db,
-                                settings: _currentSettings,
-                                deviceContacts: _deviceContacts,
-                                boundaryKeys: _cachedBoundaryKeys,
-                                callDetailsMap: detailsMap,
-                                callTagsMap: tagsMap,
-                                attachmentCountsMap: attachmentCountsMap,
-                              );
-                            },
-                          );
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 8),
+                      child: HistoryFilterChips(
+                        currentFilter: _selectedFilter,
+                        counts: counts,
+                        onFilterChanged: (filter) {
+                          if (_selectedFilter != filter) {
+                            HapticFeedback.selectionClick();
+                            setState(() {
+                              _selectedFilter = filter;
+                            });
+                          }
                         },
-                      );
-                    },
+                      ),
+                    ),
                   ),
+                  if (_cachedItems.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _selectedFilter.icon,
+                              size: 48,
+                              color: Theme.of(context).colorScheme.outlineVariant,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No ${_selectedFilter.label.toLowerCase()} calls found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    StreamBuilder<Map<int, CallDetail>>(
+                      stream: _detailsStream,
+                      builder: (context, detailsSnapshot) {
+                        final detailsMap = detailsSnapshot.data ?? const {};
+                        return StreamBuilder<Map<int, List<Tag>>>(
+                          stream: _tagsStream,
+                          builder: (context, tagsSnapshot) {
+                            final tagsMap = tagsSnapshot.data ?? const {};
+                            return StreamBuilder<Map<int, int>>(
+                              stream: _attachmentCountsStream,
+                              builder: (context, attachmentsSnapshot) {
+                                final attachmentCountsMap =
+                                    attachmentsSnapshot.data ?? const {};
+                                return SliverHistoryCallList(
+                                  key: _historyListKey,
+                                  items: _cachedItems,
+                                  db: widget.db,
+                                  settings: _currentSettings,
+                                  deviceContacts: _deviceContacts,
+                                  boundaryKeys: _cachedBoundaryKeys,
+                                  callDetailsMap: detailsMap,
+                                  callTagsMap: tagsMap,
+                                  attachmentCountsMap: attachmentCountsMap,
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
@@ -433,6 +755,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                         left: 0,
                         right: 0,
                         child: IgnorePointer(
+                          ignoring: !isVisible,
                           child: Center(
                             child: AnimatedOpacity(
                               opacity: isVisible ? 1.0 : 0.0,
@@ -442,24 +765,52 @@ class _HistoryScreenState extends State<HistoryScreen>
                                 scale: isVisible ? 1.0 : 0.8,
                                 duration: const Duration(milliseconds: 200),
                                 curve: Curves.easeOutBack,
-                                child: GlassContainer(
-                                  quality: GlassQuality.standard,
-                                  useOwnLayer: false,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 7,
-                                  ),
-                                  shape: const LiquidRoundedSuperellipse(
-                                    borderRadius: 18,
-                                  ),
-                                  child: Text(
-                                    visibleDate,
-                                    style: TextStyle(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurface,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: isVisible
+                                      ? () => _showDateJumperSheet(context)
+                                      : null,
+                                  child: GlassContainer(
+                                    quality: GlassQuality.standard,
+                                    useOwnLayer: false,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 7,
+                                    ),
+                                    shape: const LiquidRoundedSuperellipse(
+                                      borderRadius: 18,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.calendar_today_rounded,
+                                          size: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          visibleDate,
+                                          style: TextStyle(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 13.5,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          size: 16,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),

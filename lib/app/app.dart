@@ -4,8 +4,11 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../core/database/app_database.dart';
 import '../core/notifications/notification_service.dart';
+import '../core/services/contact_cache.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_theme_type.dart';
+import '../core/utils/normalize_number.dart';
+import '../features/contacts/screens/contact_detail_screen.dart';
 import '../features/history/screens/call_details_screen.dart';
 import 'main_shell.dart';
 
@@ -44,7 +47,8 @@ class _AppState extends State<App> {
     NotificationService.onNotificationPayload.value = null;
 
     if (payload.startsWith('call:')) {
-      final callIdStr = payload.substring(5);
+      final callPart = payload.substring(5);
+      final callIdStr = callPart.contains(':') ? callPart.split(':')[0] : callPart;
       final callId = int.tryParse(callIdStr);
       if (callId == null) return;
 
@@ -53,6 +57,24 @@ class _AppState extends State<App> {
         _navigatorKey.currentState?.push(
           CupertinoPageRoute(
             builder: (context) => CallDetailScreen(call: call, db: _db),
+          ),
+        );
+      }
+    } else if (payload.startsWith('contact:')) {
+      final number = payload.substring(8);
+      if (number.isEmpty) return;
+
+      final contact = ContactCache.findContact(number: number);
+      if (mounted) {
+        _navigatorKey.currentState?.push(
+          CupertinoPageRoute(
+            builder: (context) => ContactDetailScreen(
+              normalizedNumber: normalizePhoneNumber(number),
+              displayName: contact?.displayName ?? number,
+              displayNumber: number,
+              deviceContact: contact,
+              db: _db,
+            ),
           ),
         );
       }

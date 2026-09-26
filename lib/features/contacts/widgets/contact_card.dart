@@ -9,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/services/contact_cache.dart';
 import '../../../core/toast/toast_service.dart';
+import '../../../core/utils/call_launcher.dart';
 import '../../../core/widgets/favorite_avatar_ring.dart';
 import '../../profile/utils/vcard_builder.dart';
 import '../models/contact_summary.dart';
@@ -161,7 +162,7 @@ class ContactCard extends StatelessWidget {
     final gradient = _getGradientForName(titleText);
     final cardColor = colorValue != null ? Color(colorValue) : null;
 
-    return RepaintBoundary(
+    final cardWidget = RepaintBoundary(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         child: Material(
@@ -419,6 +420,78 @@ class ContactCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    final phone = contact.displayNumber.trim();
+    if (phone.isEmpty) {
+      return cardWidget;
+    }
+
+    final keyString = contact.normalizedNumber.isNotEmpty
+        ? contact.normalizedNumber
+        : (contact.deviceContactId ?? phone);
+
+    return Dismissible(
+      key: ValueKey('contact_swipe_$keyString'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        HapticFeedback.mediumImpact();
+        if (direction == DismissDirection.startToEnd) {
+          await CallLauncher.call(phone);
+        } else if (direction == DismissDirection.endToStart) {
+          await CallLauncher.message(phone);
+        }
+        return false;
+      },
+      background: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFF10B981).withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        alignment: Alignment.centerLeft,
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.call_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Call',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFF3B82F6).withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        alignment: Alignment.centerRight,
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Message',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 13.5,
+              ),
+            ),
+            SizedBox(width: 8),
+            Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 18),
+          ],
+        ),
+      ),
+      child: cardWidget,
     );
   }
 

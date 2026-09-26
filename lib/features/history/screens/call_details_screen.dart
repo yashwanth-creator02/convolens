@@ -806,10 +806,14 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
               child: Stack(
                 children: [
                   ContactPhotoBanner(
+                    heroTag: phoneNumber.isNotEmpty
+                        ? 'contact_banner_${normalizePhoneNumber(phoneNumber)}'
+                        : null,
                     photo: photo,
                     initials: initials,
                     bannerColor: callTypeColor,
                     height: heroHeight,
+                    borderRadius: 20.0,
                   ),
                   // Favorite Star Chip — top-right
                   if (isFavorite)

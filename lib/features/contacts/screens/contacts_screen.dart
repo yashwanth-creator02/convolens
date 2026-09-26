@@ -51,12 +51,14 @@ class ContactsScreenState extends State<ContactsScreen>
   ContactFilterMode _filterMode = ContactFilterMode.all;
   List<Object> _computedItems = [];
   List<String> _computedOrderedLetters = [];
+  final Map<String, double> _letterRelativeOffsets = {};
 
   void _recomputeListItems() {
     if (_cachedContacts.isEmpty && _cachedArchivedContacts.isEmpty) {
       _computedItems = [];
       _computedOrderedLetters = [];
       _cachedFavoritesList = [];
+      _letterRelativeOffsets.clear();
       return;
     }
 
@@ -84,10 +86,18 @@ class ContactsScreenState extends State<ContactsScreen>
           });
 
         final items = <Object>[];
+        _letterRelativeOffsets.clear();
+        double runningRelOffset = 0.0;
+
         for (final letter in orderedLetters) {
           _letterKeys.putIfAbsent(letter, () => GlobalKey());
+          _letterRelativeOffsets[letter] = runningRelOffset;
           items.add(letter);
-          items.addAll(grouped[letter]!);
+          runningRelOffset += 38.0;
+
+          final list = grouped[letter]!;
+          items.addAll(list);
+          runningRelOffset += list.length * 62.0;
         }
 
         _computedItems = items;
@@ -103,6 +113,7 @@ class ContactsScreenState extends State<ContactsScreen>
           );
         _computedItems = sortedArchived;
         _computedOrderedLetters = [];
+        _letterRelativeOffsets.clear();
         break;
     }
   }
@@ -319,9 +330,6 @@ class ContactsScreenState extends State<ContactsScreen>
   }
 
   void _scrollToLetter(String letter) {
-    final index = _computedItems.indexOf(letter);
-    if (index == -1) return;
-
     final scrollController = widget.titleController.scrollController;
     if (!scrollController.hasClients) return;
 
@@ -331,35 +339,13 @@ class ContactsScreenState extends State<ContactsScreen>
       return;
     }
 
-    double listOffsetBeforeTarget = 0.0;
-    for (int i = 0; i < index; i++) {
-      final item = _computedItems[i];
-      if (item is String) {
-        listOffsetBeforeTarget += 38.0;
-      } else if (item is ContactSummary) {
-        listOffsetBeforeTarget += 62.0;
-      }
+    final rel = _letterRelativeOffsets[letter];
+    if (rel != null) {
+      final baseOffset = 96.0 + _dashboardHeight;
+      final maxScroll = scrollController.position.maxScrollExtent;
+      final target = (baseOffset + rel).clamp(0.0, maxScroll);
+      scrollController.jumpTo(target);
     }
-
-    // 96.0px is the GlassLargeTitle collapse travel.
-    // _dashboardHeight is the FavoritesCarousel + FilterChips header.
-    final baseOffset = 96.0 + _dashboardHeight;
-    final maxScroll = scrollController.position.maxScrollExtent;
-    final target = (baseOffset + listOffsetBeforeTarget).clamp(0.0, maxScroll);
-    scrollController.jumpTo(target);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final key = _letterKeys[letter];
-      if (key?.currentContext != null) {
-        Scrollable.ensureVisible(
-          key!.currentContext!,
-          alignment: 0.0,
-          duration: const Duration(milliseconds: 60),
-          curve: Curves.easeOut,
-        );
-      }
-    });
   }
 
   @override

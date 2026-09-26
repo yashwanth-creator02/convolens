@@ -7,6 +7,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/toast/toast_service.dart';
 import '../../../core/utils/call_launcher.dart';
+import '../../../core/utils/normalize_number.dart';
 import '../../../../shared/contact_photo_banner.dart';
 import 'contact_message_sheet.dart';
 
@@ -168,7 +169,7 @@ class _ContactHeaderState extends State<ContactHeader>
       height: headerHeight,
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: scheme.outlineVariant.withValues(alpha: 0.4),
         ),
@@ -186,10 +187,14 @@ class _ContactHeaderState extends State<ContactHeader>
           // ── Contact image & ambient blur banner ──
           Positioned.fill(
             child: ContactPhotoBanner(
+              heroTag: widget.displayNumber.isNotEmpty
+                  ? 'contact_banner_${normalizePhoneNumber(widget.displayNumber)}'
+                  : null,
               photo: photo,
               initials: initials,
               bannerColor: bannerColor,
               height: headerHeight,
+              borderRadius: 20.0,
             ),
           ),
 
