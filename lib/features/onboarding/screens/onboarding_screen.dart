@@ -1,6 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+
+import '../../../app/main_shell.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../core/notifications/notification_service.dart';
@@ -9,12 +12,14 @@ class OnboardingScreen extends StatefulWidget {
   final AppDatabase db;
   final VoidCallback onFinish;
   final bool isRevisit;
+  final WidgetBuilder? homeBuilder;
 
   const OnboardingScreen({
     super.key,
     required this.db,
     required this.onFinish,
     this.isRevisit = false,
+    this.homeBuilder,
   });
 
   @override
@@ -164,6 +169,21 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     HapticFeedback.mediumImpact();
     await widget.db.setOnboardingCompleted(true);
     widget.onFinish();
+
+    if (!mounted) return;
+    if (widget.isRevisit) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    } else {
+      Navigator.of(context).pushAndRemoveUntil(
+        CupertinoPageRoute(
+          builder: widget.homeBuilder ??
+              (context) => MainShell(db: widget.db),
+        ),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -550,7 +570,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 'Record quick audio notes attached to specific calls and meetings.',
             isGranted: _microphoneGranted,
             onRequest: _requestMicrophonePermission,
-            isOptional: true,
           ),
           const SizedBox(height: 12),
 
@@ -565,7 +584,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 'Guarantees your follow-up reminders trigger at the precise scheduled minute.',
             isGranted: _alarmGranted,
             onRequest: _requestAlarmPermission,
-            isOptional: true,
           ),
           const SizedBox(height: 24),
 

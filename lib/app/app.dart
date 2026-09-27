@@ -115,7 +115,7 @@ class _AppState extends State<App> {
     );
 
     return MaterialApp(
-      key: ValueKey('PointAppMaterialApp_$hasCompletedOnboarding'),
+      key: const ValueKey('PointAppMaterialApp'),
       navigatorKey: _navigatorKey,
       title: 'Point',
       theme: themeType == AppThemeType.light
@@ -138,9 +138,11 @@ class _AppState extends State<App> {
           : OnboardingScreen(
               db: db,
               onFinish: () {
-                setState(() {
-                  _hasCompletedOnboarding = true;
-                });
+                if (mounted) {
+                  setState(() {
+                    _hasCompletedOnboarding = true;
+                  });
+                }
               },
             ),
     );

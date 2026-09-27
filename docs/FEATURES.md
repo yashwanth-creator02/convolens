@@ -116,16 +116,12 @@ Create a digital business card and share details effortlessly.
 
 - **Guided 3-Step Walkthrough**:
   - Automatically launches on first app open, walking new users through timeline navigation, callback latency analytics, and privacy commitments.
-- **Interactive Permissions Checklist**:
-  - Live permission cards with emerald green check badges for:
-    - **Call Logs & Phone Access**: Enables chronological call syncing and callback latency computations.
-    - **Device Contacts**: Matches callers with device contacts and provides duplicate detection.
-    - **Notifications**: Enables missed call return alerts, streak milestones, and scheduled reminders.
-    - **Microphone & Voice Notes**: Enables recording inline voice notes and scanning call recordings.
-    - **Exact Alarms**: Ensures scheduled follow-up notifications arrive at the exact minute.
-  - **"Grant All Required" Action**: Sequentially requests essential permissions in one tap.
+  - Features instantaneous route replacement on "Get Started" or "Skip" to transition straight into the Call History timeline without back-stack anomalies.
+- **Two-Tier Permissions Hub**:
+  - **Screen 2 (Core Essentials)**: Direct, sequential setup for Call Logs, Contacts, and Notifications with "Grant All Required" action.
+  - **Screen 3 (Additional Tools - Optional)**: Clear opt-in setup for Microphone (voice notes) and Exact Alarms (precision reminders) without redundant per-tile badges.
 - **Revisit Anytime**:
-  - Accessible directly in **Settings ➔ Permissions & Security ➔ Welcome Guide & Setup**.
+  - Accessible directly in **Settings ➔ Permissions & Security ➔ Welcome Guide & Setup**, featuring graceful back-stack pop navigation.
 
 ---
 

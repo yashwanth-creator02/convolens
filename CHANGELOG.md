@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.1] - 2026-09-27
+
+### Fixed
+- **Onboarding Route Replacement Navigation**:
+  - Resolved an issue where tapping "Get Started" or "Skip" on the initial launch onboarding walkthrough failed to transition to the main call history screen.
+  - Implemented explicit route replacement with `Navigator.of(context).pushAndRemoveUntil` targeting `MainShell`, decoupling from `MaterialApp.home` rebuild limitations while maintaining safe `Navigator.pop()` in Settings revisit mode.
+- **Onboarding Permissions Header & Tag Alignment**:
+  - Removed redundant `[Optional]` tags from individual permission tiles (Microphone, Exact Alarms) on Screen 3, aligning with the "Additional Tools (Optional)" page header.
+
+### Added
+- **Automated Onboarding Navigation Test Suite**:
+  - Added dedicated widget tests in `test/features/onboarding/onboarding_navigation_test.dart` asserting "Skip" route transitions, "Get Started" execution, permission tag suppression, and revisit mode pop handling.
+
+---
+
 ## [1.5.0] - 2026-09-27
 
 ### Added
