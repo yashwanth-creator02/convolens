@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.2] - 2026-11-15
+
+### Fixed
+- **Timeline Wave Freeze After Over-Drag**:
+  - Horizontal drags that travel past the trigger depth no longer re-manifest the wave under a still-pressed finger; the recognizer stops tracking once the jump has committed.
+  - Retraction now restarts the frame ticker when it is idle, so the wave and fog dematerialize while the finger is still down instead of holding at full depth until release.
+- **Dropped Jumps On Fast Drags**:
+  - The navigator publishes its frame before committing the selection, so a drag that jumps straight from the year level to trigger depth reads the freshly built month and date lists. Previously it read the previous frame's empty lists and committed nothing.
+
+### Added
+- **Timeline Wave Regression Suite**:
+  - `test/features/history/timeline_wave_navigator_test.dart` drives a drag past the trigger, keeps the pointer down, and asserts a single commit, completed dematerialization mid-drag, no re-manifest on further movement, and a clean release.
+
+### Changed
+- **Repository Agent Instructions**:
+  - Added `AGENTS.md` covering stack, commands, conventions, sensitive areas and verification steps; committed the capability policy in `.opencode/opencode.jsonc`; corrected the `lib/app/` tree in `docs/ARCHITECTURE.md`.
+
+---
+
 ## [1.5.1] - 2026-09-27
 
 ### Fixed
