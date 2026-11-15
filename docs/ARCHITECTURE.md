@@ -53,8 +53,8 @@ Convolens follows a layered, feature-first architecture that separates concerns 
 ```
 lib/
 ├── app/
-│   ├── main_shell.dart             # Scaffold hosting main bottom tab navigation
-│   └── routes.dart                 # Navigation route definitions
+│   ├── app.dart                    # MaterialApp, theme and route wiring
+│   └── main_shell.dart             # Scaffold hosting main bottom tab navigation
 ├── core/
 │   ├── database/
 │   │   ├── models/                 # Query result data transfer objects

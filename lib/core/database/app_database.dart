@@ -1002,8 +1002,16 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> setProfileFieldValue(String key, String value) async {
+    final existing = await (select(
+      profileFieldEntries,
+    )..where((f) => f.key.equals(key))).getSingleOrNull();
+
     await into(profileFieldEntries).insertOnConflictUpdate(
-      ProfileFieldEntriesCompanion.insert(key: key, value: Value(value)),
+      ProfileFieldEntriesCompanion.insert(
+        key: key,
+        value: Value(value),
+        shared: existing != null ? const Value.absent() : const Value(true),
+      ),
     );
   }
 

@@ -91,6 +91,7 @@ Create a digital business card and share details effortlessly.
 
 ### Capabilities
 - **Editable Profile**: Manage your display name, primary phone number, email, company, title, and bio.
+- **Granular Field-Level Privacy**: Toggle visibility of any profile field directly next to its input using responsive liquid glass eye controls to include or exclude it from QR code and vCard sharing.
 - **Custom Field Entries**: Add arbitrary custom key-value metadata fields to your profile.
 - **Dynamic QR Code Generator**:
   - Generates QR codes encoded with standard vCard payload format.

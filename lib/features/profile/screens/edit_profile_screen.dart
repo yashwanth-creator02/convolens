@@ -87,15 +87,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         stream: widget.db.watchProfileFields(),
         builder: (context, snapshot) {
           final fields = snapshot.data ?? {};
-          final scheme = Theme.of(context).colorScheme;
-
-          // Collect all fields that have a non-empty value (used in Exclude section)
-          final filledDefs = profileFieldDefs
-              .where((def) {
-                final v = fields[def.key]?.value;
-                return v != null && v.isNotEmpty;
-              })
-              .toList();
 
           return Material(
             type: MaterialType.transparency,
@@ -145,83 +136,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                         );
                       }),
-
-                      // ── Exclude from Sharing section ───────────────────
-                      if (filledDefs.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildSectionHeader(
-                                context,
-                                title: 'Exclude from Sharing',
-                                icon: Icons.visibility_off_outlined,
-                              ),
-                              const SizedBox(height: 8),
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 2,
-                                  bottom: 12,
-                                ),
-                                child: Text(
-                                  'Tap a field chip to hide it when sharing your contact card.',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    height: 1.45,
-                                    color: scheme.onSurfaceVariant.withValues(
-                                      alpha: 0.65,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: filledDefs.map((def) {
-                                  final entry = fields[def.key];
-                                  final isExcluded = !(entry?.shared ?? true);
-                                  return GlassChip(
-                                    label: def.label,
-                                    selected: isExcluded,
-                                    selectedColor: scheme.error.withValues(
-                                      alpha: 0.22,
-                                    ),
-                                    icon: Icon(
-                                      isExcluded
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_outlined,
-                                      size: 14,
-                                      color: isExcluded
-                                          ? scheme.error
-                                          : scheme.onSurfaceVariant.withValues(
-                                              alpha: 0.7,
-                                            ),
-                                    ),
-                                    labelStyle: TextStyle(
-                                      color: isExcluded
-                                          ? scheme.error
-                                          : scheme.onSurface,
-                                      fontWeight: isExcluded
-                                          ? FontWeight.w700
-                                          : FontWeight.w500,
-                                      fontSize: 13,
-                                    ),
-                                    quality: GlassQuality.standard,
-                                    useOwnLayer: false,
-                                    onTap: () {
-                                      HapticFeedback.selectionClick();
-                                      widget.db.setProfileFieldShared(
-                                        def.key,
-                                        isExcluded,
-                                      );
-                                    },
-                                  );
-                                }).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
                     ]),
                   ),
                 ),
@@ -310,28 +224,101 @@ class _FieldEditorState extends State<_FieldEditor> {
               ),
             ),
           ),
-          GlassTextField(
-            controller: _controller,
-            placeholder: 'Enter ${widget.def.label.toLowerCase()}…',
-            keyboardType: _keyboardTypeFor(widget.def.type),
-            minLines: 1,
-            maxLines: isMultiline ? 3 : 1,
-            quality: GlassQuality.standard,
-            useOwnLayer: false,
-            shape: const LiquidRoundedRectangle(borderRadius: 14),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            textStyle: TextStyle(
-              fontSize: 14.5,
-              color: scheme.onSurface,
-            ),
-            placeholderStyle: TextStyle(
-              fontSize: 14,
-              color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
-            ),
-            onChanged: (value) =>
-                widget.db.setProfileFieldValue(widget.def.key, value),
+          Row(
+            crossAxisAlignment: isMultiline
+                ? CrossAxisAlignment.start
+                : CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: GlassTextField(
+                  controller: _controller,
+                  placeholder: 'Enter ${widget.def.label.toLowerCase()}…',
+                  keyboardType: _keyboardTypeFor(widget.def.type),
+                  minLines: 1,
+                  maxLines: isMultiline ? 3 : 1,
+                  quality: GlassQuality.standard,
+                  useOwnLayer: false,
+                  shape: const LiquidRoundedRectangle(borderRadius: 14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  textStyle: TextStyle(
+                    fontSize: 14.5,
+                    color: scheme.onSurface,
+                  ),
+                  placeholderStyle: TextStyle(
+                    fontSize: 14,
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.45),
+                  ),
+                  onChanged: (value) =>
+                      widget.db.setProfileFieldValue(widget.def.key, value),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _EyeShareButton(
+                db: widget.db,
+                def: widget.def,
+                entry: widget.entry,
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Per-field eye/share toggle ───────────────────────────────────
+
+class _EyeShareButton extends StatelessWidget {
+  final AppDatabase db;
+  final ProfileFieldDef def;
+  final ProfileFieldEntry? entry;
+
+  const _EyeShareButton({
+    required this.db,
+    required this.def,
+    required this.entry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final isShared = entry?.shared ?? true;
+
+    return Tooltip(
+      message: isShared
+          ? '${def.label}: Sharable (tap to hide)'
+          : '${def.label}: Excluded (tap to share)',
+      child: GlassIconButton(
+        size: 46,
+        shape: GlassIconButtonShape.roundedSquare,
+        borderRadius: 14,
+        quality: GlassQuality.standard,
+        useOwnLayer: false,
+        glowColor: isShared
+            ? scheme.primary.withValues(alpha: 0.25)
+            : scheme.error.withValues(alpha: 0.2),
+        onPressed: () {
+          HapticFeedback.selectionClick();
+          db.setProfileFieldShared(def.key, !isShared);
+        },
+        icon: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (child, animation) {
+            return ScaleTransition(
+              scale: animation,
+              child: child,
+            );
+          },
+          child: Icon(
+            isShared ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+            key: ValueKey<bool>(isShared),
+            size: 20,
+            color: isShared
+                ? scheme.primary
+                : scheme.error.withValues(alpha: 0.85),
+          ),
+        ),
       ),
     );
   }

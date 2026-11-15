@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.5.2] - 2026-11-15
+
+### Added
+- **Per-Field Granular Profile Privacy Controls**:
+  - Embedded dedicated `GlassIconButton` privacy toggle directly alongside each personal data entry field in `EditProfileScreen`.
+  - Responsive visual states featuring smooth `ScaleTransition` between `Icons.visibility_rounded` (sharable, primary theme glow) and `Icons.visibility_off_rounded` (excluded, error tint glow).
+  - Tapping seamlessly flips the inclusion status in real-time, syncing immediately to digital vCard profile exports and dynamic QR code generation.
+- **Timeline Wave Regression Suite**:
+  - Added `test/features/history/timeline_wave_navigator_test.dart` driving drags past the trigger, asserting single-commit execution, mid-drag retraction, suppression of re-manifestation, and clean release.
+
+### Fixed
+- **Timeline Wave Freeze After Over-Drag**:
+  - Horizontal drags that travel past the trigger depth no longer re-manifest the wave under a still-pressed finger; the recognizer stops tracking once the jump has committed.
+  - Retraction now restarts the frame ticker when it is idle, so the wave and fog dematerialize while the finger is still down instead of holding at full depth until release.
+- **Dropped Jumps On Fast Drags**:
+  - The navigator publishes its frame before committing the selection, so a drag that jumps straight from the year level to trigger depth reads the freshly built month and date lists. Previously it read the previous frame's empty lists and committed nothing.
+
+### Changed
+- **Streamlined Profile Editing Layout**:
+  - Completely removed the redundant bottom "Exclude from Sharing" chip section, eliminating duplicate lists and placing privacy controls in context with their inputs.
+- **Persistent Profile Field Sharing Defaults**:
+  - Updated `AppDatabase.setProfileFieldValue` to default newly created profile fields to `shared = true` while strictly preserving existing user customization on updates.
+- **Repository Agent Instructions**:
+  - Added `AGENTS.md` covering stack, commands, conventions, sensitive areas and verification steps; committed the capability policy in `.opencode/opencode.jsonc`; corrected the `lib/app/` tree in `docs/ARCHITECTURE.md`.
+
+---
+
 ## [1.5.1] - 2026-09-27
 
 ### Fixed

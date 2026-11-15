@@ -342,17 +342,8 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
       }
     }
 
-    // Inching closer trigger check
-    if (navState == WaveNavState.triggerReady &&
-        !_hasTriggered &&
-        !_isRetracting) {
-      _hasTriggered = true;
-      HapticFeedback.mediumImpact();
-      _commitSelection(targetLevel, selectedIndex);
-      _startRetraction();
-      return;
-    }
-
+    // Publish the frame before any commit so _commitSelection and the
+    // retraction read the freshly built level lists, not the previous frame's.
     _state.value = _WaveState(
       active: true,
       displayY: displayY,
@@ -367,6 +358,16 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
       dates: _cachedDateIndex,
       timeSeconds: timeSeconds,
     );
+
+    // Inching closer trigger check
+    if (navState == WaveNavState.triggerReady &&
+        !_hasTriggered &&
+        !_isRetracting) {
+      _hasTriggered = true;
+      HapticFeedback.mediumImpact();
+      _commitSelection(targetLevel, selectedIndex);
+      _startRetraction();
+    }
   }
 
   int? _nearestIndexFor(double y, int count) {
@@ -406,6 +407,9 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
   }
 
   void _onPanUpdate(DragUpdateDetails details, double availableHeight) {
+    // Once the gesture has committed, the wave retracts; further movement
+    // must not re-manifest it under a stopped ticker.
+    if (_hasTriggered) return;
     _availableHeight = availableHeight;
     _currentDx = details.localPosition.dx;
     _targetY = details.localPosition.dy.clamp(12.0, availableHeight - 12.0);
@@ -417,9 +421,17 @@ class _TimelineWaveNavigatorState extends State<TimelineWaveNavigator>
     _retractionProgress = 1.0;
     _retractionStartDepth = _state.value.pullDepth;
     _startDx = null;
+    // Retraction only advances in _onTick, so the ticker must be running or
+    // the wave stays materialized forever.
+    if (!_ticker.isActive) {
+      _lastElapsed = Duration.zero;
+      _ticker.start();
+    }
   }
 
   void _endDrag() {
+    // A triggered gesture already committed and is retracting on its own.
+    if (_hasTriggered) return;
     final currentState = _state.value;
 
     // Abort if released in the abort zone (near screen edge)
